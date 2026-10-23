@@ -16,13 +16,69 @@ const inter = Inter({
   display: "swap",
 });
 
+const SITE_URL = "https://instacar.vercel.app";
+const SITE_NAME = "InstaCar";
+const SHORT_DESCRIPTION = "Rent a car easily in the Philippines with flexible 10, 12, or 24-hour tiers, pickup, or delivery options.";
+const FULL_DESCRIPTION = "InstaCar — a premier car rental service in the Philippines offering flexible 10-hour, 12-hour, and 24-hour rental tiers with convenient pickup or doorstep delivery.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "InstaCar Rental Service",
+    default: "InstaCar Rental Service | Car Rental Philippines",
     template: "%s | InstaCar",
   },
-  description:
-    "InstaCar — a car rental service in the Philippines offering flexible 10-hour, 12-hour and 24-hour rental tiers with pickup or delivery.",
+  description: FULL_DESCRIPTION,
+  applicationName: SITE_NAME,
+  authors: [{ name: "InstaCar Team" }],
+  generator: "Next.js",
+  keywords: [
+    "car rental philippines",
+    "rent a car",
+    "instacar",
+    "car rental service",
+    "flexible car rental",
+    "car delivery philippines",
+  ],
+  // Open Graph (Facebook, LinkedIn, Discord, etc.)
+  openGraph: {
+    type: "website",
+    url: SITE_URL,
+    title: "InstaCar Rental Service — Flexible Car Rentals in the Philippines",
+    description: SHORT_DESCRIPTION,
+    siteName: SITE_NAME,
+    images: [
+      {
+        url: "/logo.png",
+        width: 1200,
+        height: 630,
+        alt: "InstaCar Rental Service Logo",
+      },
+    ],
+    locale: "en_PH",
+  },
+  // Twitter Cards
+  twitter: {
+    card: "summary_large_image",
+    title: "InstaCar Rental Service",
+    description: SHORT_DESCRIPTION,
+    images: ["/logo.png"],
+  },
+  // Robots indexing
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  // Verification if you use Google Search Console later
+  verification: {
+    // google: "your-google-verification-code",
+  },
 };
 
 /**
