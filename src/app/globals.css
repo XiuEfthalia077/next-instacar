@@ -1,26 +1,631 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+  InstaCar theme tokens.
+
+  The legacy PHP app uses two yellows:
+    - #ffcc00 -> public marketing site, auth pages, most UI accents
+    - #FFD700 -> dashboard sidebar / topbar avatar / datatable pagination
+
+  They are visually near-identical. We keep #ffcc00 as the shadcn `primary`
+  and expose #FFD700 through the `--sidebar-*` tokens so the dashboard shell
+  keeps its exact legacy look.
+*/
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --radius: 0.75rem;
+
+  /* shadcn / light (dashboard shell — legacy body background #f8f9fa) */
+  --background: #f8f9fa;
+  --foreground: #0a0a0a;
+  --card: #ffffff;
+  --card-foreground: #0a0a0a;
+  --popover: #ffffff;
+  --popover-foreground: #0a0a0a;
+
+  --primary: #ffcc00;
+  --primary-foreground: #000000;
+
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+
+  --accent: #fff3b0;
+  --accent-foreground: #0a0a0a;
+
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+
+  --success: #22c55e;
+  --success-foreground: #052e16;
+
+  --warning: #ffc107;
+  --warning-foreground: #0a0a0a;
+
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #ffcc00;
+
+  --chart-1: #ffcc00;
+  --chart-2: #10b981;
+  --chart-3: #6366f1;
+  --chart-4: #f43f5e;
+  --chart-5: #8b5cf6;
+
+  /* legacy dashboard sidebar (black + #FFD700) */
+  --sidebar: #000000;
+  --sidebar-foreground: #eeeeee;
+  --sidebar-primary: #ffd700;
+  --sidebar-primary-foreground: #000000;
+  --sidebar-accent: #1a1a1a;
+  --sidebar-accent-foreground: #ffd700;
+  --sidebar-border: #333333;
+  --sidebar-ring: #ffd700;
+
+  /* legacy marketing / auth surface */
+  --surface: #0a0a0a;
+  --surface-raised: #1a1a1a;
+  --surface-soft: #121212;
+  --surface-border: #2c2c2c;
+  --brand-yellow: #ffcc00;
+  --brand-yellow-hover: #e0b800;
+  --brand-yellow-soft: #e6b800;
+
+  /* legacy marketing tokens (car-rental/index.php) */
+  --brand-card-bg: #1a1a1a;
+  --brand-border: #2c2c2c;
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ffffff;
+  --card: #1a1a1a;
+  --card-foreground: #ffffff;
+  --popover: #1a1a1a;
+  --popover-foreground: #ffffff;
+
+  --primary: #ffcc00;
+  --primary-foreground: #000000;
+
+  --secondary: #232323;
+  --secondary-foreground: #ffffff;
+
+  --muted: #232323;
+  --muted-foreground: #a1a1aa;
+
+  --accent: #262100;
+  --accent-foreground: #ffcc00;
+
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+
+  --border: #2c2c2c;
+  --input: #2c2c2c;
+  --ring: #ffcc00;
+
+  --sidebar: #000000;
+  --sidebar-foreground: #eeeeee;
+  --sidebar-primary: #ffd700;
+  --sidebar-primary-foreground: #000000;
+  --sidebar-accent: #1a1a1a;
+  --sidebar-accent-foreground: #ffd700;
+  --sidebar-border: #333333;
+  --sidebar-ring: #ffd700;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-soft: var(--surface-soft);
+  --color-surface-border: var(--surface-border);
+  --color-brand-yellow: var(--brand-yellow);
+  --color-brand-yellow-hover: var(--brand-yellow-hover);
+  --color-brand-yellow-soft: var(--brand-yellow-soft);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  }
+
+  /* legacy dark scrollbar (public site) */
+  .dark body::-webkit-scrollbar {
+    width: 6px;
+  }
+  .dark body::-webkit-scrollbar-track {
+    background: #1e1e1e;
+  }
+  .dark body::-webkit-scrollbar-thumb {
+    background: #ffcc00;
+    border-radius: 12px;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  /* legacy gradient brand text used by the navbar + hero */
+  .brand-gradient-text {
+    background: linear-gradient(135deg, #ffffff 30%, #ffcc00 80%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .hero-gradient-text {
+    background: linear-gradient(135deg, #ffcc00 20%, #ffdd55);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* legacy primary CTA (btn-primary-custom) */
+  .btn-primary-custom {
+    background: #ffcc00;
+    color: #000;
+    font-weight: 700;
+    border: none;
+    border-radius: 40px;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(255, 204, 0, 0.3);
+  }
+  .btn-primary-custom:hover {
+    background: #e0b800;
+    color: #000;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(255, 204, 0, 0.25);
+  }
+
+  .btn-yellow-outline {
+    background: transparent;
+    border: 2px solid #ffcc00;
+    border-radius: 40px;
+    font-weight: 600;
+    color: #ffcc00;
+    transition: all 0.2s;
+  }
+  .btn-yellow-outline:hover {
+    background: #ffcc00;
+    color: #000;
+  }
+
+  /* legacy dark form control (marketing contact form) */
+  .form-control-dark {
+    background-color: #121212;
+    border: 1px solid #2c2c2c;
+    color: #fff;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    width: 100%;
+  }
+  .form-control-dark:focus {
+    background: #161616;
+    border-color: #ffcc00;
+    box-shadow: none;
+    outline: none;
+  }
+  .form-control-dark::placeholder {
+    color: #a1a1aa;
+    opacity: 1;
+  }
+
+  /* ---------------------------------------------------------------------
+     Marketing site — ported 1:1 from the <style> block of
+     car-rental/index.php
+     ------------------------------------------------------------------- */
+
+  .badge-promo {
+    background: rgba(255, 204, 0, 0.12);
+    border: 1px solid rgba(255, 204, 0, 0.4);
+    border-radius: 100px;
+    padding: 8px 20px;
+    font-weight: 600;
+  }
+
+  .hero-title {
+    font-weight: 800;
+    font-size: 3.8rem;
+    line-height: 1.15;
+    letter-spacing: -1.5px;
+  }
+
+  .feature-card-modern {
+    background: var(--brand-card-bg);
+    border-radius: 24px;
+    padding: 2rem 1.8rem;
+    border: 1px solid var(--brand-border);
+    transition: all 0.3s ease;
+    height: 100%;
+  }
+  .feature-card-modern:hover {
+    transform: translateY(-6px);
+    border-color: var(--brand-yellow);
+  }
+
+  .icon-circle {
+    width: 60px;
+    height: 60px;
+    background: rgba(255, 204, 0, 0.12);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    color: var(--brand-yellow);
+    margin-bottom: 1.25rem;
+    flex-shrink: 0;
+  }
+
+  .car-card-premium {
+    background: var(--brand-card-bg);
+    border-radius: 24px;
+    overflow: hidden;
+    border: 1px solid #2a2a2a;
+    transition: all 0.3s;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  .car-card-premium:hover {
+    border-color: #ffcc00;
+    transform: translateY(-4px);
+  }
+
+  .car-img-wrapper {
+    height: 220px;
+    background: #0e0e0e;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .car-img-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+  }
+  .car-card-premium:hover .car-img-wrapper img {
+    transform: scale(1.05);
+  }
+
+  .price-tag {
+    font-weight: 800;
+    font-size: 1.5rem;
+    color: var(--brand-yellow);
+  }
+
+  /* MOBILE HORIZONTAL CAROUSEL SNAP FEATURE */
+  @media (max-width: 767.98px) {
+    .hero-title {
+      font-size: 2.5rem;
+    }
+
+    .mobile-car-carousel {
+      display: flex !important;
+      flex-wrap: nowrap !important;
+      overflow-x: auto !important;
+      scroll-snap-type: x mandatory !important;
+      scroll-behavior: smooth !important;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 1.5rem;
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+      margin-left: -0.75rem;
+      margin-right: -0.75rem;
+    }
+
+    .mobile-car-carousel::-webkit-scrollbar {
+      height: 4px;
+    }
+    .mobile-car-carousel::-webkit-scrollbar-thumb {
+      background: var(--brand-yellow);
+      border-radius: 10px;
+    }
+
+    .mobile-car-carousel .car-item-col {
+      flex: 0 0 85% !important;
+      max-width: 85% !important;
+      scroll-snap-align: center !important;
+      padding-left: 0.5rem !important;
+      padding-right: 0.5rem !important;
+    }
+  }
+
+  /* ---------------------------------------------------------------------
+     Auth pages — ported from login.php / register.php /
+     pages/user/forgot.php / pages/user/reset.php
+     ------------------------------------------------------------------- */
+
+  .auth-page {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 40px 20px;
+    background-color: #121212;
+    color: #ffffff;
+    font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  }
+  .auth-page a {
+    color: #ffcc00;
+    text-decoration: none;
+    transition: 0.3s;
+  }
+  .auth-page a:hover {
+    color: #ffffff;
+  }
+  .auth-page .text-yellow {
+    color: #ffcc00 !important;
+  }
+  .auth-page .text-muted {
+    color: #888 !important;
+  }
+
+  .auth-box {
+    width: 100%;
+    max-width: 420px;
+    background-color: #1e1e1e;
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid gray;
+  }
+  .auth-box-register {
+    max-width: 450px;
+    border: 1px solid white;
+  }
+  .auth-box-reset {
+    background: #121212;
+    border: 1px solid gray;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+  }
+
+  .auth-brand-logo {
+    font-size: 3.5rem;
+    line-height: 1;
+    color: #ffcc00;
+    margin-bottom: 10px;
+  }
+  .auth-brand-name {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 30px;
+  }
+
+  .auth-form-label {
+    display: block;
+    color: #bbb;
+    margin-bottom: 0.5rem !important;
+  }
+
+  .auth-form-control {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #ffcc00;
+    background-color: #2a2a2a;
+    color: white;
+    margin-bottom: 1rem;
+  }
+  .auth-form-control:focus {
+    background-color: #2a2a2a;
+    color: white;
+    border-color: #ffcc00;
+    box-shadow: 0 0 0 0.25rem rgba(255, 204, 0, 0.25);
+    outline: none;
+  }
+  .auth-form-control::placeholder {
+    color: #a0a0a0;
+    opacity: 1;
+  }
+  /* Reset page uses a lighter box with a white border (reset.php) */
+  .auth-box-reset .auth-form-control {
+    background-color: #1e1e1e !important;
+    border: 1px solid white !important;
+    color: #ffffff !important;
+  }
+
+  .btn-login,
+  .btn-register,
+  .btn-brand {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    font-weight: 700;
+    background-color: #ffcc00;
+    border: none;
+    color: black;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .btn-login:hover,
+  .btn-register:hover,
+  .btn-brand:hover {
+    background-color: #e6b800;
+    color: black;
+    transform: translateY(-2px);
+  }
+
+  .btn-google {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    font-weight: 600;
+    background-color: #2a2a2a;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+  .btn-google:hover {
+    background: #333333;
+    border-color: #ffcc00;
+    color: #ffcc00;
+    transform: translateY(-2px);
+  }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: #888;
+    margin: 20px 0;
+    font-size: 0.85rem;
+  }
+  .divider::before,
+  .divider::after {
+    content: "";
+    flex: 1;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  .divider:not(:empty)::before {
+    margin-right: 0.5em;
+  }
+  .divider:not(:empty)::after {
+    margin-left: 0.5em;
+  }
+
+  .btn-back-home {
+    position: absolute;
+    top: 25px;
+    left: 25px;
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 8px 18px;
+    border-radius: 30px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    z-index: 100;
+  }
+  .btn-back-home:hover {
+    background: #ffcc00;
+    color: #000;
+    border-color: #ffcc00;
+    transform: translateX(-3px);
+  }
+
+  .password-container {
+    position: relative;
+  }
+  .password-container .auth-form-control {
+    padding-right: 45px;
+    margin-bottom: 0;
+  }
+
+  .toggle-password {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #a0a0a0;
+    transition: color 0.2s ease;
+    z-index: 10;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    line-height: 0;
+  }
+  .toggle-password:hover {
+    color: #ffcc00;
+  }
+
+  /* Chrome / Safari / Edge autofill override (login.php) */
+  .auth-form-control:-webkit-autofill,
+  .auth-form-control:-webkit-autofill:hover,
+  .auth-form-control:-webkit-autofill:focus,
+  .auth-form-control:-webkit-autofill:active {
+    -webkit-text-fill-color: #ffffff !important;
+    -webkit-box-shadow: 0 0 0px 1000px #2a2a2a inset !important;
+    transition: background-color 5000s ease-in-out 0s;
+    border: 1px solid #ffcc00 !important;
+  }
+  .auth-box-reset .auth-form-control:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0px 1000px #1e1e1e inset !important;
+  }
+
+  /* Dashboard sidebar scrollbar (car-rental/pages/components/sidebar.php) */
+  #sidebar::-webkit-scrollbar {
+    width: 4px;
+  }
+  #sidebar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  #sidebar::-webkit-scrollbar-thumb {
+    background: #FFD700;
+    border-radius: 10px;
+  }
 }
