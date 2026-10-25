@@ -9,14 +9,21 @@ import {
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { DocumentPreviewButton, type BookingDocument } from "@/components/admin/document-preview";
+import {
+  BookingDocumentButton,
+  BookingPhotoThumbnail,
+} from "@/components/shared/booking-document-viewer";
+import type { BookingDocument } from "@/components/admin/document-preview";
+import { FileUploadDropzone } from "@/components/common/file-upload-dropzone";
 import { Flash } from "@/components/common/flash";
+import { LoadingButton } from "@/components/common/loading-button";
 import { Money } from "@/components/common/money";
 import { PageHeader } from "@/components/common/page-header";
 import { SectionCard } from "@/components/common/section-card";
 import { StatusBadge } from "@/components/common/status-badge";
 import { BookingActions } from "@/components/shared/booking-actions";
 import { ConfirmSubmit } from "@/components/shared/confirm-submit";
+import { PayBalanceDialog } from "@/components/shared/pay-balance-dialog";
 import { PrintButton } from "@/components/shared/print-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -300,52 +307,46 @@ export default async function SharedBookingDetailsPage({
               </p>
 
               {documents.length ? (
-                <div className="mb-4 flex flex-wrap gap-1.5">
+                <div className="mb-4 flex flex-wrap gap-2">
                   {documents.map((document) => (
-                    <DocumentPreviewButton key={document.key} document={document} compact />
+                    <BookingDocumentButton
+                      key={document.key}
+                      label={document.label}
+                      url={document.url}
+                      fileName={`${document.label}.jpg`}
+                    />
                   ))}
                 </div>
               ) : null}
 
               {photos.length > 0 ? (
-                <div className="grid gap-2 grid-cols-3 sm:grid-cols-4 md:grid-cols-5">
+                <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5">
                   {photos.map((photo, index) => {
                     const url = photoUrls[index] ?? "";
-                    const pdf = isPdf(photo.file_name);
                     return (
-                      <div key={photo.id} className="relative aspect-square overflow-hidden rounded-lg border border-border bg-black">
-                        {canWrite ? (
-                          <form action={deleteBookingItemAction} className="absolute right-1 top-1 z-10">
-                            <input type="hidden" name="type" value="photo" />
-                            <input type="hidden" name="photo_id" value={photo.id} />
-                            <input type="hidden" name="booking_id" value={booking.id} />
-                            <input type="hidden" name="file_name" value={photo.file_name} />
-                            <ConfirmSubmit
-                              message="Are you sure you want to delete this document?"
-                              title="Delete file"
-                              className="flex size-6 items-center justify-center rounded-full bg-rose-600 text-white shadow"
-                            >
-                              &times;
-                            </ConfirmSubmit>
-                          </form>
-                        ) : null}
-                        <a
-                          href={url || "#"}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex h-full w-full items-center justify-center p-2 text-center"
-                        >
-                          {pdf || !url ? (
-                            <>
-                              <FileText className="size-6 text-rose-400" />
-                              <span className="sr-only">{photo.file_name}</span>
-                            </>
-                          ) : (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={url} alt="Customer document" className="h-full w-full object-cover" />
-                          )}
-                        </a>
-                      </div>
+                      <BookingPhotoThumbnail
+                        key={photo.id}
+                        url={url}
+                        fileName={photo.file_name}
+                        canDelete={canWrite}
+                        deleteForm={
+                          canWrite ? (
+                            <form action={deleteBookingItemAction} className="absolute right-1 top-1 z-10">
+                              <input type="hidden" name="type" value="photo" />
+                              <input type="hidden" name="photo_id" value={photo.id} />
+                              <input type="hidden" name="booking_id" value={booking.id} />
+                              <input type="hidden" name="file_name" value={photo.file_name} />
+                              <ConfirmSubmit
+                                message="Are you sure you want to delete this document?"
+                                title="Delete file"
+                                className="flex size-6 items-center justify-center rounded-full bg-rose-600 text-white shadow hover:bg-rose-500"
+                              >
+                                &times;
+                              </ConfirmSubmit>
+                            </form>
+                          ) : null
+                        }
+                      />
                     );
                   })}
                 </div>
@@ -394,32 +395,30 @@ export default async function SharedBookingDetailsPage({
               )}
 
               {!isUser ? (
-                <form action={addCustomerInfoAction} className="space-y-3" encType="multipart/form-data">
+                <form action={addCustomerInfoAction} className="space-y-4" encType="multipart/form-data">
                   <input type="hidden" name="booking_id" value={booking.id} />
                   <div>
-                    <Label htmlFor="customer_photos" className="mb-1 block text-xs font-bold">
-                      Upload Primary ID / Photos
+                    <Label className="mb-1.5 block text-xs font-bold text-foreground">
+                      Upload Verification IDs & Photos
                     </Label>
-                    <Input
-                      id="customer_photos"
-                      type="file"
+                    <FileUploadDropzone
                       name="customer_photos"
                       multiple
                       accept="image/*,.pdf"
-                      className="cursor-pointer rounded-lg file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-2.5 file:py-1 file:text-xs file:font-semibold"
+                      maxSizeMB={5}
+                      helperText="Drag & drop JPG, PNG or PDF documents (multiple allowed, max 5MB each)."
                     />
-                    <p className="mt-1 text-[11px] text-muted-foreground">JPG, PNG or PDF (multiple allowed).</p>
                   </div>
                   <div>
-                    <Label htmlFor="new_remark" className="mb-1 block text-xs font-bold">
+                    <Label htmlFor="new_remark" className="mb-1.5 block text-xs font-bold text-foreground">
                       Add New Remark / Note
                     </Label>
                     <Textarea id="new_remark" name="new_remark" rows={3} placeholder="Type new remark or notes here..." />
                   </div>
                   <div className="text-right">
-                    <Button type="submit" className="bg-[#ffcc00] font-bold text-black hover:bg-[#e6b800]">
+                    <LoadingButton type="submit" className="bg-[#ffcc00] font-bold text-black hover:bg-[#e6b800]">
                       Save Customer Updates
-                    </Button>
+                    </LoadingButton>
                   </div>
                 </form>
               ) : null}
@@ -477,6 +476,18 @@ export default async function SharedBookingDetailsPage({
                 <Money value={remainingBal} />
               </div>
             </div>
+
+            {canStatus && remainingBal > 0 ? (
+              <div className="border-t border-border p-4">
+                <PayBalanceDialog
+                  bookingId={booking.id}
+                  remainingBalance={remainingBal}
+                  totalRental={totalRental}
+                  alreadyPaid={downPayment}
+                  customerName={displayName}
+                />
+              </div>
+            ) : null}
           </SectionCard>
 
           {booking.remarks ? (

@@ -19,7 +19,7 @@ import type { AppSession, Branch } from "@/lib/types";
 const THEME_STORAGE_KEY = "instacar-admin-theme";
 
 export function ThemeToggle() {
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState(true);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

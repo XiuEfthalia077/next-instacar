@@ -1,12 +1,13 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
+import { Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 /**
  * Small submit button that asks for confirmation before submitting its
- * parent form — the legacy inline `onsubmit="return confirm(...)"` pattern.
+ * parent form with active loading spinner and transition.
  */
 export function ConfirmSubmit({
   message,
@@ -29,9 +30,13 @@ export function ConfirmSubmit({
       onClick={(event) => {
         if (!window.confirm(message)) event.preventDefault();
       }}
-      className={cn(className, pending && "opacity-50")}
+      className={cn(
+        "cursor-pointer transition-all duration-200 active:scale-95 disabled:pointer-events-none disabled:opacity-50 inline-flex items-center justify-center gap-1.5",
+        className,
+        pending && "opacity-70 cursor-wait",
+      )}
     >
-      {children}
+      {pending ? <Loader2 className="size-3.5 animate-spin" /> : children}
     </button>
   );
 }

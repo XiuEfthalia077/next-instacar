@@ -1184,6 +1184,109 @@ export async function deleteBookingItemAction(formData: FormData) {
 }
 
 /* ------------------------------------------------------------------ */
+/* 6b. Pay remaining balance (staff / admin)                           */
+/* ------------------------------------------------------------------ */
+
+export async function payRemainingBalanceAction(formData: FormData) {
+  const session = await requireRole("admin", "staff");
+
+  const bookingId = int(formData, "booking_id");
+  const back = `/shared/booking_details?id=${bookingId}`;
+
+  if (!bookingId) {
+    flashRedirect("/shared/calendar", "error", "Invalid booking.");
+  }
+
+  const supabase = await getSupabase();
+  const { data: bookingData } = await supabase
+    .from("bookings")
+    .select("id, branch_id, total_price, down_payment, proof_payment_path")
+    .eq("id", bookingId)
+    .maybeSingle();
+
+  const booking = bookingData as {
+    id: number;
+    branch_id: number | null;
+    total_price: number | null;
+    down_payment: number | null;
+    proof_payment_path: string | null;
+  } | null;
+
+  if (!booking) {
+    flashRedirect(back, "error", "Booking not found.");
+  }
+
+  assertBranchAccess(session, booking.branch_id, back);
+
+  const amount = money(formData, "amount");
+  const method = str(formData, "payment_method", "Cash");
+  const reference = str(formData, "reference_number");
+  const notes = str(formData, "notes");
+
+  if (amount <= 0) {
+    flashRedirect(back, "error", "Payment amount must be greater than zero.");
+  }
+
+  const currentBal = Number(booking.total_price ?? 0);
+  const currentPaid = Number(booking.down_payment ?? 0);
+
+  const newBalance = Math.max(0, currentBal - amount);
+  const newDownPayment = currentPaid + amount;
+
+  // Handle optional receipt upload
+  const receiptFile = file(formData, "receipt_photo");
+  let newReceiptPath = booking.proof_payment_path;
+
+  if (receiptFile) {
+    const fileName = buildFileName(`payment_bal_${bookingId}`, receiptFile);
+    const result = await uploadFile(supabase, {
+      bucket: BUCKETS.bookingUploads,
+      folder: `booking_${bookingId}`,
+      fileName,
+      file: receiptFile,
+    });
+    if (result.ok) {
+      newReceiptPath = `booking_${bookingId}/${fileName}`;
+    }
+  }
+
+  // Update booking balance
+  const { error } = await supabase
+    .from("bookings")
+    .update({
+      total_price: newBalance,
+      down_payment: newDownPayment,
+      proof_payment_path: newReceiptPath,
+      last_action_by: session.userId,
+      last_action_at: new Date().toISOString(),
+      last_action_type: "Payment Recorded",
+    })
+    .eq("id", bookingId);
+
+  if (error) {
+    flashRedirect(back, "error", `Payment update failed: ${error.message}`);
+  }
+
+  // Insert remark log
+  const refText = reference ? ` (Ref: ${reference})` : "";
+  const notesText = notes ? ` — Notes: ${notes}` : "";
+  const remarkText = `Payment received: ₱${amount.toLocaleString("en-US", { minimumFractionDigits: 2 })} via ${method}${refText}${notesText}. Remaining balance: ₱${newBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}.`;
+
+  await supabase.from("booking_remarks").insert({
+    booking_id: bookingId,
+    created_by: session.userId,
+    remark: remarkText,
+  });
+
+  refreshBookingViews(bookingId);
+  flashRedirect(
+    back,
+    "success",
+    `Payment of ₱${amount.toFixed(2)} recorded successfully! Remaining balance: ₱${newBalance.toFixed(2)}.`,
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* 7. Online booking (customer)                                        */
 /* ------------------------------------------------------------------ */
 

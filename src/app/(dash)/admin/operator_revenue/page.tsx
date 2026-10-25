@@ -1,38 +1,32 @@
-import { Banknote, CircleCheck, Wallet } from "lucide-react";
+import { Banknote, CircleCheck, Search, Users, Wallet } from "lucide-react";
+import { connection } from "next/server";
 
-import { peso } from "@/components/admin/finance-format";
-import { OperatorBookingsDialog } from "@/components/admin/operator-bookings-dialog";
-import { RemittanceHistoryDialog } from "@/components/admin/remittance-history-dialog";
+import {
+  OperatorRemittanceGroup,
+  type OperatorGroup,
+} from "@/components/admin/operator-remittance-group";
 import type { RemittanceHistoryItem } from "@/components/admin/remittance-history-dialog";
-import { RemittanceRecordDialog } from "@/components/admin/remittance-record-dialog";
 import {
   remittanceStatus,
-  RemittanceStatusBadge,
 } from "@/components/admin/remittance-status-badge";
 import type { RemittanceStatus } from "@/components/admin/remittance-status-badge";
-import { SearchableGrid } from "@/components/admin/searchable-grid";
-import type { SearchableGridItem } from "@/components/admin/searchable-grid";
+import { FilterBar, FilterField, filterControlClass } from "@/components/common/filter-bar";
 import { Flash } from "@/components/common/flash";
-import { FilterField, filterControlClass } from "@/components/common/filter-bar";
 import { Money } from "@/components/common/money";
 import { PageHeader } from "@/components/common/page-header";
 import { StatCard } from "@/components/common/stat-card";
 import { getSupabase, requireRole } from "@/lib/auth";
-import { connection } from "next/server";
 import { listBranches } from "@/lib/data/cars";
 import { operatorRemittances } from "@/lib/data/finance";
 import { fetchRows } from "@/lib/data/scope";
 import { manilaToday } from "@/lib/datetime";
 import { readFlash, searchParam } from "@/lib/flash";
 import { remittanceProofUrlMap } from "@/lib/remittance-proofs";
-import { cn } from "@/lib/utils";
 
 /**
- * Operator Remittances — port of `car-rental/pages/admin/operator_revenue.php`.
- *
- * One card per operator-owned car with the company's outstanding share, the
- * amount already remitted and the remaining balance. The card keeps the
- * legacy "View Bookings", "Record Payment" and "Payment History" actions.
+ * Operator Remittances — Centralized view grouped by Car Owner (Operator).
+ * Each owner displays a single summary block with total owed, paid, and balance,
+ * which can be expanded to view the breakdown of specific cars and record payments.
  */
 
 const STATUS_VALUES: RemittanceStatus[] = [
@@ -50,34 +44,6 @@ function statusFilter(value: string | undefined): StatusFilter {
     : "all";
 }
 
-function MoneyBox({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: number;
-  tone?: "paid" | "balance-clear" | "balance-due";
-}) {
-  return (
-    <div className="rounded-xl bg-muted/50 px-2 py-2.5 text-center">
-      <p className="text-[0.6rem] font-extrabold uppercase tracking-[0.08em] text-muted-foreground">
-        {label}
-      </p>
-      <p
-        className={cn(
-          "mt-0.5 text-base font-extrabold tabular-nums",
-          tone === "paid" && "text-emerald-700 dark:text-emerald-400",
-          tone === "balance-clear" && "text-emerald-700 dark:text-emerald-400",
-          tone === "balance-due" && "text-rose-700 dark:text-rose-400",
-        )}
-      >
-        {peso(value)}
-      </p>
-    </div>
-  );
-}
-
 export const instant = false;
 
 export default async function AdminOperatorRevenuePage({
@@ -91,6 +57,7 @@ export default async function AdminOperatorRevenuePage({
   const flash = readFlash(params);
 
   const selectedStatus = statusFilter(searchParam(params, "status"));
+  const searchQuery = searchParam(params, "search")?.toLowerCase().trim() || "";
 
   const rawOperator = searchParam(params, "operator_id") ?? "all";
   const parsedOperator = Number.parseInt(rawOperator, 10);
@@ -102,8 +69,6 @@ export default async function AdminOperatorRevenuePage({
   const [{ cars, rows }, branches, operators] = await Promise.all([
     operatorRemittances(session),
     listBranches(),
-    // Missing read-only query: the legacy page loaded every operator for its
-    // filter dropdown; no data-layer helper exists for that yet.
     getSupabase().then((supabase) =>
       fetchRows<{ id: number; name: string | null }>(
         supabase
@@ -125,11 +90,24 @@ export default async function AdminOperatorRevenuePage({
     (car) => selectedOperator === null || car.operatorId === selectedOperator,
   );
 
-  const visibleCars = scopedCars.filter(
-    (car) =>
-      selectedStatus === "all" ||
-      remittanceStatus(car.totalOwed, car.totalPaid) === selectedStatus,
-  );
+  const visibleCars = scopedCars.filter((car) => {
+    if (
+      selectedStatus !== "all" &&
+      remittanceStatus(car.totalOwed, car.totalPaid) !== selectedStatus
+    ) {
+      return false;
+    }
+
+    if (searchQuery) {
+      const matchCar = [car.brand, car.model, car.plateNumber, car.operatorName]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      if (!matchCar.includes(searchQuery)) return false;
+    }
+
+    return true;
+  });
 
   const totalOwed = visibleCars.reduce((sum, car) => sum + car.totalOwed, 0);
   const totalPaid = visibleCars.reduce((sum, car) => sum + car.totalPaid, 0);
@@ -145,12 +123,12 @@ export default async function AdminOperatorRevenuePage({
     visibleRows.flatMap((row) => row.photos),
   );
 
-  const rowsByCar = new Map<number, RemittanceHistoryItem[]>();
+  const rowsByCarRecord: Record<number, RemittanceHistoryItem[]> = {};
 
   for (const row of visibleRows) {
     if (row.car_id === null) continue;
 
-    const list = rowsByCar.get(row.car_id) ?? [];
+    const list = rowsByCarRecord[row.car_id] ?? [];
     list.push({
       id: row.id,
       amount: Number(row.amount ?? 0),
@@ -164,99 +142,54 @@ export default async function AdminOperatorRevenuePage({
         isPdf: /\.pdf$/i.test(photo.file_name),
       })),
     });
-    rowsByCar.set(row.car_id, list);
+    rowsByCarRecord[row.car_id] = list;
   }
 
+  // Group visible cars by Operator Owner
+  const groupsMap = new Map<number, OperatorGroup>();
+
+  for (const car of visibleCars) {
+    const opId = car.operatorId ?? 0;
+    const opName = car.operatorName ?? `Operator #${opId}`;
+    let grp = groupsMap.get(opId);
+    if (!grp) {
+      grp = {
+        operatorId: opId,
+        operatorName: opName,
+        totalOwed: 0,
+        totalPaid: 0,
+        balance: 0,
+        cars: [],
+      };
+      groupsMap.set(opId, grp);
+    }
+    grp.totalOwed += car.totalOwed;
+    grp.totalPaid += car.totalPaid;
+    grp.balance += car.balance;
+    grp.cars.push(car);
+  }
+
+  const groups = Array.from(groupsMap.values());
   const today = manilaToday();
-
-  const gridItems: SearchableGridItem[] = visibleCars.map((car) => {
-    const status = remittanceStatus(car.totalOwed, car.totalPaid);
-    const isClear = car.balance <= 0 && car.totalOwed > 0;
-    const history = rowsByCar.get(car.carId) ?? [];
-
-    const carName = [car.brand, car.model].filter(Boolean).join(" ") || "Vehicle";
-    const carLabel = car.plateNumber
-      ? `${carName} [${car.plateNumber}]`
-      : carName;
-
-    return {
-      key: String(car.carId),
-      search: [car.brand, car.model, car.plateNumber, car.operatorName]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase(),
-      node: (
-        <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition hover:-translate-y-0.5 hover:border-[#ffd700] hover:shadow-[0_0_0_1px_#ffd700,0_6px_18px_-6px_rgba(255,215,0,0.5)]">
-          <div className="flex items-start justify-between gap-2 border-b border-border p-4 md:p-5">
-            <div className="min-w-0">
-              <p className="truncate text-base font-extrabold text-foreground">
-                {carName}
-                {car.plateNumber ? (
-                  <span className="pl-1 text-sm font-semibold text-muted-foreground">
-                    · {car.plateNumber}
-                  </span>
-                ) : null}
-              </p>
-              <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                Owned by{" "}
-                <strong className="font-bold text-foreground">
-                  {car.operatorName ?? "Unknown Operator"}
-                </strong>
-                {car.branchName ? ` · ${car.branchName}` : ""}
-              </p>
-            </div>
-            <RemittanceStatusBadge status={status} />
-          </div>
-
-          <div className="grid grid-cols-1 gap-2 border-b border-border p-4 sm:grid-cols-3">
-            <MoneyBox label="Owed" value={car.totalOwed} />
-            <MoneyBox label="Paid" value={car.totalPaid} tone="paid" />
-            <MoneyBox
-              label="Balance"
-              value={car.balance}
-              tone={isClear ? "balance-clear" : "balance-due"}
-            />
-          </div>
-
-          <div className="mt-auto flex flex-wrap items-center justify-between gap-2 bg-[#fffbe6] p-3 dark:bg-[#1a1600]">
-            <RemittanceRecordDialog
-              kind="operator"
-              targetId={car.carId}
-              label={carLabel}
-              meta={car.operatorName}
-              balance={car.balance}
-              today={today}
-            />
-
-            <div className="flex flex-wrap items-center gap-2">
-              <OperatorBookingsDialog
-                label={carLabel}
-                bookings={car.bookings}
-              />
-
-              <RemittanceHistoryDialog
-                kind="operator"
-                label={carLabel}
-                items={history}
-              />
-            </div>
-          </div>
-        </div>
-      ),
-    };
-  });
 
   return (
     <>
       <PageHeader
-        title="Operator Remittances"
+        title="Centralized Operator Remittance"
         subtitle={branchLabel}
-        description="Track what the company owes operators and record payments."
+        description="Centralized revenue tracking grouped by vehicle owner with expandable car breakdowns."
       />
 
       <Flash {...flash} />
 
-      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+      {/* KPI Overview */}
+      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
+        <StatCard
+          label="Total Operators"
+          value={groups.length}
+          hint="Owners with activity"
+          icon={Users}
+        />
         <StatCard
           label="Total Owed"
           value={<Money value={totalOwed} />}
@@ -267,7 +200,7 @@ export default async function AdminOperatorRevenuePage({
         <StatCard
           label="Total Paid"
           value={
-            <span className="text-emerald-700 dark:text-emerald-400">
+            <span className="text-emerald-500">
               <Money value={totalPaid} />
             </span>
           }
@@ -281,8 +214,8 @@ export default async function AdminOperatorRevenuePage({
             <span
               className={
                 totalBalance > 0
-                  ? "text-rose-700 dark:text-rose-400"
-                  : "text-emerald-700 dark:text-emerald-400"
+                  ? "text-rose-500"
+                  : "text-emerald-500"
               }
             >
               <Money value={totalBalance} />
@@ -294,51 +227,70 @@ export default async function AdminOperatorRevenuePage({
         />
       </div>
 
-      <SearchableGrid
-        key={`${selectedOperator ?? "all"}:${selectedStatus}`}
-        items={gridItems}
-        resetHref="/admin/operator_revenue"
-        searchId="carSearch"
-        searchPlaceholder="Search car, plate, or operator..."
-        emptyTitle="No operator cars found"
-        emptyDescription="Either no operator cars exist, or the filters you set returned nothing."
-        noMatchTitle="No cars match your search"
-        noMatchDescription="Try a different car name, plate, or operator."
-        filterControls={
-          <>
-            <FilterField label="Operator" className="max-w-[240px]">
-              <select
-                name="operator_id"
-                defaultValue={
-                  selectedOperator === null ? "all" : String(selectedOperator)
-                }
-                className={filterControlClass}
-              >
-                <option value="all">All Operators</option>
-                {operators.map((operator) => (
-                  <option key={operator.id} value={operator.id}>
-                    {operator.name ?? `Operator #${operator.id}`}
-                  </option>
-                ))}
-              </select>
-            </FilterField>
-
-            <FilterField label="Status" className="max-w-[200px]">
-              <select
-                name="status"
-                defaultValue={selectedStatus}
-                className={filterControlClass}
-              >
-                <option value="all">All Status</option>
-                <option value="unpaid">Unpaid</option>
-                <option value="partial">Partial</option>
-                <option value="paid">Paid</option>
-                <option value="no-activity">No Activity</option>
-              </select>
-            </FilterField>
-          </>
+      {/* Filters */}
+      <FilterBar
+        actions={
+          <button
+            type="submit"
+            className="h-10 rounded-xl bg-[#ffcc00] px-5 text-sm font-bold text-black transition hover:bg-[#ffd633]"
+          >
+            Filter
+          </button>
         }
-      />
+      >
+        <FilterField label="Search Vehicle / Operator">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              name="search"
+              defaultValue={searchQuery}
+              placeholder="Car brand, model, plate, or owner..."
+              className={`${filterControlClass} pl-9`}
+            />
+          </div>
+        </FilterField>
+
+        <FilterField label="Operator">
+          <select
+            name="operator_id"
+            defaultValue={
+              selectedOperator === null ? "all" : String(selectedOperator)
+            }
+            className={filterControlClass}
+          >
+            <option value="all">All Operators</option>
+            {operators.map((operator) => (
+              <option key={operator.id} value={operator.id}>
+                {operator.name ?? `Operator #${operator.id}`}
+              </option>
+            ))}
+          </select>
+        </FilterField>
+
+        <FilterField label="Status">
+          <select
+            name="status"
+            defaultValue={selectedStatus}
+            className={filterControlClass}
+          >
+            <option value="all">All Statuses</option>
+            <option value="unpaid">Unpaid</option>
+            <option value="partial">Partial</option>
+            <option value="paid">Paid</option>
+            <option value="no-activity">No Activity</option>
+          </select>
+        </FilterField>
+      </FilterBar>
+
+      {/* Centralized Grouped Remittances List */}
+      <div className="mt-4">
+        <OperatorRemittanceGroup
+          groups={groups}
+          rowsByCar={rowsByCarRecord}
+          today={today}
+        />
+      </div>
     </>
   );
 }

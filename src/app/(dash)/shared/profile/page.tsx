@@ -2,19 +2,22 @@ import {
   FileText,
   KeyRound,
   QrCode,
+  Shield,
   Upload,
   User,
 } from "lucide-react";
 
+import { RentalAgreementEditor } from "@/components/admin/rental-agreement-editor";
+import { FileUploadDropzone } from "@/components/common/file-upload-dropzone";
 import { Flash } from "@/components/common/flash";
+import { LoadingButton } from "@/components/common/loading-button";
 import { PageHeader } from "@/components/common/page-header";
 import { SectionCard } from "@/components/common/section-card";
+import { BookingDocumentButton } from "@/components/shared/booking-document-viewer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
-  saveRentalAgreementAction,
   updatePasswordAction,
   updateProfileInfoAction,
   uploadQrCodeAction,
@@ -44,9 +47,9 @@ export default async function SharedProfilePage({
   return (
     <>
       <PageHeader
-        title="Account Settings"
-        subtitle="Profile & Preferences"
-        description="Manage your account profile, change security password, and configure portal assets."
+        title="Account Settings & Portal Preferences"
+        subtitle="Profile & Configurations"
+        description="Manage your account profile, change security password, and configure portal agreement terms and assets."
       />
 
       <Flash {...flash} />
@@ -85,7 +88,7 @@ export default async function SharedProfilePage({
 
               <div>
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Role
+                  Role & Branch
                 </Label>
                 <div className="mt-1 flex items-center gap-2">
                   <span className="rounded-lg bg-muted px-3 py-1.5 text-xs font-extrabold uppercase text-foreground">
@@ -100,9 +103,9 @@ export default async function SharedProfilePage({
               </div>
 
               <div className="pt-2">
-                <Button type="submit" className="w-full sm:w-auto font-bold bg-[#ffcc00] text-black hover:bg-[#ffd633]">
-                  Save Changes
-                </Button>
+                <LoadingButton type="submit" className="w-full sm:w-auto font-bold bg-[#ffcc00] text-black hover:bg-[#ffd633]">
+                  Save Profile Changes
+                </LoadingButton>
               </div>
             </form>
           </SectionCard>
@@ -154,9 +157,9 @@ export default async function SharedProfilePage({
               </div>
 
               <div className="pt-2">
-                <Button type="submit" variant="outline" className="w-full sm:w-auto font-bold">
+                <LoadingButton type="submit" variant="outline" className="w-full sm:w-auto font-bold">
                   Update Password
-                </Button>
+                </LoadingButton>
               </div>
             </form>
           </SectionCard>
@@ -165,59 +168,53 @@ export default async function SharedProfilePage({
         {/* Admin/Operator QR Code */}
         {isAdminOrOperator ? (
           <div className="md:col-span-6">
-            <SectionCard title="Payment QR Code" icon={QrCode}>
+            <SectionCard title="Company Payment QR Code" icon={QrCode}>
               <div className="mb-4 flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 p-4">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={qrUrl}
                   alt="Payment QR"
-                  className="max-h-48 rounded-lg object-contain"
+                  className="max-h-48 rounded-lg object-contain shadow-sm"
                 />
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Current active GCash/Maya QR code
-                </p>
+                <div className="mt-3 flex items-center gap-2">
+                  <p className="text-xs text-muted-foreground">
+                    Active GCash/Maya QR code
+                  </p>
+                  <BookingDocumentButton
+                    label="Preview Full QR"
+                    url={qrUrl}
+                    fileName="payment_qr.png"
+                  />
+                </div>
               </div>
 
               <form action={uploadQrCodeAction} className="space-y-3">
-                <Label htmlFor="qr_code_image" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Upload New QR Code
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Upload New QR Code Image
                 </Label>
-                <Input
-                  id="qr_code_image"
+                <FileUploadDropzone
                   name="qr_code_image"
-                  type="file"
                   accept="image/png,image/jpeg,image/webp"
-                  required
+                  maxSizeMB={5}
+                  helperText="Drag & drop PNG, JPG or WEBP payment QR code."
                 />
-                <Button type="submit" className="w-full font-bold bg-[#ffcc00] text-black hover:bg-[#ffd633]">
+                <LoadingButton
+                  type="submit"
+                  className="w-full font-bold bg-[#ffcc00] text-black hover:bg-[#ffd633]"
+                >
                   <Upload className="size-4 mr-2" />
-                  Upload QR
-                </Button>
+                  Save & Update QR
+                </LoadingButton>
               </form>
             </SectionCard>
           </div>
         ) : null}
 
-        {/* Admin/Operator Rental Agreement */}
+        {/* Admin/Operator Rental Agreement Visual Editor */}
         {isAdminOrOperator ? (
           <div className="md:col-span-6">
-            <SectionCard title="Rental Terms & Agreement" icon={FileText}>
-              <form action={saveRentalAgreementAction} className="space-y-3">
-                <Label htmlFor="rental_agreement_html" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Rental Agreement Content (HTML)
-                </Label>
-                <Textarea
-                  id="rental_agreement_html"
-                  name="rental_agreement_html"
-                  defaultValue={rentalAgreement}
-                  rows={9}
-                  className="font-mono text-xs"
-                  placeholder="Enter HTML terms and conditions..."
-                />
-                <Button type="submit" className="w-full font-bold bg-[#ffcc00] text-black hover:bg-[#ffd633]">
-                  Save Terms
-                </Button>
-              </form>
+            <SectionCard title="Rental Terms & Agreement Editor" icon={FileText}>
+              <RentalAgreementEditor initialContent={rentalAgreement} />
             </SectionCard>
           </div>
         ) : null}

@@ -1,13 +1,22 @@
 import {
+  CalendarClock,
   Car,
   CarFront,
   CheckCircle2,
+  Edit3,
+  Fuel,
+  Gauge,
+  Images,
+  MapPin,
   Search,
   Trash2,
+  Users,
   Wrench,
 } from "lucide-react";
 import Link from "next/link";
 
+import { CarGalleryDialog } from "@/components/admin/car-gallery-dialog";
+import { EditCarDialog } from "@/components/admin/edit-car-dialog";
 import { EmptyState } from "@/components/common/empty-state";
 import { FilterBar, FilterField, filterControlClass } from "@/components/common/filter-bar";
 import { Flash } from "@/components/common/flash";
@@ -16,10 +25,12 @@ import { PageHeader } from "@/components/common/page-header";
 import { SectionCard } from "@/components/common/section-card";
 import { StatCard } from "@/components/common/stat-card";
 import { StatusBadge } from "@/components/common/status-badge";
+import { ConfirmSubmit } from "@/components/shared/confirm-submit";
 import { CarImage } from "@/components/marketing/car-image";
 import { deleteCarAction } from "@/lib/actions/cars";
-import { requireSession } from "@/lib/auth";
+import { getSupabase, requireSession } from "@/lib/auth";
 import { carTypes, fleetCounters, listBranches, listCars } from "@/lib/data/cars";
+import { fetchRows } from "@/lib/data/scope";
 import { readFlash, searchParam } from "@/lib/flash";
 import { carImageUrl } from "@/lib/storage";
 
@@ -43,7 +54,7 @@ export default async function SharedCarsPage({
       ? Number(branchFilterParam)
       : undefined;
 
-  const [counters, branches, types, fleet] = await Promise.all([
+  const [counters, branches, types, fleet, operators] = await Promise.all([
     fleetCounters(session),
     listBranches(true),
     carTypes(session),
@@ -55,6 +66,17 @@ export default async function SharedCarsPage({
       ownerId: session.role === "operator" ? session.userId : undefined,
       perPage: 100,
     }),
+    session.role === "admin"
+      ? getSupabase().then((s) =>
+          fetchRows<{ id: number; name: string | null }>(
+            s
+              .from("users")
+              .select("id, name")
+              .in("role", ["operator", "admin"])
+              .order("name", { ascending: true }),
+          ),
+        )
+      : Promise.resolve([]),
   ]);
 
   const canManage = session.role === "admin" || session.role === "operator";
@@ -103,7 +125,7 @@ export default async function SharedCarsPage({
         actions={
           <button
             type="submit"
-            className="h-10 rounded-[10px] bg-[#ffcc00] px-5 text-sm font-bold text-black transition hover:bg-[#ffd633]"
+            className="h-10 rounded-xl bg-[#ffcc00] px-5 text-sm font-bold text-black transition hover:bg-[#ffd633]"
           >
             Filter
           </button>
@@ -171,7 +193,7 @@ export default async function SharedCarsPage({
       </FilterBar>
 
       {/* Fleet Table */}
-      <SectionCard title={`Vehicles (${fleet.count})`} icon={CarFront}>
+      <SectionCard title={`Fleet Inventory (${fleet.count} Vehicles)`} icon={CarFront}>
         {fleet.rows.length === 0 ? (
           <EmptyState
             icon={CarFront}
@@ -183,86 +205,171 @@ export default async function SharedCarsPage({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/60 text-[11px] uppercase tracking-wide text-muted-foreground">
-                  <th className="px-3 py-3 text-left font-bold">Vehicle</th>
-                  <th className="px-3 py-3 text-left font-bold">Plate</th>
-                  <th className="px-3 py-3 text-left font-bold">Branch / Owner</th>
-                  <th className="px-3 py-3 text-left font-bold">Specs</th>
-                  <th className="px-3 py-3 text-right font-bold">24h Rate</th>
-                  <th className="px-3 py-3 text-center font-bold">Status</th>
-                  <th className="px-3 py-3 text-right font-bold">Actions</th>
+                  <th className="px-4 py-3.5 text-left font-bold">Vehicle</th>
+                  <th className="px-3 py-3.5 text-left font-bold">Plate</th>
+                  <th className="px-3 py-3.5 text-left font-bold">Branch / Owner</th>
+                  <th className="px-3 py-3.5 text-left font-bold">Specifications</th>
+                  <th className="px-3 py-3.5 text-right font-bold">Pricing</th>
+                  <th className="px-3 py-3.5 text-center font-bold">Status</th>
+                  <th className="px-4 py-3.5 text-right font-bold">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-border">
                 {fleet.rows.map((car) => {
                   const carName =
                     [car.brand, car.model].filter(Boolean).join(" ") || "Vehicle";
-                  const firstImg = car.image_path
-                    ? car.image_path.split(",")[0].trim()
-                    : "default.png";
+                  const imageList = car.image_path
+                    ? car.image_path.split(",").map((s) => s.trim()).filter(Boolean)
+                    : [];
+                  const firstImg = imageList[0] || "default.png";
                   const imgUrl = carImageUrl(firstImg);
+
+                  const isOwnerOrAdmin =
+                    canManage && (session.role === "admin" || car.user_id === session.userId);
 
                   return (
                     <tr
                       key={car.id}
-                      className="border-b border-border last:border-0 hover:bg-muted/30"
+                      className="group transition-colors duration-150 hover:bg-muted/30"
                     >
-                      <td className="px-3 py-3">
+                      {/* Vehicle Image & Name */}
+                      <td className="px-4 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className="size-10 shrink-0 overflow-hidden rounded-lg bg-muted">
-                            <CarImage
-                              src={imgUrl}
-                              alt={carName}
-                              className="size-full object-cover"
-                            />
-                          </div>
+                          <CarGalleryDialog
+                            carName={carName}
+                            plateNumber={car.plate_number}
+                            type={car.type}
+                            imagePaths={imageList}
+                            trigger={
+                              <div
+                                className="group/thumb relative size-12 shrink-0 cursor-pointer overflow-hidden rounded-xl border border-border bg-muted shadow-sm transition hover:scale-105 hover:border-[#ffcc00]"
+                                title="Click to view image gallery"
+                              >
+                                <CarImage
+                                  src={imgUrl}
+                                  alt={carName}
+                                  className="size-full object-cover"
+                                />
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition group-hover/thumb:opacity-100">
+                                  <Images className="size-4 text-white" />
+                                </div>
+                              </div>
+                            }
+                          />
+
                           <div>
-                            <p className="font-bold text-foreground">{carName}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {car.type || "Sedan"}
+                            <p className="font-bold text-foreground group-hover:text-[#b38a00] dark:group-hover:text-[#ffcc00]">
+                              {carName}
                             </p>
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <span className="font-medium text-foreground/80">
+                                {car.type || "Sedan"}
+                              </span>
+                              {car.color ? <span>• {car.color}</span> : null}
+                            </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-3 py-3">
-                        <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-bold text-foreground">
+
+                      {/* License Plate */}
+                      <td className="px-3 py-3.5">
+                        <span className="inline-block rounded-md border border-border/80 bg-muted/60 px-2 py-0.5 font-mono text-xs font-bold text-foreground shadow-sm">
                           {car.plate_number ?? "—"}
-                        </code>
+                        </span>
                       </td>
-                      <td className="px-3 py-3">
-                        <p className="text-xs font-semibold text-foreground">
-                          {car.branches?.name ?? "—"}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground">
+
+                      {/* Branch & Owner */}
+                      <td className="px-3 py-3.5">
+                        <div className="flex items-center gap-1 text-xs font-semibold text-foreground">
+                          <MapPin className="size-3 text-[#ffcc00]" />
+                          <span>{car.branches?.name ?? "Unassigned"}</span>
+                        </div>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">
                           Owner: {car.users?.name || "Company Fleet"}
                         </p>
                       </td>
-                      <td className="px-3 py-3 text-xs text-muted-foreground">
-                        {car.transmission || "Auto"} • {car.capacity || 5} Seats • {car.fuel_type || "Gas"}
+
+                      {/* Specs */}
+                      <td className="px-3 py-3.5">
+                        <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                          <span className="inline-flex items-center gap-1 rounded bg-muted/60 px-1.5 py-0.5 text-[11px] font-medium text-foreground">
+                            <Gauge className="size-3" />
+                            {car.transmission || "Auto"}
+                          </span>
+                          <span className="inline-flex items-center gap-1 rounded bg-muted/60 px-1.5 py-0.5 text-[11px] font-medium text-foreground">
+                            <Users className="size-3" />
+                            {car.capacity || 5}
+                          </span>
+                          <span className="inline-flex items-center gap-1 rounded bg-muted/60 px-1.5 py-0.5 text-[11px] font-medium text-foreground">
+                            <Fuel className="size-3" />
+                            {car.fuel_type || "Gas"}
+                          </span>
+                        </div>
                       </td>
-                      <td className="px-3 py-3 text-right font-bold text-foreground">
-                        <Money value={car.price_24_hours} />
+
+                      {/* Rates */}
+                      <td className="px-3 py-3.5 text-right">
+                        <p className="font-extrabold text-foreground">
+                          <Money value={car.price_24_hours} />
+                          <span className="ml-1 text-[10px] font-normal text-muted-foreground">
+                            /24h
+                          </span>
+                        </p>
+                        {car.price_12_hours ? (
+                          <p className="text-[11px] text-muted-foreground">
+                            <Money value={car.price_12_hours} />
+                            <span className="text-[10px]"> /12h</span>
+                          </p>
+                        ) : null}
                       </td>
-                      <td className="px-3 py-3 text-center">
+
+                      {/* Status */}
+                      <td className="px-3 py-3.5 text-center">
                         <StatusBadge status={car.status} />
                       </td>
-                      <td className="px-3 py-3 text-right">
+
+                      {/* Actions */}
+                      <td className="px-4 py-3.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          {/* Gallery Modal */}
+                          <CarGalleryDialog
+                            carName={carName}
+                            plateNumber={car.plate_number}
+                            type={car.type}
+                            imagePaths={imageList}
+                          />
+
+                          {/* Edit Car Modal */}
+                          {isOwnerOrAdmin ? (
+                            <EditCarDialog
+                              car={car}
+                              branches={branches}
+                              operators={operators}
+                              isAdmin={session.role === "admin"}
+                            />
+                          ) : null}
+
+                          {/* Schedule Button */}
                           <Link
                             href={`/shared/my_car_schedules?car_id=${car.id}`}
-                            className="inline-flex items-center rounded-lg border border-border px-2.5 py-1 text-xs font-semibold text-foreground transition hover:border-[#ffcc00] hover:text-[#b38a00]"
+                            className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold text-foreground transition hover:border-[#ffcc00] hover:text-[#b38a00]"
+                            title="Manage Blockouts & Schedules"
                           >
-                            Schedule
+                            <CalendarClock className="size-3.5" />
+                            <span>Schedule</span>
                           </Link>
-                          {canManage && (session.role === "admin" || car.user_id === session.userId) ? (
+
+                          {/* Delete */}
+                          {isOwnerOrAdmin ? (
                             <form action={deleteCarAction}>
                               <input type="hidden" name="id" value={car.id} />
-                              <button
-                                type="submit"
-                                className="inline-flex size-7 items-center justify-center rounded-lg border border-transparent text-muted-foreground transition hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+                              <ConfirmSubmit
                                 title="Delete Vehicle"
+                                message={`Are you sure you want to delete ${carName} (${car.plate_number})? This action cannot be undone.`}
+                                className="inline-flex size-7 items-center justify-center rounded-lg border border-transparent text-muted-foreground transition hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
                               >
                                 <Trash2 className="size-3.5" />
-                              </button>
+                              </ConfirmSubmit>
                             </form>
                           ) : null}
                         </div>

@@ -117,6 +117,7 @@ export default async function AdminDashboardPage({
           value={stats.totalCars}
           hint={`${stats.availableCars} Available`}
           icon={CarFront}
+          tone="info"
         />
         <StatCard
           label="Monthly Net"
@@ -130,36 +131,42 @@ export default async function AdminDashboardPage({
           value={stats.activeBookings}
           hint="Currently Rented"
           icon={KeyRound}
+          tone="success"
         />
         <StatCard
           label="Total Revenue"
           value={`₱${shortNumber(stats.totalNet)}`}
           hint="All time"
           icon={Wallet}
+          tone="purple"
         />
         <StatCard
           label="Total Bookings"
           value={stats.totalBookings}
           hint={`${stats.completedThisMonth} Completed`}
           icon={CalendarCheck}
+          tone="info"
         />
         <StatCard
           label="Customers"
           value={stats.totalCustomers}
           hint="Registered users"
           icon={Users}
+          tone="success"
         />
         <StatCard
           label="Pending Tasks"
           value={stats.pendingBookings}
           hint="Awaiting check"
           icon={CircleAlert}
+          tone="warning"
         />
         <StatCard
           label="Operators"
           value={stats.totalOperators}
           hint="Active partners"
           icon={UserRound}
+          tone="purple"
         />
       </div>
 
@@ -187,37 +194,59 @@ export default async function AdminDashboardPage({
                     <th className="px-3 py-3 text-left font-bold">Dates</th>
                     <th className="px-3 py-3 text-left font-bold">Total</th>
                     <th className="px-3 py-3 text-center font-bold">Status</th>
+                    <th className="px-3 py-3 text-right font-bold">Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {recent.map((booking) => (
-                    <tr key={booking.id} className="border-b border-border last:border-0">
-                      <td className="px-3 py-3">
-                        <p className="font-bold text-foreground">
-                          {booking.users?.name ?? booking.guest_name ?? "Guest"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">#BK-{booking.id}</p>
-                      </td>
-                      <td className="px-3 py-3">
-                        <p className="font-semibold">
-                          {[booking.cars?.brand, booking.cars?.model].filter(Boolean).join(" ") || "Vehicle"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{booking.cars?.plate_number ?? "—"}</p>
-                      </td>
-                      <td className="px-3 py-3">
-                        <p className="text-xs">
-                          {formatDate(booking.start_date)} - {formatDate(booking.end_date)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{formatTime(booking.pickup_time)}</p>
-                      </td>
-                      <td className="px-3 py-3 font-bold">
-                        <Money value={booking.total_price} />
-                      </td>
-                      <td className="px-3 py-3 text-center">
-                        <StatusBadge status={booking.status} />
-                      </td>
-                    </tr>
-                  ))}
+                  {recent.map((booking) => {
+                    const customerName = booking.users?.name ?? booking.guest_name ?? "Guest";
+                    const initial = customerName.charAt(0).toUpperCase();
+                    const carTitle = [booking.cars?.brand, booking.cars?.model].filter(Boolean).join(" ") || "Vehicle";
+
+                    return (
+                      <tr key={booking.id} className="border-b border-border last:border-0 hover:bg-muted/40 transition-colors">
+                        <td className="px-3 py-3">
+                          <div className="flex items-center gap-2.5">
+                            <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#ffcc00]/15 text-xs font-bold text-[#b38a00] dark:text-[#ffd700]">
+                              {initial}
+                            </span>
+                            <div>
+                              <p className="font-bold text-foreground text-xs sm:text-sm">
+                                {customerName}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground">#BK-{booking.id}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-3 py-3">
+                          <p className="font-semibold text-xs sm:text-sm">
+                            {carTitle}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">{booking.cars?.plate_number ?? "—"}</p>
+                        </td>
+                        <td className="px-3 py-3">
+                          <p className="text-xs font-medium">
+                            {formatDate(booking.start_date)} - {formatDate(booking.end_date)}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">{formatTime(booking.pickup_time)}</p>
+                        </td>
+                        <td className="px-3 py-3 font-bold text-xs sm:text-sm">
+                          <Money value={booking.total_price} />
+                        </td>
+                        <td className="px-3 py-3 text-center">
+                          <StatusBadge status={booking.status} />
+                        </td>
+                        <td className="px-3 py-3 text-right">
+                          <Link
+                            href={`/shared/booking_details?id=${booking.id}`}
+                            className="inline-flex items-center rounded-lg border border-border px-2.5 py-1 text-xs font-semibold text-foreground transition hover:border-[#ffcc00] hover:text-[#b38a00]"
+                          >
+                            Details
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}

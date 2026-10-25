@@ -200,6 +200,8 @@ export async function saveCarAction(formData: FormData) {
   const branchRaw = str(formData, "branch_id");
   const branchId = branchRaw === "" || branchRaw === "0" ? null : Number(branchRaw);
 
+  const statusVal = str(formData, "status");
+
   const payload = {
     user_id: ownerId,
     branch_id: Number.isFinite(branchId as number) ? branchId : null,
@@ -212,6 +214,7 @@ export async function saveCarAction(formData: FormData) {
     capacity: int(formData, "capacity"),
     color: str(formData, "color"),
     image_path: images.join(","),
+    ...(statusVal ? { status: statusVal as import("@/lib/types").CarStatus } : {}),
     price_10_hours: num(formData, "price_10_hours"),
     operator_10_hours: num(formData, "operator_10_hours"),
     price_12_hours: num(formData, "price_12_hours"),

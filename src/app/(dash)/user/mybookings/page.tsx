@@ -4,6 +4,7 @@ import {
   Car,
   KeyRound,
   Search,
+  Sparkles,
   Star,
   TrendingUp,
 } from "lucide-react";
@@ -17,6 +18,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { SectionCard } from "@/components/common/section-card";
 import { StatCard } from "@/components/common/stat-card";
 import { StatusBadge } from "@/components/common/status-badge";
+import { TripLifecycleTracker } from "@/components/customer/trip-lifecycle-tracker";
 import { requireRole } from "@/lib/auth";
 import { customerBookings } from "@/lib/data/bookings";
 import { formatDate, formatTime } from "@/lib/datetime";
@@ -107,6 +109,53 @@ export default async function UserMyBookingsPage({
           icon={TrendingUp}
         />
       </div>
+
+      {/* Active Trip Tracker Card (if any active booking exists) */}
+      {(() => {
+        const activeTrip = allBookings.find(
+          (b) => b.status === "Pending" || b.status === "Confirmed" || b.status === "Released",
+        );
+        if (!activeTrip) return null;
+
+        const carName =
+          [activeTrip.cars?.brand, activeTrip.cars?.model].filter(Boolean).join(" ") ||
+          "Vehicle";
+
+        return (
+          <div className="mb-5 rounded-2xl border border-[#ffcc00]/40 bg-card p-4 shadow-sm sm:p-5">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-border/80 pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-[#ffcc00]">
+                    <Sparkles className="size-3.5" />
+                    Current Booking Progress
+                  </span>
+                  <span className="rounded bg-muted px-1.5 py-0.2 font-mono text-xs font-bold text-foreground">
+                    #BK-{activeTrip.id}
+                  </span>
+                </div>
+                <h3 className="mt-1 text-base font-extrabold text-foreground">
+                  {carName} ({activeTrip.cars?.type || "Sedan"})
+                </h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <StatusBadge status={activeTrip.status} />
+                <Link
+                  href={`/shared/booking_details?id=${activeTrip.id}`}
+                  className="rounded-xl border border-border bg-muted/60 px-3 py-1.5 text-xs font-bold text-foreground transition hover:border-[#ffcc00] hover:text-[#b38a00]"
+                >
+                  View Full Details
+                </Link>
+              </div>
+            </div>
+
+            {/* Stepper */}
+            <div className="pt-3">
+              <TripLifecycleTracker status={activeTrip.status} />
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Search & Filter */}
       <FilterBar
@@ -200,7 +249,7 @@ export default async function UserMyBookingsPage({
                       <td className="px-3 py-3">
                         <p className="font-semibold text-foreground">{carName}</p>
                         <p className="text-xs text-muted-foreground">
-                          {booking.cars?.plate_number ?? "—"}
+                          {booking.cars?.type || "Standard Vehicle"}
                         </p>
                       </td>
                       <td className="px-3 py-3">

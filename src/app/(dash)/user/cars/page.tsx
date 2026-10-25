@@ -15,9 +15,11 @@ import { Flash } from "@/components/common/flash";
 import { Money } from "@/components/common/money";
 import { PageHeader } from "@/components/common/page-header";
 import { StatusBadge } from "@/components/common/status-badge";
+import { RentCarFlowDialog } from "@/components/customer/rent-car-flow-dialog";
 import { CarImage } from "@/components/marketing/car-image";
 import { requireRole } from "@/lib/auth";
 import { carTypes, listBranches, listCars } from "@/lib/data/cars";
+import { siteContent } from "@/lib/data/misc";
 import { readFlash, searchParam } from "@/lib/flash";
 import { carImageUrl } from "@/lib/storage";
 
@@ -37,7 +39,7 @@ export default async function UserCarsPage({
   const branchFilterParam = searchParam(params, "branch");
   const branchId = branchFilterParam && branchFilterParam !== "All" ? Number(branchFilterParam) : undefined;
 
-  const [branches, types, fleet] = await Promise.all([
+  const [branches, types, fleet, content] = await Promise.all([
     listBranches(true),
     carTypes(session),
     listCars(session, {
@@ -46,6 +48,7 @@ export default async function UserCarsPage({
       branchId,
       perPage: 100,
     }),
+    siteContent(),
   ]);
 
   const cars = fleet.rows.filter(
@@ -175,7 +178,7 @@ export default async function UserCarsPage({
                         {carName}
                       </h3>
                       <p className="text-xs text-muted-foreground">
-                        Plate: {car.plate_number ?? "—"}
+                        {car.type || "Sedan"} • {car.fuel_type || "Gasoline"}
                       </p>
                     </div>
                     <div className="text-right">
@@ -212,13 +215,10 @@ export default async function UserCarsPage({
 
                   {/* Action button */}
                   <div className="mt-auto">
-                    <Link
-                      href={`/user/cars#book-${car.id}`}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#ffcc00] py-2.5 text-sm font-bold text-black transition hover:bg-[#ffd633]"
-                    >
-                      <CheckCircle2 className="size-4" />
-                      Rent Vehicle
-                    </Link>
+                    <RentCarFlowDialog
+                      car={car}
+                      agreementHtml={content.rental_agreement_html ?? ""}
+                    />
                   </div>
                 </div>
               </div>

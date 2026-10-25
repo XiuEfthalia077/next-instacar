@@ -89,7 +89,7 @@ const themeScript = `
 (function () {
   try {
     var stored = localStorage.getItem('instacar-admin-theme');
-    if (stored === 'dark') {
+    if (stored !== 'light') {
       document.documentElement.classList.add('dark');
       document.documentElement.classList.add('dark-mode');
     }
