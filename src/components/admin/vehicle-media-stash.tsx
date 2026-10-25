@@ -1,10 +1,8 @@
 "use client";
 
 import {
-  Check,
   Eye,
   Image as ImageIcon,
-  Star,
   Trash2,
   UploadCloud,
   X,
@@ -39,11 +37,6 @@ export function VehicleMediaStash({
   const [stagedFiles, setStagedFiles] = React.useState<StagedFile[]>([]);
   const [isDragOver, setIsDragOver] = React.useState(false);
   const [viewModalUrl, setViewModalUrl] = React.useState<string | null>(null);
-
-  // The identifier of the main photo (either an existing filename or a staged file's name/id)
-  const [mainPhotoKey, setMainPhotoKey] = React.useState<string>(() => {
-    return initialExisting.length > 0 ? initialExisting[0] : "";
-  });
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -86,11 +79,6 @@ export function VehicleMediaStash({
     setStagedFiles((prev) => {
       const next = [...prev, ...validFiles];
       syncFileInput(next);
-
-      // If no main photo currently selected (or previous main was deleted), set to first available
-      if (!mainPhotoKey) {
-        setMainPhotoKey(validFiles[0].file.name);
-      }
       return next;
     });
   };
@@ -112,18 +100,6 @@ export function VehicleMediaStash({
       }
       const next = prev.filter((item) => item.id !== id);
       syncFileInput(next);
-
-      // If removed item was main photo, re-assign main photo
-      if (target && mainPhotoKey === target.file.name) {
-        if (next.length > 0) {
-          setMainPhotoKey(next[0].file.name);
-        } else {
-          const remainingExisting = initialExisting.filter(
-            (img) => !markedToDelete.includes(img),
-          );
-          setMainPhotoKey(remainingExisting[0] || "");
-        }
-      }
       return next;
     });
   };
@@ -132,36 +108,12 @@ export function VehicleMediaStash({
     e.stopPropagation();
     setMarkedToDelete((prev) => {
       const willDelete = !prev.includes(img);
-      const next = willDelete ? [...prev, img] : prev.filter((i) => i !== img);
-
-      // If the main photo is being marked for deletion, switch main photo
-      if (willDelete && mainPhotoKey === img) {
-        const remainingExisting = initialExisting.filter((i) => !next.includes(i));
-        if (remainingExisting.length > 0) {
-          setMainPhotoKey(remainingExisting[0]);
-        } else if (stagedFiles.length > 0) {
-          setMainPhotoKey(stagedFiles[0].file.name);
-        } else {
-          setMainPhotoKey("");
-        }
-      }
-      return next;
+      return willDelete ? [...prev, img] : prev.filter((i) => i !== img);
     });
   };
 
   const activeExisting = initialExisting.filter((img) => !markedToDelete.includes(img));
   const totalCount = activeExisting.length + stagedFiles.length;
-
-  // Set default main photo if none set yet
-  React.useEffect(() => {
-    if (!mainPhotoKey) {
-      if (activeExisting.length > 0) {
-        setMainPhotoKey(activeExisting[0]);
-      } else if (stagedFiles.length > 0) {
-        setMainPhotoKey(stagedFiles[0].file.name);
-      }
-    }
-  }, [mainPhotoKey, activeExisting, stagedFiles]);
 
   return (
     <div className="space-y-3">
@@ -180,9 +132,6 @@ export function VehicleMediaStash({
         }}
       />
 
-      {/* Hidden main photo identifier sent to server */}
-      <input type="hidden" name="main_photo_name" value={mainPhotoKey} />
-
       {/* Header with Photo Counter */}
       <div className="flex items-center justify-between">
         <div>
@@ -190,7 +139,7 @@ export function VehicleMediaStash({
             Vehicle Media Upload Stash
           </span>
           <p className="text-[11px] text-muted-foreground">
-            Upload multiple views. Click ⭐ on any image to set it as the Main Photo thumbnail.
+            Upload or remove vehicle photos. Main photo thumbnail is set directly in the gallery.
           </p>
         </div>
         <span className="rounded-full bg-[#ffcc00] px-2.5 py-0.5 text-[11px] font-extrabold text-black">
@@ -230,17 +179,7 @@ export function VehicleMediaStash({
         <div className="space-y-2 rounded-xl border border-border/70 bg-card/60 p-3">
           <div className="flex items-center justify-between text-[11px]">
             <span className="font-bold text-muted-foreground uppercase tracking-wider">
-              Staged Photos ({totalCount})
-            </span>
-            <span className="text-[11px] text-muted-foreground">
-              {mainPhotoKey ? (
-                <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                  <Star className="size-3 fill-amber-400 text-amber-400" />
-                  Main thumbnail designated
-                </span>
-              ) : (
-                "Please designate a main photo"
-              )}
+              Vehicle Photos ({totalCount})
             </span>
           </div>
 
@@ -248,7 +187,6 @@ export function VehicleMediaStash({
             {/* 1. Existing Photos */}
             {initialExisting.map((img) => {
               const isMarked = markedToDelete.includes(img);
-              const isMain = !isMarked && mainPhotoKey === img;
               const url = carImageUrl(img);
 
               return (
@@ -258,9 +196,7 @@ export function VehicleMediaStash({
                     "group relative aspect-video overflow-hidden rounded-xl border-2 transition",
                     isMarked
                       ? "border-rose-500/80 opacity-40 ring-1 ring-rose-500"
-                      : isMain
-                        ? "border-[#ffcc00] shadow-md ring-2 ring-[#ffcc00]/60"
-                        : "border-border bg-muted/40 hover:border-[#ffcc00]/60",
+                      : "border-border bg-muted/40 hover:border-[#ffcc00]/60",
                   )}
                 >
                   {isMarked ? (
@@ -277,31 +213,6 @@ export function VehicleMediaStash({
                     alt="Vehicle photo"
                     className="size-full object-cover"
                   />
-
-                  {/* Main Photo Badge / Selector */}
-                  {!isMarked && (
-                    <div className="absolute left-1.5 top-1.5 z-10">
-                      {isMain ? (
-                        <span className="flex items-center gap-1 rounded-md bg-[#ffcc00] px-1.5 py-0.5 text-[9px] font-black text-black shadow-sm">
-                          <Star className="size-2.5 fill-black text-black" />
-                          Main Photo
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setMainPhotoKey(img);
-                          }}
-                          className="flex items-center gap-1 rounded-md bg-black/70 px-1.5 py-0.5 text-[9px] font-bold text-white opacity-0 transition group-hover:opacity-100 hover:bg-[#ffcc00] hover:text-black"
-                          title="Set as Main Thumbnail"
-                        >
-                          <Star className="size-2.5" />
-                          Set Main
-                        </button>
-                      )}
-                    </div>
-                  )}
 
                   {/* Quick Action Buttons (View + Delete) */}
                   <div className="absolute right-1.5 top-1.5 z-10 flex items-center gap-1">
@@ -346,17 +257,10 @@ export function VehicleMediaStash({
 
             {/* 2. Newly Staged Uploads */}
             {stagedFiles.map((item) => {
-              const isMain = mainPhotoKey === item.file.name;
-
               return (
                 <div
                   key={item.id}
-                  className={cn(
-                    "group relative aspect-video overflow-hidden rounded-xl border-2 transition",
-                    isMain
-                      ? "border-[#ffcc00] shadow-md ring-2 ring-[#ffcc00]/60"
-                      : "border-border bg-muted/40 hover:border-[#ffcc00]/60",
-                  )}
+                  className="group relative aspect-video overflow-hidden rounded-xl border-2 border-border bg-muted/40 hover:border-[#ffcc00]/60 transition"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -364,29 +268,6 @@ export function VehicleMediaStash({
                     alt={item.file.name}
                     className="size-full object-cover"
                   />
-
-                  {/* Main Photo Badge / Selector */}
-                  <div className="absolute left-1.5 top-1.5 z-10">
-                    {isMain ? (
-                      <span className="flex items-center gap-1 rounded-md bg-[#ffcc00] px-1.5 py-0.5 text-[9px] font-black text-black shadow-sm">
-                        <Star className="size-2.5 fill-black text-black" />
-                        Main Photo
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setMainPhotoKey(item.file.name);
-                        }}
-                        className="flex items-center gap-1 rounded-md bg-black/70 px-1.5 py-0.5 text-[9px] font-bold text-white opacity-0 transition group-hover:opacity-100 hover:bg-[#ffcc00] hover:text-black"
-                        title="Set as Main Thumbnail"
-                      >
-                        <Star className="size-2.5" />
-                        Set Main
-                      </button>
-                    )}
-                  </div>
 
                   {/* Quick Action Buttons (View + Remove) */}
                   <div className="absolute right-1.5 top-1.5 z-10 flex items-center gap-1">

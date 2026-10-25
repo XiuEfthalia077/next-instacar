@@ -257,10 +257,12 @@ export default async function SharedCarsPage({
                       <td className="px-3.5 py-3">
                         <div className="flex items-center gap-3">
                           <CarGalleryDialog
+                            carId={car.id}
                             carName={carName}
                             plateNumber={car.plate_number}
                             type={car.type}
                             imagePaths={imageList}
+                            canManage={isOwnerOrAdmin}
                             trigger={
                               <div
                                 className="group/thumb relative size-12 shrink-0 cursor-pointer overflow-hidden rounded-xl border border-border bg-black/60 shadow-sm transition hover:scale-105 hover:border-[#ffcc00]"
@@ -398,10 +400,12 @@ export default async function SharedCarsPage({
 
                           {/* Gallery Modal */}
                           <CarGalleryDialog
+                            carId={car.id}
                             carName={carName}
                             plateNumber={car.plate_number}
                             type={car.type}
                             imagePaths={imageList}
+                            canManage={isOwnerOrAdmin}
                           />
 
                           {/* Schedule Button */}
