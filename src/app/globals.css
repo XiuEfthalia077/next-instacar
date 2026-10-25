@@ -659,4 +659,19 @@
   textarea:focus {
     outline: none !important;
   }
+
+  /* Ensure native dropdowns and options match dark theme, eliminating white background bleeding */
+  .dark select,
+  .dark select option {
+    background-color: #121417 !important;
+    color: #f4f4f5 !important;
+  }
+  .dark select option:checked {
+    background-color: #ffcc00 !important;
+    color: #000000 !important;
+  }
+  select option {
+    background-color: var(--card);
+    color: var(--foreground);
+  }
 }

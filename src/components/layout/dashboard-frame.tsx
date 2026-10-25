@@ -1,9 +1,11 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
+import { ROLE_HOME } from "@/lib/constants";
 import type { AppSession, Branch } from "@/lib/types";
 
 /**
@@ -20,6 +22,20 @@ export function DashboardFrame({
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Multi-tab session conflict protection:
+  // If another tab changed the active session role (e.g. logging in as User in Tab 2 while Tab 1 is on Admin),
+  // immediately reload to the correct role home to prevent router freezing or deadlocks.
+  useEffect(() => {
+    const isMismatched =
+      (session.role === "user" && (pathname.startsWith("/admin") || pathname.startsWith("/staff") || pathname.startsWith("/operator"))) ||
+      (session.role !== "admin" && pathname.startsWith("/admin"));
+
+    if (isMismatched) {
+      window.location.replace(ROLE_HOME[session.role]);
+    }
+  }, [pathname, session.role]);
 
   return (
     <div className="min-h-screen bg-background">

@@ -53,4 +53,4 @@ export function FilterField({
 
 /** Shared look for the `select` elements inside a {@link FilterBar}. */
 export const filterControlClass =
-  "h-10 w-full rounded-[10px] border border-border bg-card px-3 text-sm font-medium text-foreground outline-none transition-colors focus:border-[#ffcc00] focus:ring-3 focus:ring-[#ffcc00]/25";
+  "h-10 w-full rounded-[10px] border border-border bg-card px-3 text-sm font-medium text-foreground outline-none transition-colors focus:border-[#ffcc00] focus:ring-1 focus:ring-[#ffcc00]/50 dark:bg-[#121417] dark:text-foreground";

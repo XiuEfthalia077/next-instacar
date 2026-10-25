@@ -1,4 +1,4 @@
-﻿import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import {
   BadgeCheck,
   BarChart3,
@@ -276,6 +276,12 @@ export const SIDEBAR_NAV: Record<UserRole, NavGroup[]> = {
       items: [
         { label: "Find a Car", href: "/user/cars", icon: Search },
         { label: "My Trips", href: "/user/mybookings", icon: Clock },
+      ],
+    },
+    {
+      section: "Account",
+      items: [
+        { label: "Profile & Settings", href: "/user/profile", icon: Settings },
       ],
     },
   ],

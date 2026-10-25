@@ -18,7 +18,7 @@ import { StatusBadge } from "@/components/common/status-badge";
 import { RentCarFlowDialog } from "@/components/customer/rent-car-flow-dialog";
 import { CarImage } from "@/components/marketing/car-image";
 import { requireRole } from "@/lib/auth";
-import { carTypes, listBranches, listCars } from "@/lib/data/cars";
+import { listBranches, listCars } from "@/lib/data/cars";
 import { siteContent } from "@/lib/data/misc";
 import { readFlash, searchParam } from "@/lib/flash";
 import { carImageUrl } from "@/lib/storage";
@@ -39,9 +39,12 @@ export default async function UserCarsPage({
   const branchFilterParam = searchParam(params, "branch");
   const branchId = branchFilterParam && branchFilterParam !== "All" ? Number(branchFilterParam) : undefined;
 
-  const [branches, types, fleet, content] = await Promise.all([
+  const [branches, availableFleet, fleet, content] = await Promise.all([
     listBranches(true),
-    carTypes(session, branchId),
+    listCars(session, {
+      branchId,
+      perPage: 250,
+    }),
     listCars(session, {
       search,
       type: typeFilter !== "All" ? typeFilter : undefined,
@@ -50,6 +53,18 @@ export default async function UserCarsPage({
     }),
     siteContent(),
   ]);
+
+  // Dynamic Car Type Extraction:
+  // Must only show car types that currently have available cars in inventory.
+  // If a car type is completely booked, in maintenance, or unavailable, it disappears entirely from this dropdown.
+  const dynamicAvailableTypes = Array.from(
+    new Set(
+      availableFleet.rows
+        .filter((c) => c.status === "Available" || c.status === "Active")
+        .map((c) => (c.type ? c.type.trim() : ""))
+        .filter((t): t is string => Boolean(t) && t.length > 0),
+    ),
+  ).sort();
 
   const cars = fleet.rows.filter(
     (c) => c.status === "Available" || c.status === "Active",
@@ -96,7 +111,7 @@ export default async function UserCarsPage({
             className={filterControlClass}
           >
             <option value="All">All Types</option>
-            {types.map((type) => (
+            {dynamicAvailableTypes.map((type) => (
               <option key={type} value={type}>
                 {type}
               </option>

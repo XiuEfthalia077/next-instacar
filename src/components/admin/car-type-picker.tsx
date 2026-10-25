@@ -15,7 +15,8 @@ import { cn } from "@/lib/utils";
 const DEFAULT_TYPES = [
   "Sedan",
   "SUV",
-  "MPV / Van",
+  "MPV",
+  "Van",
   "Hatchback",
   "Pickup Truck",
   "Crossover",

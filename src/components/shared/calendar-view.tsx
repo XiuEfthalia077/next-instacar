@@ -9,9 +9,12 @@ import {
   Clock,
   ExternalLink,
   Eye,
+  Filter,
   List,
+  Search,
   Sparkles,
   User,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
@@ -61,6 +64,10 @@ export function CalendarView({
   const [viewMode, setViewMode] = React.useState<"month" | "list">("month");
   const [selectedDate, setSelectedDate] = React.useState<string | null>(null);
 
+  // List View / Mobile Filter States
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState<string>("all");
+
   // Auto-switch to list on mobile screens and lock to list on mobile
   React.useEffect(() => {
     const handleResize = () => {
@@ -72,6 +79,24 @@ export function CalendarView({
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // Filter bookings based on List View search and status filter
+  const filteredBookings = React.useMemo(() => {
+    return bookings.filter((b) => {
+      if (statusFilter !== "all" && b.status !== statusFilter) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const carName = `${b.cars?.brand || ""} ${b.cars?.model || ""}`.toLowerCase();
+        const customer = (b.users?.name || b.guest_name || "").toLowerCase();
+        const idMatch = String(b.id).includes(q);
+        const plateMatch = (b.cars?.plate_number || "").toLowerCase().includes(q);
+        if (!carName.includes(q) && !customer.includes(q) && !idMatch && !plateMatch) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [bookings, statusFilter, searchQuery]);
 
   // Filter bookings for selected day dialog
   const selectedDayBookings = React.useMemo(() => {
@@ -86,10 +111,10 @@ export function CalendarView({
   const groupedBookingsByDate = React.useMemo(() => {
     const map = new Map<string, BookingRow[]>();
 
-    // For every day in the month, check which bookings occur on that date
+    // For every day in the month, check which filtered bookings occur on that date
     for (let dayNum = 1; dayNum <= daysInMonth; dayNum++) {
       const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
-      const dayBookings = bookings.filter((b) => {
+      const dayBookings = filteredBookings.filter((b) => {
         if (!b.start_date || !b.end_date) return false;
         return b.start_date <= dateStr && b.end_date >= dateStr;
       });
@@ -103,7 +128,7 @@ export function CalendarView({
       dateStr,
       items,
     }));
-  }, [bookings, year, month, daysInMonth]);
+  }, [filteredBookings, year, month, daysInMonth]);
 
   return (
     <div className="space-y-4">
@@ -287,6 +312,58 @@ export function CalendarView({
       {/* STRICT DATE-GROUPED LIST VIEW (Mobile Default & Desktop View) */}
       {viewMode === "list" ? (
         <div className="space-y-4">
+          {/* Quick List / Mobile Filter Bar */}
+          <div className="flex flex-col gap-2 rounded-xl border border-border bg-card p-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Filter bookings by guest, car, plate, ID..."
+                className="h-9 w-full rounded-lg border border-border bg-muted/40 pl-9 pr-8 text-xs text-foreground outline-none transition focus:border-[#ffcc00] focus:ring-1 focus:ring-[#ffcc00]"
+              />
+              {searchQuery ? (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="size-3.5" />
+                </button>
+              ) : null}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="h-9 rounded-lg border border-border bg-muted/40 px-3 text-xs font-semibold text-foreground outline-none transition focus:border-[#ffcc00]"
+              >
+                <option value="all">All Statuses</option>
+                <option value="Confirmed">Confirmed</option>
+                <option value="Released">Released (Active)</option>
+                <option value="Pending">Pending</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+
+              {(searchQuery || statusFilter !== "all") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setStatusFilter("all");
+                  }}
+                  className="inline-flex h-9 items-center gap-1 rounded-lg border border-border bg-muted/20 px-2.5 text-xs font-bold text-muted-foreground hover:text-foreground"
+                >
+                  <X className="size-3" />
+                  <span>Reset</span>
+                </button>
+              )}
+            </div>
+          </div>
+
           {groupedBookingsByDate.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center">
               <CalendarDays className="mx-auto size-8 text-muted-foreground" />

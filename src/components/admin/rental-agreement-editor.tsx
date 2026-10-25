@@ -17,6 +17,7 @@ import * as React from "react";
 
 import { LoadingButton } from "@/components/common/loading-button";
 import { saveRentalAgreementAction } from "@/lib/actions/profile";
+import { OFFICIAL_RENTAL_AGREEMENT } from "@/lib/constants/rental-agreement";
 import { cn } from "@/lib/utils";
 
 type RentalAgreementEditorProps = {
@@ -26,16 +27,17 @@ type RentalAgreementEditorProps = {
 export function RentalAgreementEditor({
   initialContent,
 }: RentalAgreementEditorProps) {
+  const defaultHtml = initialContent || OFFICIAL_RENTAL_AGREEMENT;
   const editorRef = React.useRef<HTMLDivElement>(null);
-  const [htmlContent, setHtmlContent] = React.useState(initialContent || "");
+  const [htmlContent, setHtmlContent] = React.useState(defaultHtml);
   const [showCode, setShowCode] = React.useState(false);
 
   // Sync initial content on mount
   React.useEffect(() => {
-    if (editorRef.current && initialContent) {
-      editorRef.current.innerHTML = initialContent;
+    if (editorRef.current && defaultHtml) {
+      editorRef.current.innerHTML = defaultHtml;
     }
-  }, [initialContent]);
+  }, [defaultHtml]);
 
   const exec = (command: string, value: string | undefined = undefined) => {
     document.execCommand(command, false, value);

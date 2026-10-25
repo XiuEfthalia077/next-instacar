@@ -42,28 +42,35 @@ export async function updateProfileInfoAction(formData: FormData) {
 
   const name = str(formData, "name");
   const email = str(formData, "email").toLowerCase();
+  const phone = str(formData, "phone") || str(formData, "phone_number");
+  const returnTo = str(formData, "return_to") || PROFILE_PATH;
 
   if (!name || !email) {
-    flashRedirect(PROFILE_PATH, "error", "Name and e-mail are required.");
+    flashRedirect(returnTo, "error", "Name and e-mail are required.");
   }
 
   const supabase = await getSupabase();
 
+  const updates: Record<string, unknown> = { name, email };
+  if (phone !== undefined) {
+    updates.phone = phone;
+  }
+
   const { error } = await supabase
     .from("users")
-    .update({ name, email })
+    .update(updates)
     .eq("id", session.userId);
 
   if (error) {
-    flashRedirect(PROFILE_PATH, "error", "Failed to update profile.");
+    flashRedirect(returnTo, "error", "Failed to update profile.");
   }
 
-  revalidatePath(PROFILE_PATH);
+  revalidatePath(returnTo);
   revalidatePath("/admin/dashboard");
   revalidatePath("/staff/dashboard");
   revalidatePath("/operator/dashboard");
   revalidatePath("/user/dashboard");
-  flashRedirect(PROFILE_PATH, "success", "Profile information updated successfully!");
+  flashRedirect(returnTo, "success", "Profile information updated successfully!");
 }
 
 /* ------------------------------------------------------------------ */
@@ -73,16 +80,17 @@ export async function updateProfileInfoAction(formData: FormData) {
 export async function updatePasswordAction(formData: FormData) {
   const session = await requireSession();
 
+  const returnTo = str(formData, "return_to") || PROFILE_PATH;
   const current = str(formData, "current_password");
   const next = str(formData, "new_password");
   const confirm = str(formData, "confirm_password");
 
   if (next !== confirm) {
-    flashRedirect(PROFILE_PATH, "error", "New passwords do not match.");
+    flashRedirect(returnTo, "error", "New passwords do not match.");
   }
 
   if (next.length < 6) {
-    flashRedirect(PROFILE_PATH, "error", "Password must be at least 6 characters.");
+    flashRedirect(returnTo, "error", "Password must be at least 6 characters.");
   }
 
   const supabase = await getSupabase();
@@ -94,17 +102,17 @@ export async function updatePasswordAction(formData: FormData) {
   });
 
   if (verifyError) {
-    flashRedirect(PROFILE_PATH, "error", "Current password is incorrect.");
+    flashRedirect(returnTo, "error", "Current password is incorrect.");
   }
 
   const { error } = await supabase.auth.updateUser({ password: next });
 
   if (error) {
-    flashRedirect(PROFILE_PATH, "error", "Failed to update password.");
+    flashRedirect(returnTo, "error", error.message);
   }
 
-  revalidatePath(PROFILE_PATH);
-  flashRedirect(PROFILE_PATH, "success", "Password changed successfully!");
+  revalidatePath(returnTo);
+  flashRedirect(returnTo, "success", "Password updated successfully!");
 }
 
 /* ------------------------------------------------------------------ */

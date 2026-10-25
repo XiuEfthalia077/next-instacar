@@ -133,7 +133,7 @@ export function Sidebar({
         id="sidebarOverlay"
         onClick={() => setMobileOpen(false)}
         className={cn(
-          "fixed inset-0 z-[1080] bg-black/60 backdrop-blur-[2px] transition-opacity md:hidden",
+          "fixed inset-0 z-[1080] bg-black/60 backdrop-blur-[2px] transition-opacity duration-300 ease-in-out md:hidden",
           mobileOpen ? "opacity-100" : "pointer-events-none opacity-0",
         )}
       />
@@ -141,7 +141,7 @@ export function Sidebar({
       <aside
         id="sidebar"
         className={cn(
-          "fixed inset-y-0 left-0 z-[1090] flex w-[280px] -translate-x-full flex-col overflow-y-auto border-r border-[#333] bg-black p-[20px_14px] transition-transform duration-300 md:w-[220px] md:translate-x-0 xl:w-[260px]",
+          "fixed inset-y-0 left-0 z-[1090] flex w-[280px] -translate-x-full flex-col overflow-y-auto border-r border-[#333] bg-black p-[20px_14px] transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] md:w-[220px] md:translate-x-0 xl:w-[260px]",
           mobileOpen && "translate-x-0",
         )}
       >
@@ -226,18 +226,27 @@ export function Sidebar({
                         {entry.label}
                         <ChevronRight
                           className={cn(
-                            "ml-auto size-3.5 transition-transform",
+                            "ml-auto size-3.5 transition-transform duration-200 ease-in-out",
                             isOpen && "rotate-90",
                             hasActiveChild && "text-[#FFD700]",
                           )}
                         />
                       </button>
 
-                      {isOpen ? (
-                        <ul className="list-none pb-2.5 pl-5 pt-1.5">
-                          {entry.children.map((child) => renderChild(child))}
-                        </ul>
-                      ) : null}
+                      <div
+                        className={cn(
+                          "grid transition-all duration-200 ease-in-out overflow-hidden",
+                          isOpen
+                            ? "grid-rows-[1fr] opacity-100"
+                            : "grid-rows-[0fr] opacity-0 pointer-events-none",
+                        )}
+                      >
+                        <div className="overflow-hidden">
+                          <ul className="list-none pb-2.5 pl-5 pt-1.5 space-y-0.5">
+                            {entry.children.map((child) => renderChild(child))}
+                          </ul>
+                        </div>
+                      </div>
                     </li>
                   );
                 })}

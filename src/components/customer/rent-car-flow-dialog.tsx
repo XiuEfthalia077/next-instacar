@@ -1,14 +1,18 @@
 "use client";
 
 import {
-  AlertTriangle,
-  ArrowRight,
-  Calendar,
+  AlertCircle,
+  Calendar as CalendarIcon,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock,
+  ExternalLink,
+  Eye,
   FileCheck,
   FileText,
   MapPin,
+  QrCode,
   ShieldCheck,
   Truck,
   X,
@@ -19,9 +23,9 @@ import { FileUploadDropzone } from "@/components/common/file-upload-dropzone";
 import { LoadingButton } from "@/components/common/loading-button";
 import { Money } from "@/components/common/money";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -31,8 +35,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createBookingAction } from "@/lib/actions/bookings";
+import { OFFICIAL_RENTAL_AGREEMENT } from "@/lib/constants/rental-agreement";
 import type { CarWithOwner } from "@/lib/data/cars";
-import { carImageUrl } from "@/lib/storage";
+import { formatPeso } from "@/lib/constants";
+import { siteAssetUrl } from "@/lib/storage";
+import { cn } from "@/lib/utils";
 
 type RentCarFlowDialogProps = {
   car: CarWithOwner;
@@ -46,55 +53,105 @@ export function RentCarFlowDialog({
   trigger,
 }: RentCarFlowDialogProps) {
   const [open, setOpen] = React.useState(false);
-  const [step, setStep] = React.useState<1 | 2 | 3 | 4>(1);
+  const [qrModalOpen, setQrModalOpen] = React.useState(false);
+  const [agreementModalOpen, setAgreementModalOpen] = React.useState(false);
 
   // Form states
+  const [quickDuration, setQuickDuration] = React.useState<"10h" | "24h" | "custom">("24h");
   const [agreedToTerms, setAgreedToTerms] = React.useState(false);
-  const [startDate, setStartDate] = React.useState("");
-  const [endDate, setEndDate] = React.useState("");
-  const [pickupTime, setPickupTime] = React.useState("09:00");
-  const [returnTime, setReturnTime] = React.useState("18:00");
+  const [pickupDatetime, setPickupDatetime] = React.useState("");
+  const [returnDatetime, setReturnDatetime] = React.useState("");
   const [fulfillmentType, setFulfillmentType] = React.useState<"pickup" | "Delivery">("pickup");
   const [deliveryAddress, setDeliveryAddress] = React.useState("");
   const [returnAddress, setReturnAddress] = React.useState("");
-  const [deliveryFeeAcknowledged, setDeliveryFeeAcknowledged] = React.useState(false);
 
-  // File state tracking
-  const [primaryIdFile, setPrimaryIdFile] = React.useState<File | null>(null);
+  // Month navigation for embedded availability calendar
+  const [calDate, setCalDate] = React.useState(() => new Date());
 
   const carName = [car.brand, car.model].filter(Boolean).join(" ") || "Vehicle";
-  const firstImg = car.image_path ? car.image_path.split(",")[0].trim() : "default.png";
-  const imgUrl = carImageUrl(firstImg);
+  const branchName = car.branches?.name || "Instacar Main Branch";
+  const branchAddress = "Instacar Car Rental Services, Pandac, Pavia, Iloilo";
+  const mapSearchUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(branchAddress)}`;
+  const qrUrl = siteAssetUrl("qr_code_payment.png");
 
-  // Reset to step 1 whenever dialog reopens
+  // Initialize pickup & return times
   React.useEffect(() => {
-    if (open) {
-      setStep(1);
+    if (open && !pickupDatetime) {
+      const now = new Date();
+      now.setHours(now.getHours() + 2);
+      now.setMinutes(0);
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const startStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+      
+      const end = new Date(now.getTime() + 24 * 3_600_000);
+      const endStr = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`;
+
+      setPickupDatetime(startStr);
+      setReturnDatetime(endStr);
+      setQuickDuration("24h");
       setAgreedToTerms(false);
-      setDeliveryFeeAcknowledged(false);
     }
-  }, [open]);
+  }, [open, pickupDatetime]);
 
-  // Duration & estimated pricing calculation
-  const { hours, calculatedPrice } = React.useMemo(() => {
-    if (!startDate || !endDate || !pickupTime || !returnTime) {
-      return { hours: 0, calculatedPrice: Number(car.price_24_hours ?? 0) };
+  // Handle Quick Duration Click
+  const handleQuickDuration = (mode: "10h" | "24h" | "custom") => {
+    setQuickDuration(mode);
+    if (!pickupDatetime) return;
+    const startMs = Date.parse(pickupDatetime);
+    if (isNaN(startMs)) return;
+
+    const pad = (n: number) => String(n).padStart(2, "0");
+    if (mode === "10h") {
+      const end = new Date(startMs + 10 * 3_600_000);
+      setReturnDatetime(
+        `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`
+      );
+    } else if (mode === "24h") {
+      const end = new Date(startMs + 24 * 3_600_000);
+      setReturnDatetime(
+        `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`
+      );
+    }
+  };
+
+  // Pricing & Duration calculation
+  const { hours, calculatedPrice, startDate, endDate, pickupTime, returnTime } = React.useMemo(() => {
+    if (!pickupDatetime || !returnDatetime) {
+      return {
+        hours: 0,
+        calculatedPrice: Number(car.price_24_hours ?? 0),
+        startDate: "",
+        endDate: "",
+        pickupTime: "00:00",
+        returnTime: "00:00",
+      };
     }
 
-    const startMs = Date.parse(`${startDate}T${pickupTime}:00`);
-    const endMs = Date.parse(`${endDate}T${returnTime}:00`);
+    const startMs = Date.parse(pickupDatetime);
+    const endMs = Date.parse(returnDatetime);
+
+    const sDate = pickupDatetime.slice(0, 10);
+    const eDate = returnDatetime.slice(0, 10);
+    const pTime = pickupDatetime.slice(11, 16);
+    const rTime = returnDatetime.slice(11, 16);
 
     if (isNaN(startMs) || isNaN(endMs) || endMs <= startMs) {
-      return { hours: 0, calculatedPrice: Number(car.price_24_hours ?? 0) };
+      return {
+        hours: 0,
+        calculatedPrice: Number(car.price_24_hours ?? 0),
+        startDate: sDate,
+        endDate: eDate,
+        pickupTime: pTime,
+        returnTime: rTime,
+      };
     }
 
     const totalHours = Math.round(((endMs - startMs) / 3_600_000) * 10) / 10;
-
-    let price = 0;
     const p10 = Number(car.price_10_hours ?? 0);
     const p12 = Number(car.price_12_hours ?? 0);
     const p24 = Number(car.price_24_hours ?? 0);
 
+    let price = 0;
     if (totalHours <= 10 && p10 > 0) {
       price = p10;
     } else if (totalHours <= 12 && p12 > 0) {
@@ -108,382 +165,375 @@ export function RentCarFlowDialog({
       price = p24;
     }
 
-    return { hours: totalHours, calculatedPrice: price };
-  }, [startDate, endDate, pickupTime, returnTime, car]);
+    return {
+      hours: totalHours,
+      calculatedPrice: price,
+      startDate: sDate,
+      endDate: eDate,
+      pickupTime: pTime,
+      returnTime: rTime,
+    };
+  }, [pickupDatetime, returnDatetime, car]);
 
-  // Minimum date today
-  const todayDateStr = React.useMemo(() => {
-    const d = new Date();
-    return d.toISOString().split("T")[0];
-  }, []);
+  // Calendar rendering helper for Availability preview
+  const calendarDays = React.useMemo(() => {
+    const year = calDate.getFullYear();
+    const month = calDate.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-  const handleStep2Submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!startDate || !endDate) return;
-    if (fulfillmentType === "Delivery") {
-      setStep(3); // Go to delivery warning
-    } else {
-      setStep(4); // Go straight to confirmation
+    const days = [];
+    for (let i = 0; i < firstDay; i++) {
+      days.push(null);
     }
+    for (let d = 1; d <= daysInMonth; d++) {
+      days.push(d);
+    }
+    return days;
+  }, [calDate]);
+
+  const monthYearLabel = calDate.toLocaleString("en-US", { month: "short", year: "numeric" });
+
+  const nextMonth = () => {
+    setCalDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  };
+  const prevMonth = () => {
+    setCalDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  };
+
+  const handleSelectDay = (day: number | null) => {
+    if (!day) return;
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const y = calDate.getFullYear();
+    const m = calDate.getMonth() + 1;
+    const dateStr = `${y}-${pad(m)}-${pad(day)}`;
+
+    const pTime = pickupDatetime ? pickupDatetime.slice(11, 16) : "09:00";
+    const newPickup = `${dateStr}T${pTime}`;
+    setPickupDatetime(newPickup);
+
+    // Default return next day
+    const nextD = new Date(calDate.getFullYear(), calDate.getMonth(), day + 1);
+    const endStr = `${nextD.getFullYear()}-${pad(nextD.getMonth() + 1)}-${pad(nextD.getDate())}T${pTime}`;
+    setReturnDatetime(endStr);
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button
-            type="button"
-            className="w-full gap-2 rounded-xl bg-[#ffcc00] py-2.5 font-bold text-black transition hover:bg-[#ffd633]"
-          >
-            <CheckCircle2 className="size-4" />
-            Book Now
-          </Button>
-        )}
-      </DialogTrigger>
+    <>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          {trigger || (
+            <Button
+              type="button"
+              className="w-full gap-2 rounded-xl bg-[#ffcc00] py-2.5 font-bold text-black transition hover:bg-[#ffd633]"
+            >
+              <CheckCircle2 className="size-4" />
+              Book Now
+            </Button>
+          )}
+        </DialogTrigger>
 
-      <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto border-border bg-[#0d0f12] text-foreground sm:rounded-2xl">
-        {/* Step Progression Indicators */}
-        <div className="flex items-center justify-between border-b border-border/80 pb-3">
-          <div className="flex items-center gap-2">
-            <span
-              className={`flex size-6 items-center justify-center rounded-full text-xs font-extrabold ${
-                step >= 1 ? "bg-[#ffcc00] text-black" : "bg-muted text-muted-foreground"
-              }`}
-            >
-              1
-            </span>
-            <span
-              className={`text-xs font-bold ${
-                step === 1 ? "text-[#ffcc00]" : "text-muted-foreground"
-              }`}
-            >
-              Agreement
-            </span>
-            <span className="text-muted-foreground/40">/</span>
-            <span
-              className={`flex size-6 items-center justify-center rounded-full text-xs font-extrabold ${
-                step >= 2 ? "bg-[#ffcc00] text-black" : "bg-muted text-muted-foreground"
-              }`}
-            >
-              2
-            </span>
-            <span
-              className={`text-xs font-bold ${
-                step === 2 ? "text-[#ffcc00]" : "text-muted-foreground"
-              }`}
-            >
-              Details
-            </span>
-            {fulfillmentType === "Delivery" ? (
-              <>
-                <span className="text-muted-foreground/40">/</span>
-                <span
-                  className={`flex size-6 items-center justify-center rounded-full text-xs font-extrabold ${
-                    step >= 3
-                      ? "bg-[#ffcc00] text-black"
-                      : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  3
-                </span>
-                <span
-                  className={`text-xs font-bold ${
-                    step === 3 ? "text-[#ffcc00]" : "text-muted-foreground"
-                  }`}
-                >
-                  Delivery Notice
-                </span>
-              </>
-            ) : null}
-            <span className="text-muted-foreground/40">/</span>
-            <span
-              className={`flex size-6 items-center justify-center rounded-full text-xs font-extrabold ${
-                step === 4 ? "bg-[#ffcc00] text-black" : "bg-muted text-muted-foreground"
-              }`}
-            >
-              {fulfillmentType === "Delivery" ? "4" : "3"}
-            </span>
-            <span
-              className={`text-xs font-bold ${
-                step === 4 ? "text-[#ffcc00]" : "text-muted-foreground"
-              }`}
-            >
-              Confirm
-            </span>
-          </div>
-        </div>
+        <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto border-border bg-[#0d0f12] p-4 text-foreground sm:p-6 sm:rounded-2xl">
+          <DialogHeader className="border-b border-border/80 pb-3">
+            <DialogTitle className="text-lg font-black tracking-tight text-foreground">
+              Book {carName}
+            </DialogTitle>
+          </DialogHeader>
 
-        {/* ================= STEP 1: RENTAL AGREEMENT ================= */}
-        {step === 1 && (
-          <div className="space-y-4 pt-2">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-lg font-bold text-foreground">
-                <FileCheck className="size-5 text-[#ffcc00]" />
-                Car Rental Terms & Agreement
-              </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground">
-                Please review the vehicle lease terms and conditions before proceeding.
-              </DialogDescription>
-            </DialogHeader>
+          <form action={createBookingAction} className="space-y-5 pt-2">
+            <input type="hidden" name="car_id" value={car.id} />
+            <input type="hidden" name="start_date" value={startDate} />
+            <input type="hidden" name="end_date" value={endDate} />
+            <input type="hidden" name="pickup_time" value={pickupTime} />
+            <input type="hidden" name="return_time" value={returnTime} />
+            <input type="hidden" name="fulfillment_type" value={fulfillmentType} />
 
-            <div className="max-h-64 overflow-y-auto rounded-xl border border-border bg-card p-4 text-xs leading-relaxed text-foreground/90">
-              {agreementHtml ? (
-                <div
-                  className="prose prose-invert prose-xs max-w-none"
-                  dangerouslySetInnerHTML={{ __html: agreementHtml }}
-                />
-              ) : (
-                <div className="space-y-3">
-                  <h4 className="font-bold text-foreground">
-                    1. RENTAL QUALIFICATIONS & IDENTIFICATION
-                  </h4>
-                  <p>
-                    The renter must possess a valid government-issued Driver&apos;s
-                    License and a secondary proof of identification. Vehicles may only
-                    be operated by authorized drivers listed on the rental contract.
-                  </p>
-                  <h4 className="font-bold text-foreground">
-                    2. VEHICLE CARE & FUEL POLICY
-                  </h4>
-                  <p>
-                    The vehicle will be handed over in clean condition with a noted
-                    fuel level. The renter agrees to return the vehicle with the same
-                    fuel level. Smoking and illegal substances inside the vehicle are
-                    strictly prohibited.
-                  </p>
-                  <h4 className="font-bold text-foreground">
-                    3. EXTENSIONS & DELAYS
-                  </h4>
-                  <p>
-                    Late returns without prior authorization will incur standard
-                    overtime extension fees based on company pricing guidelines.
-                  </p>
-                  <h4 className="font-bold text-foreground">
-                    4. SECURITY DEPOSIT & CANCELLATION
-                  </h4>
-                  <p>
-                    Any security deposit collected will be refunded upon safe return
-                    of the vehicle inspection.
-                  </p>
+            {/* 1. AVAILABILITY CALENDAR (Image 1) */}
+            <div className="rounded-xl border border-border bg-card p-3.5 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                  <CalendarIcon className="size-4 text-[#ffcc00]" />
+                  <span>Availability Calendar</span>
                 </div>
-              )}
+                <div className="flex items-center gap-1 text-[10px] font-bold">
+                  <span className="rounded bg-emerald-600 px-2 py-0.5 text-white">Available</span>
+                  <span className="rounded bg-rose-600 px-2 py-0.5 text-white">Booked</span>
+                  <span className="rounded bg-[#ffcc00] px-2 py-0.5 text-black">Selected</span>
+                </div>
+              </div>
+
+              {/* Month Navigation */}
+              <div className="flex items-center justify-between border-y border-border/60 py-1.5 text-xs">
+                <button
+                  type="button"
+                  onClick={prevMonth}
+                  className="rounded-lg border border-border bg-muted/40 px-2.5 py-1 font-bold text-foreground hover:bg-[#ffcc00] hover:text-black transition"
+                >
+                  &lt; Prev
+                </button>
+                <span className="font-extrabold text-foreground">{monthYearLabel}</span>
+                <button
+                  type="button"
+                  onClick={nextMonth}
+                  className="rounded-lg border border-border bg-muted/40 px-2.5 py-1 font-bold text-foreground hover:bg-[#ffcc00] hover:text-black transition"
+                >
+                  Next &gt;
+                </button>
+              </div>
+
+              {/* Day Names Grid */}
+              <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-extrabold uppercase text-muted-foreground">
+                <span>Sun</span>
+                <span>Mon</span>
+                <span>Tue</span>
+                <span>Wed</span>
+                <span>Thu</span>
+                <span>Fri</span>
+                <span>Sat</span>
+              </div>
+
+              {/* Calendar Days */}
+              <div className="grid grid-cols-7 gap-1 text-center text-xs">
+                {calendarDays.map((d, index) => {
+                  if (d === null) {
+                    return <div key={`empty-${index}`} className="h-8" />;
+                  }
+
+                  const pad = (n: number) => String(n).padStart(2, "0");
+                  const currentDayStr = `${calDate.getFullYear()}-${pad(calDate.getMonth() + 1)}-${pad(d)}`;
+                  const isSelected =
+                    startDate && endDate && currentDayStr >= startDate && currentDayStr <= endDate;
+                  const isToday = new Date().toISOString().slice(0, 10) === currentDayStr;
+
+                  return (
+                    <button
+                      type="button"
+                      key={currentDayStr}
+                      onClick={() => handleSelectDay(d)}
+                      className={cn(
+                        "flex h-8 items-center justify-center rounded-md font-bold transition",
+                        isSelected
+                          ? "border-2 border-[#ffcc00] bg-[#ffcc00]/20 text-[#ffcc00]"
+                          : isToday
+                            ? "border border-border bg-muted/60 text-foreground"
+                            : "bg-muted/20 text-muted-foreground hover:bg-muted hover:text-foreground",
+                      )}
+                    >
+                      {d}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                <AlertCircle className="size-3 text-muted-foreground" />
+                <span>Grayed/Red dates are already booked. Please select available dates.</span>
+              </p>
             </div>
 
-            <div className="flex items-start gap-2.5 rounded-xl border border-border/80 bg-muted/20 p-3">
-              <input
-                id="terms_agree"
-                type="checkbox"
-                checked={agreedToTerms}
-                onChange={(e) => setAgreedToTerms(e.target.checked)}
-                className="mt-0.5 size-4 rounded border-border text-[#ffcc00] focus:ring-[#ffcc00]"
-              />
-              <label
-                htmlFor="terms_agree"
-                className="cursor-pointer text-xs font-semibold text-foreground"
-              >
-                I have read, understood, and accept the Car Rental Agreement and Terms
-                & Conditions for renting {carName}.
-              </label>
+            {/* 2. QUICK DURATION TABS (Image 1) */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-muted-foreground">Quick Duration</label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleQuickDuration("10h")}
+                  className={cn(
+                    "rounded-xl border py-2 text-xs font-black transition",
+                    quickDuration === "10h"
+                      ? "border-[#ffcc00] bg-[#ffcc00] text-black shadow-sm"
+                      : "border-border bg-card text-foreground hover:border-[#ffcc00]",
+                  )}
+                >
+                  10 Hours
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDuration("24h")}
+                  className={cn(
+                    "rounded-xl border py-2 text-xs font-black transition",
+                    quickDuration === "24h"
+                      ? "border-[#ffcc00] bg-[#ffcc00] text-black shadow-sm"
+                      : "border-border bg-card text-foreground hover:border-[#ffcc00]",
+                  )}
+                >
+                  24 Hours
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDuration("custom")}
+                  className={cn(
+                    "rounded-xl border py-2 text-xs font-black transition",
+                    quickDuration === "custom"
+                      ? "border-[#ffcc00] bg-[#ffcc00] text-black shadow-sm"
+                      : "border-border bg-card text-foreground hover:border-[#ffcc00]",
+                  )}
+                >
+                  Custom
+                </button>
+              </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setOpen(false)}
-                className="text-xs"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                disabled={!agreedToTerms}
-                onClick={() => setStep(2)}
-                className="gap-2 bg-[#ffcc00] font-bold text-black hover:bg-[#ffd633] disabled:opacity-50"
-              >
-                <span>Continue to Booking</span>
-                <ArrowRight className="size-4" />
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* ================= STEP 2: BOOKING FORM ================= */}
-        {step === 2 && (
-          <form onSubmit={handleStep2Submit} className="space-y-4 pt-2">
-            <DialogHeader>
-              <DialogTitle className="flex items-center justify-between text-lg font-bold text-foreground">
-                <span>Configure Your Rental ({carName})</span>
-                <span className="text-base text-[#ffcc00]">
-                  <Money value={calculatedPrice} />
-                </span>
-              </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground">
-                Select your pickup schedule, fulfillment location, and upload your ID.
-              </DialogDescription>
-            </DialogHeader>
-
-            {/* Dates & Times */}
+            {/* 3. PICKUP & RETURN DATE/TIME INPUTS */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <Label htmlFor="start_date" className="text-xs font-bold text-foreground">
-                  Pick-up Date *
+                <Label htmlFor="pickup_datetime" className="text-xs font-bold text-foreground">
+                  Pickup Date &amp; Time
                 </Label>
                 <Input
-                  id="start_date"
-                  type="date"
-                  min={todayDateStr}
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
+                  id="pickup_datetime"
+                  type="datetime-local"
+                  value={pickupDatetime}
+                  onChange={(e) => {
+                    setPickupDatetime(e.target.value);
+                    setQuickDuration("custom");
+                  }}
                   required
-                  className="mt-1"
+                  className="mt-1 rounded-xl"
                 />
               </div>
 
               <div>
-                <Label htmlFor="pickup_time" className="text-xs font-bold text-foreground">
-                  Pick-up Time *
+                <Label htmlFor="return_datetime" className="text-xs font-bold text-foreground">
+                  Return Date &amp; Time
                 </Label>
                 <Input
-                  id="pickup_time"
-                  type="time"
-                  value={pickupTime}
-                  onChange={(e) => setPickupTime(e.target.value)}
+                  id="return_datetime"
+                  type="datetime-local"
+                  value={returnDatetime}
+                  onChange={(e) => {
+                    setReturnDatetime(e.target.value);
+                    setQuickDuration("custom");
+                  }}
                   required
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="end_date" className="text-xs font-bold text-foreground">
-                  Return Date *
-                </Label>
-                <Input
-                  id="end_date"
-                  type="date"
-                  min={startDate || todayDateStr}
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  required
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="return_time" className="text-xs font-bold text-foreground">
-                  Return Time *
-                </Label>
-                <Input
-                  id="return_time"
-                  type="time"
-                  value={returnTime}
-                  onChange={(e) => setReturnTime(e.target.value)}
-                  required
-                  className="mt-1"
+                  className="mt-1 rounded-xl"
                 />
               </div>
             </div>
 
-            {/* Calculated duration notice */}
-            {hours > 0 ? (
-              <div className="flex items-center justify-between rounded-xl bg-muted/40 px-3.5 py-2 text-xs font-semibold text-foreground">
-                <span className="flex items-center gap-1.5">
-                  <Clock className="size-3.5 text-[#ffcc00]" />
-                  Total Duration: {hours.toFixed(1)} hours
-                </span>
-                <span className="text-[#ffcc00]">
-                  Estimated Rate: <Money value={calculatedPrice} />
-                </span>
-              </div>
-            ) : null}
-
-            {/* Fulfillment Type */}
-            <div className="space-y-2 border-t border-border/80 pt-3">
-              <Label className="text-xs font-bold text-foreground">
-                Vehicle Handover / Fulfillment Method *
-              </Label>
-              <div className="grid grid-cols-2 gap-3">
+            {/* 4. FULFILLMENT TYPE (Self Pickup vs Car Delivery) */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-muted-foreground">Fulfillment Type</label>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <button
                   type="button"
                   onClick={() => setFulfillmentType("pickup")}
-                  className={`flex flex-col items-center gap-1.5 rounded-xl border p-3 text-center transition ${
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl border p-3 text-left transition",
                     fulfillmentType === "pickup"
-                      ? "border-[#ffcc00] bg-[#ffcc00]/10 text-foreground ring-1 ring-[#ffcc00]"
-                      : "border-border bg-card text-muted-foreground hover:text-foreground"
-                  }`}
+                      ? "border-[#ffcc00] bg-[#ffcc00]/10 shadow-sm"
+                      : "border-border bg-card hover:border-[#ffcc00]/50",
+                  )}
                 >
-                  <MapPin className="size-4 text-[#ffcc00]" />
-                  <span className="text-xs font-bold">Pick-up at Branch</span>
-                  <span className="text-[10px] text-muted-foreground">
-                    {car.branches?.name ?? "Main Station"}
-                  </span>
+                  <div
+                    className={cn(
+                      "flex size-9 shrink-0 items-center justify-center rounded-lg",
+                      fulfillmentType === "pickup" ? "bg-[#ffcc00] text-black" : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    <MapPin className="size-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-foreground">Self Pickup</p>
+                    <p className="text-[11px] text-muted-foreground">Pickup at office</p>
+                  </div>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setFulfillmentType("Delivery")}
-                  className={`flex flex-col items-center gap-1.5 rounded-xl border p-3 text-center transition ${
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl border p-3 text-left transition",
                     fulfillmentType === "Delivery"
-                      ? "border-[#ffcc00] bg-[#ffcc00]/10 text-foreground ring-1 ring-[#ffcc00]"
-                      : "border-border bg-card text-muted-foreground hover:text-foreground"
-                  }`}
+                      ? "border-[#ffcc00] bg-[#ffcc00]/10 shadow-sm"
+                      : "border-border bg-card hover:border-[#ffcc00]/50",
+                  )}
                 >
-                  <Truck className="size-4 text-[#ffcc00]" />
-                  <span className="text-xs font-bold">Doorstep Delivery</span>
-                  <span className="text-[10px] text-muted-foreground">
-                    Additional fees apply
-                  </span>
+                  <div
+                    className={cn(
+                      "flex size-9 shrink-0 items-center justify-center rounded-lg",
+                      fulfillmentType === "Delivery" ? "bg-[#ffcc00] text-black" : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    <Truck className="size-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-foreground">Car Delivery</p>
+                    <p className="text-[11px] text-muted-foreground">Deliver to location</p>
+                  </div>
                 </button>
               </div>
-
-              {fulfillmentType === "Delivery" ? (
-                <div className="space-y-2 pt-2">
-                  <div>
-                    <Label
-                      htmlFor="delivery_address"
-                      className="text-xs font-bold text-foreground"
-                    >
-                      Delivery Destination Address *
-                    </Label>
-                    <Input
-                      id="delivery_address"
-                      placeholder="Hotel, residence, or airport arrival terminal..."
-                      value={deliveryAddress}
-                      onChange={(e) => setDeliveryAddress(e.target.value)}
-                      required={fulfillmentType === "Delivery"}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label
-                      htmlFor="return_delivery_address"
-                      className="text-xs font-bold text-foreground"
-                    >
-                      Return / Retrieval Address (if different)
-                    </Label>
-                    <Input
-                      id="return_delivery_address"
-                      placeholder="Leave blank if same as delivery address"
-                      value={returnAddress}
-                      onChange={(e) => setReturnAddress(e.target.value)}
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-              ) : null}
             </div>
 
-            {/* Document Uploads */}
-            <div className="space-y-3 border-t border-border/80 pt-3">
+            {/* 5. PICKUP ADDRESS BLOCK (Image 1) */}
+            <div className="rounded-xl border border-border bg-card p-3.5 space-y-2">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                <MapPin className="size-4 text-[#ffcc00]" />
+                <span>Pickup Address</span>
+              </div>
+              <div className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/20 p-3">
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#ffcc00]/20 text-[#ffcc00]">
+                  <MapPin className="size-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] font-extrabold uppercase text-muted-foreground">
+                      Pickup Location
+                    </span>
+                    <a
+                      href={mapSearchUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-[#ffcc00] hover:underline"
+                    >
+                      <span>↗ Map</span>
+                    </a>
+                  </div>
+                  <p className="text-xs font-bold text-foreground truncate">{branchAddress}</p>
+                  <p className="text-[11px] text-muted-foreground">🏢 {branchName}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* 6. RETURN ADDRESS BLOCK (Clarified: Where we will collect the car) */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="return_address_field" className="text-xs font-bold text-rose-500 flex items-center gap-1">
+                  <span>↵ Return Address (Where we will pick up the car)</span>
+                </Label>
+                <a
+                  href={mapSearchUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-[#ffcc00]"
+                >
+                  <MapPin className="size-3" />
+                  <span>View Map</span>
+                </a>
+              </div>
+              <textarea
+                id="return_address_field"
+                name="return_address"
+                rows={2}
+                value={returnAddress}
+                onChange={(e) => setReturnAddress(e.target.value)}
+                placeholder="Enter address for vehicle return / pickup..."
+                className="w-full rounded-xl border border-border bg-card p-2.5 text-xs text-foreground outline-none transition focus:border-[#ffcc00] focus:ring-1 focus:ring-[#ffcc00]/50"
+              />
+            </div>
+
+            {/* 7. DOCUMENT UPLOADS */}
+            <div className="space-y-4">
               <div>
-                <Label className="mb-1 block text-xs font-bold text-foreground">
-                  Primary Government ID / Driver&apos;s License (Required) *
+                <Label className="mb-1 block text-xs font-bold text-rose-500">
+                  Primary ID (e.g. Driver&apos;s License) *
                 </Label>
                 <FileUploadDropzone
                   name="primary_id"
                   accept="image/*,.pdf"
                   maxSizeMB={5}
-                  helperText="Upload valid Driver's License or Passport (JPG, PNG, PDF max 5MB)."
+                  required
+                  helperText="Click to upload Primary ID (Required)"
                 />
               </div>
 
@@ -495,232 +545,196 @@ export function RentCarFlowDialog({
                   name="secondary_id"
                   accept="image/*,.pdf"
                   maxSizeMB={5}
-                  helperText="Company ID, Postal ID, or National ID."
+                  helperText="Click to upload Secondary ID"
                 />
+              </div>
+
+              <div>
+                <Label className="mb-1 block text-xs font-bold text-foreground">
+                  Proof of Billing (Optional)
+                </Label>
+                <FileUploadDropzone
+                  name="proof_of_billing"
+                  accept="image/*,.pdf"
+                  maxSizeMB={5}
+                  helperText="Click to upload Proof of Billing"
+                />
+              </div>
+
+              {/* Proof of Payment + Scan QR Button */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold text-rose-500">
+                    Proof of Payment (Required) *
+                  </Label>
+                  <button
+                    type="button"
+                    onClick={() => setQrModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#ffcc00]/60 bg-[#ffcc00]/10 px-2.5 py-1 text-xs font-bold text-[#ffcc00] hover:bg-[#ffcc00]/20 transition"
+                  >
+                    <QrCode className="size-3.5" />
+                    <span>Scan QR: Tap to open</span>
+                  </button>
+                </div>
+                <FileUploadDropzone
+                  name="proof_of_payment"
+                  accept="image/*,.pdf"
+                  maxSizeMB={5}
+                  required
+                  helperText="Click to upload Proof of Payment"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Scan QR code to pay down payment / full amount, then attach receipt photo.
+                </p>
+                <p className="text-[11px] font-bold text-rose-500 flex items-center gap-1">
+                  <AlertCircle className="size-3" />
+                  <span>Note: Initial down payment must be a minimum of ₱500.</span>
+                </p>
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center justify-between border-t border-border/80 pt-3">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setStep(1)}
-                className="text-xs"
-              >
-                Back to Terms
-              </Button>
-              <Button
-                type="submit"
-                className="gap-2 bg-[#ffcc00] font-bold text-black hover:bg-[#ffd633]"
-              >
-                <span>Continue</span>
-                <ArrowRight className="size-4" />
-              </Button>
+            {/* 8. RATE SUMMARY BREAKDOWN */}
+            <div className="rounded-xl border border-border bg-card p-4 space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Base Rental Rate:</span>
+                <span className="font-bold text-foreground">{formatPeso(calculatedPrice)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Total Duration:</span>
+                <span className="font-bold text-foreground">{hours.toFixed(1)} Hours</span>
+              </div>
+
+              <div className="border-t border-border/80 pt-2 flex items-center justify-between">
+                <span className="text-sm font-extrabold text-foreground">Total Due:</span>
+                <span className="text-xl font-black text-[#ffcc00]">
+                  {formatPeso(calculatedPrice)}
+                </span>
+              </div>
+
+              <div className="pt-1 text-[11px] text-muted-foreground space-y-0.5">
+                <p>ⓘ Additional fees apply for delivery and pickup outside our office.</p>
+                <p>🚗 Carwash fee may apply depending on vehicle condition upon return.</p>
+              </div>
             </div>
+
+            {/* 9. RENTAL AGREEMENT TERMS */}
+            <div className="rounded-xl border border-border/80 bg-muted/20 p-3 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <FileText className="size-4 text-[#ffcc00]" />
+                  <span>Car Rental Agreement &amp; Terms</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setAgreementModalOpen(true)}
+                  className="text-xs font-bold text-[#ffcc00] hover:underline"
+                >
+                  View Full Agreement
+                </button>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <input
+                  id="agree_terms_cb"
+                  type="checkbox"
+                  required
+                  checked={agreedToTerms}
+                  onChange={(e) => setAgreedToTerms(e.target.checked)}
+                  className="mt-0.5 size-4 rounded border-border text-[#ffcc00] focus:ring-[#ffcc00]"
+                />
+                <label
+                  htmlFor="agree_terms_cb"
+                  className="cursor-pointer text-xs font-medium text-foreground leading-tight"
+                >
+                  I have read, understood, and accept the Car Rental Agreement and Terms &amp;
+                  Conditions for renting this vehicle.
+                </label>
+              </div>
+            </div>
+
+            {/* 10. CONFIRM RESERVATION BUTTON */}
+            <LoadingButton
+              type="submit"
+              disabled={!agreedToTerms || hours < 10}
+              className="w-full rounded-xl bg-[#ffcc00] py-3 text-sm font-black text-black hover:bg-[#ffd633] transition"
+            >
+              Confirm Reservation
+            </LoadingButton>
           </form>
-        )}
+        </DialogContent>
+      </Dialog>
 
-        {/* ================= STEP 3: DELIVERY WARNING MODAL ================= */}
-        {step === 3 && (
-          <div className="space-y-4 pt-2">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-lg font-bold text-amber-400">
-                <AlertTriangle className="size-5" />
-                Delivery Surcharge Notice
-              </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground">
-                Important information regarding delivery and collection charges.
-              </DialogDescription>
-            </DialogHeader>
+      {/* PAYMENT QR CODE MODAL (Image 4) */}
+      <Dialog open={qrModalOpen} onOpenChange={setQrModalOpen}>
+        <DialogContent className="max-w-xs border-border bg-[#0d0f12] p-6 text-foreground sm:rounded-2xl text-center">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="rounded-xl bg-[#ffcc00] p-2 text-black flex items-center justify-center">
+              <QrCode className="size-6" />
+            </div>
 
-            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs leading-relaxed text-amber-200">
-              <p className="font-bold text-sm text-amber-300">
-                Notice: Additional fees apply for doorstep delivery
-              </p>
-              <p className="mt-1.5">
-                Delivery and vehicle retrieval services incur additional dispatch fees
-                calculated based on destination distance and toll expenses from the
-                assigned branch (<strong>{car.branches?.name ?? "Branch"}</strong>).
-              </p>
-              <p className="mt-1">
-                Our operations team will verify your destination (
-                <span className="font-semibold text-white">{deliveryAddress}</span>) and
-                notify you of the final delivery fee prior to dispatch.
+            <div>
+              <h3 className="text-base font-extrabold text-foreground">Payment QR Code</h3>
+              <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                Scan this QR Code using GCash / Maya / Banking app to send your payment.
               </p>
             </div>
 
-            <div className="flex items-start gap-2.5 rounded-xl border border-border/80 bg-muted/20 p-3">
-              <input
-                id="delivery_ack"
-                type="checkbox"
-                checked={deliveryFeeAcknowledged}
-                onChange={(e) => setDeliveryFeeAcknowledged(e.target.checked)}
-                className="mt-0.5 size-4 rounded border-border text-[#ffcc00] focus:ring-[#ffcc00]"
-              />
-              <label
-                htmlFor="delivery_ack"
-                className="cursor-pointer text-xs font-semibold text-foreground"
-              >
-                I acknowledge that delivery and retrieval fees are separate from the
-                base rental price and will be settled with dispatch.
-              </label>
-            </div>
-
-            <div className="flex items-center justify-between border-t border-border/80 pt-3">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setStep(2)}
-                className="text-xs"
-              >
-                Back to Details
-              </Button>
-              <Button
-                type="button"
-                disabled={!deliveryFeeAcknowledged}
-                onClick={() => setStep(4)}
-                className="gap-2 bg-[#ffcc00] font-bold text-black hover:bg-[#ffd633] disabled:opacity-50"
-              >
-                <span>Proceed to Review</span>
-                <ArrowRight className="size-4" />
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* ================= STEP 4: FINAL CONFIRMATION ================= */}
-        {step === 4 && (
-          <form action={createBookingAction} className="space-y-4 pt-2">
-            {/* Hidden inputs forwarding all values to Server Action */}
-            <input type="hidden" name="car_id" value={car.id} />
-            <input type="hidden" name="start_date" value={startDate} />
-            <input type="hidden" name="end_date" value={endDate} />
-            <input type="hidden" name="pickup_time" value={pickupTime} />
-            <input type="hidden" name="return_time" value={returnTime} />
-            <input type="hidden" name="fulfillment_type" value={fulfillmentType} />
-            {fulfillmentType === "Delivery" ? (
-              <>
-                <input
-                  type="hidden"
-                  name="delivery_address"
-                  value={deliveryAddress}
-                />
-                <input
-                  type="hidden"
-                  name="return_delivery_address"
-                  value={returnAddress}
-                />
-              </>
-            ) : null}
-
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-lg font-bold text-foreground">
-                <ShieldCheck className="size-5 text-emerald-500" />
-                Final Reservation Review
-              </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground">
-                Please verify your booking details before submitting.
-              </DialogDescription>
-            </DialogHeader>
-
-            {/* Vehicle Card */}
-            <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/20 p-3">
+            <div className="rounded-xl border border-border bg-white p-3 shadow-md">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={imgUrl}
-                alt={carName}
-                className="size-14 rounded-lg object-cover"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="font-bold text-foreground text-sm">{carName}</p>
-                <p className="text-xs text-muted-foreground">
-                  {car.type || "Sedan"} • {car.transmission || "Auto"} • {car.fuel_type || "Gas"}
-                </p>
-                <p className="mt-0.5 text-[11px] text-[#ffcc00]">
-                  Branch: {car.branches?.name ?? "Main Station"}
-                </p>
-              </div>
-            </div>
-
-            {/* Schedule Details Summary */}
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="rounded-xl border border-border bg-card p-3">
-                <span className="text-[10px] uppercase font-bold text-muted-foreground">
-                  Pick-up Window
-                </span>
-                <p className="mt-0.5 font-bold text-foreground">
-                  {startDate} @ {pickupTime}
-                </p>
-              </div>
-              <div className="rounded-xl border border-border bg-card p-3">
-                <span className="text-[10px] uppercase font-bold text-muted-foreground">
-                  Return Window
-                </span>
-                <p className="mt-0.5 font-bold text-foreground">
-                  {endDate} @ {returnTime}
-                </p>
-              </div>
-            </div>
-
-            {/* Fulfillment & Price Summary */}
-            <div className="rounded-xl border border-border bg-card p-3.5 space-y-2 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Fulfillment</span>
-                <span className="font-bold text-foreground">
-                  {fulfillmentType === "Delivery"
-                    ? `Delivery (${deliveryAddress})`
-                    : `Pick-up (${car.branches?.name ?? "Branch"})`}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Duration</span>
-                <span className="font-bold text-foreground">
-                  {hours.toFixed(1)} hours
-                </span>
-              </div>
-              <div className="border-t border-border/60 pt-2 flex items-center justify-between text-sm font-extrabold">
-                <span>Estimated Rental Total</span>
-                <span className="text-[#ffcc00]">
-                  <Money value={calculatedPrice} />
-                </span>
-              </div>
-            </div>
-
-            {/* Upload verification (file input forwarding) */}
-            <div className="space-y-2 border-t border-border/80 pt-3">
-              <Label className="mb-1 block text-xs font-bold text-foreground">
-                Attach Primary ID / Driver&apos;s License *
-              </Label>
-              <FileUploadDropzone
-                name="primary_id"
-                accept="image/*,.pdf"
-                maxSizeMB={5}
-                helperText="Required: Upload JPG, PNG or PDF of your driver's license."
+                src={qrUrl}
+                alt="Payment QR Code"
+                className="size-48 object-contain"
               />
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center justify-between border-t border-border/80 pt-3">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setStep(fulfillmentType === "Delivery" ? 3 : 2)}
-                className="text-xs"
-              >
-                Back
-              </Button>
-              <LoadingButton
-                type="submit"
-                className="bg-[#ffcc00] font-bold text-black hover:bg-[#ffd633]"
-              >
-                <CheckCircle2 className="size-4" />
-                Confirm & Submit Reservation
-              </LoadingButton>
+            <div className="rounded-lg bg-emerald-950/40 border border-emerald-500/30 px-3 py-2 text-xs font-semibold text-emerald-400">
+              💡 Take a screenshot of payment receipt after scanning
             </div>
-          </form>
-        )}
-      </DialogContent>
-    </Dialog>
+
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setQrModalOpen(false)}
+              className="w-full rounded-xl font-bold"
+            >
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* FULL RENTAL AGREEMENT MODAL */}
+      <Dialog open={agreementModalOpen} onOpenChange={setAgreementModalOpen}>
+        <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto border-border bg-[#0d0f12] p-6 text-foreground sm:rounded-2xl">
+          <DialogHeader className="border-b border-border/80 pb-3">
+            <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground">
+              <FileCheck className="size-5 text-[#ffcc00]" />
+              Official Car Rental Agreement
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Please review the terms and conditions in full.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="max-h-[55vh] space-y-3 overflow-y-auto pr-2 text-xs leading-relaxed text-foreground/90 whitespace-pre-wrap font-sans">
+            {OFFICIAL_RENTAL_AGREEMENT}
+          </div>
+
+          <div className="border-t border-border pt-3 flex justify-end">
+            <Button
+              type="button"
+              onClick={() => {
+                setAgreedToTerms(true);
+                setAgreementModalOpen(false);
+              }}
+              className="bg-[#ffcc00] font-bold text-black hover:bg-[#ffd633]"
+            >
+              I Accept Agreement
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

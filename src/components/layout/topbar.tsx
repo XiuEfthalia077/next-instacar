@@ -151,7 +151,7 @@ export function Topbar({
             >
               <DropdownMenuItem asChild>
                 <Link
-                  href="/shared/profile"
+                  href={session.role === "user" ? "/user/profile" : "/shared/profile"}
                   className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-black transition-all hover:translate-x-1 hover:bg-[#FFD700] hover:text-black dark:text-[#f4f4f5] dark:hover:bg-[#facc15] dark:hover:text-black"
                 >
                   <UserRound className="size-4" />

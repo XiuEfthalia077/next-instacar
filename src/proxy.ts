@@ -23,7 +23,7 @@ const ROLE_ROOTS: Record<UserRole, string[]> = {
   admin: ["/admin", "/shared"],
   operator: ["/operator", "/shared"],
   staff: ["/staff", "/shared"],
-  user: ["/user"],
+  user: ["/user", "/shared"],
 };
 
 function isPublicPath(pathname: string) {
@@ -113,7 +113,9 @@ export async function proxy(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = ROLE_HOME[role];
     url.search = "";
-    return NextResponse.redirect(url);
+    const redirectRes = NextResponse.redirect(url);
+    redirectRes.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+    return redirectRes;
   }
 
   return response;
