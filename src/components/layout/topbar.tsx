@@ -70,7 +70,7 @@ export function Topbar({
   const logoutFormRef = useRef<HTMLFormElement>(null);
 
   return (
-    <nav className="sticky top-0 z-[1050] border-b border-[#e2e8f0] bg-white transition-colors dark:border-[#27272a] dark:bg-[#141414]">
+    <nav className="sticky top-0 z-30 border-b border-[#e2e8f0] bg-white transition-colors dark:border-[#27272a] dark:bg-[#141414]">
       <div className="flex flex-nowrap items-center justify-between gap-2 px-3.5 py-4 md:px-6">
         <div className="flex min-w-0 items-center gap-2">
           <button

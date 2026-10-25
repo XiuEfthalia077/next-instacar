@@ -641,4 +641,22 @@
     transform: translateY(-2px);
     box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.3);
   }
+
+  /* Remove default up/down spinner arrows from every number input across the entire portal */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none !important;
+    margin: 0 !important;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield !important;
+    appearance: textfield !important;
+  }
+
+  /* Prevent browser default orange/ugly outline boxes on inputs and dropdowns */
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: none !important;
+  }
 }

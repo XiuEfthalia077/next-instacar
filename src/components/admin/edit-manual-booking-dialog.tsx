@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ClipboardList } from "lucide-react";
 
 import { DocumentPreviewButton, type BookingDocument } from "@/components/admin/document-preview";
+import { FileUploadDropzone } from "@/components/common/file-upload-dropzone";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -77,32 +78,23 @@ function carLabel(car: ManualEditCar) {
 }
 
 function UploadField({
-  id,
   name,
   label,
   document,
 }: {
-  id: string;
+  id?: string;
   name: string;
   label: string;
   document?: BookingDocument;
 }) {
   return (
-    <div>
-      <div className="mb-1 flex items-center justify-between gap-2">
-        <Label htmlFor={id} className="text-xs font-bold">
-          {label}
-        </Label>
-        {document?.url ? <DocumentPreviewButton document={document} compact /> : null}
-      </div>
-      <Input
-        id={id}
-        type="file"
-        name={name}
-        accept="image/*,.pdf"
-        className="cursor-pointer rounded-lg file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-2.5 file:py-1 file:text-xs file:font-semibold"
-      />
-    </div>
+    <FileUploadDropzone
+      name={name}
+      label={label}
+      existingUrl={document?.url ?? null}
+      accept="image/*,application/pdf"
+      helperText="Drag & drop file or click to browse (Max 5MB)"
+    />
   );
 }
 

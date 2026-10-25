@@ -8,7 +8,9 @@ import {
   ChevronRight,
   Clock,
   ExternalLink,
+  Eye,
   List,
+  Sparkles,
   User,
 } from "lucide-react";
 import Link from "next/link";
@@ -59,7 +61,7 @@ export function CalendarView({
   const [viewMode, setViewMode] = React.useState<"month" | "list">("month");
   const [selectedDate, setSelectedDate] = React.useState<string | null>(null);
 
-  // Check window size on mount to auto-switch to list on small screens
+  // Auto-switch to list on mobile screens and lock to list on mobile
   React.useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 768) {
@@ -79,6 +81,29 @@ export function CalendarView({
       return b.start_date <= selectedDate && b.end_date >= selectedDate;
     });
   }, [bookings, selectedDate]);
+
+  // Group bookings strictly by date for the List View
+  const groupedBookingsByDate = React.useMemo(() => {
+    const map = new Map<string, BookingRow[]>();
+
+    // For every day in the month, check which bookings occur on that date
+    for (let dayNum = 1; dayNum <= daysInMonth; dayNum++) {
+      const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
+      const dayBookings = bookings.filter((b) => {
+        if (!b.start_date || !b.end_date) return false;
+        return b.start_date <= dateStr && b.end_date >= dateStr;
+      });
+
+      if (dayBookings.length > 0) {
+        map.set(dateStr, dayBookings);
+      }
+    }
+
+    return Array.from(map.entries()).map(([dateStr, items]) => ({
+      dateStr,
+      items,
+    }));
+  }, [bookings, year, month, daysInMonth]);
 
   return (
     <div className="space-y-4">
@@ -131,7 +156,7 @@ export function CalendarView({
             )}
           >
             <List className="size-3.5" />
-            <span>List View</span>
+            <span>List View (Grouped by Date)</span>
             <span className="rounded-full bg-black/10 px-1.5 py-0.2 text-[10px]">
               {bookings.length}
             </span>
@@ -139,7 +164,7 @@ export function CalendarView({
         </div>
       </div>
 
-      {/* MONTH GRID VIEW (Desktop / Tablet) */}
+      {/* MONTH GRID VIEW (Desktop / Tablet only) */}
       {viewMode === "month" ? (
         <div className="hidden rounded-2xl border border-border bg-card p-4 shadow-sm md:block">
           {/* Weekday headers */}
@@ -180,7 +205,7 @@ export function CalendarView({
                   key={dayNum}
                   onClick={() => setSelectedDate(dateStr)}
                   className={cn(
-                    "group flex min-h-[120px] cursor-pointer flex-col rounded-xl border p-2 transition hover:border-[#ffcc00]/60 hover:bg-muted/30",
+                    "group relative flex min-h-[120px] cursor-pointer flex-col rounded-xl border p-2 transition hover:border-[#ffcc00] hover:bg-muted/30 hover:shadow-md",
                     isToday
                       ? "border-[#ffcc00] bg-[#ffcc00]/5 ring-1 ring-[#ffcc00]"
                       : "border-border/60 bg-card",
@@ -207,7 +232,7 @@ export function CalendarView({
 
                   {/* Booking Chips */}
                   <div className="flex flex-1 flex-col gap-1 overflow-hidden">
-                    {dayBookings.slice(0, 3).map((b) => {
+                    {dayBookings.slice(0, 2).map((b) => {
                       const carName =
                         [b.cars?.brand, b.cars?.model].filter(Boolean).join(" ") ||
                         "Vehicle";
@@ -240,18 +265,17 @@ export function CalendarView({
                       );
                     })}
 
-                    {dayBookings.length > 3 ? (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedDate(dateStr);
-                        }}
-                        className="mt-auto rounded bg-muted/60 py-0.5 text-center text-[10px] font-bold text-[#ffcc00] hover:bg-[#ffcc00]/20"
-                      >
-                        +{dayBookings.length - 3} more trips
-                      </button>
+                    {dayBookings.length > 2 ? (
+                      <span className="text-[10px] font-bold text-[#ffcc00]">
+                        +{dayBookings.length - 2} more trips
+                      </span>
                     ) : null}
+
+                    {/* Clear Hover Overlay indicating the cell is clickable */}
+                    <div className="mt-auto opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 rounded bg-[#ffcc00]/15 py-0.5 text-[9px] font-extrabold text-[#ffcc00]">
+                      <Eye className="size-2.5" />
+                      <span>Click to view</span>
+                    </div>
                   </div>
                 </div>
               );
@@ -260,10 +284,10 @@ export function CalendarView({
         </div>
       ) : null}
 
-      {/* LIST VIEW (Default on Mobile, or Toggled) */}
+      {/* STRICT DATE-GROUPED LIST VIEW (Mobile Default & Desktop View) */}
       {viewMode === "list" ? (
-        <div className="space-y-3">
-          {bookings.length === 0 ? (
+        <div className="space-y-4">
+          {groupedBookingsByDate.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center">
               <CalendarDays className="mx-auto size-8 text-muted-foreground" />
               <p className="mt-2 text-sm font-bold text-foreground">
@@ -274,74 +298,117 @@ export function CalendarView({
               </p>
             </div>
           ) : (
-            <div className="space-y-2.5">
-              {bookings.map((b) => {
-                const carName =
-                  [b.cars?.brand, b.cars?.model].filter(Boolean).join(" ") ||
-                  "Vehicle";
-                const customerName = b.users?.name || b.guest_name || "Guest";
+            groupedBookingsByDate.map((group) => {
+              const isToday = group.dateStr === todayStr;
 
-                return (
+              return (
+                <div
+                  key={group.dateStr}
+                  className="overflow-hidden rounded-2xl border border-border bg-card shadow-xs"
+                >
+                  {/* Strict Date Header */}
                   <div
-                    key={b.id}
-                    className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm transition hover:border-[#ffcc00]/50 sm:flex-row sm:items-center sm:justify-between"
+                    className={cn(
+                      "flex items-center justify-between border-b px-4 py-2.5",
+                      isToday
+                        ? "border-[#ffcc00]/40 bg-[#ffcc00]/10"
+                        : "border-border/60 bg-muted/30",
+                    )}
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-[#ffcc00]">
-                        <Car className="size-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded bg-muted px-1.5 py-0.2 font-mono text-xs font-bold text-foreground">
-                            #BK-{b.id}
+                    <div className="flex items-center gap-2">
+                      <CalendarIcon
+                        className={cn(
+                          "size-4",
+                          isToday ? "text-[#ffcc00]" : "text-muted-foreground",
+                        )}
+                      />
+                      <h3 className="text-xs font-extrabold text-foreground">
+                        {formatDate(group.dateStr, "long")}
+                        {isToday ? (
+                          <span className="ml-2 rounded-full bg-[#ffcc00] px-2 py-0.2 text-[10px] font-extrabold text-black">
+                            Today
                           </span>
-                          <p className="font-bold text-foreground">{carName}</p>
-                          <StatusBadge status={b.status} />
-                        </div>
-                        <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <User className="size-3" />
-                            {customerName}
-                          </span>
-                          {isAdminOrStaff && b.cars?.plate_number ? (
-                            <span className="font-mono text-foreground">
-                              Plate: {b.cars.plate_number}
-                            </span>
-                          ) : null}
-                          <span className="flex items-center gap-1 text-foreground">
-                            <Clock className="size-3 text-[#ffcc00]" />
-                            {formatDate(b.start_date)} ({formatTime(b.pickup_time)}) →{" "}
-                            {formatDate(b.end_date)} ({formatTime(b.return_time)})
-                          </span>
-                        </div>
-                      </div>
+                        ) : null}
+                      </h3>
                     </div>
-
-                    <div className="flex items-center justify-end">
-                      <Link
-                        href={`/shared/booking_details?id=${b.id}`}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3.5 py-2 text-xs font-bold text-foreground transition hover:border-[#ffcc00] hover:text-[#b38a00]"
-                      >
-                        <span>Details</span>
-                        <ExternalLink className="size-3.5" />
-                      </Link>
-                    </div>
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+                      {group.items.length} trip{group.items.length > 1 ? "s" : ""}
+                    </span>
                   </div>
-                );
-              })}
-            </div>
+
+                  {/* Bookings occurring on this specific date */}
+                  <div className="divide-y divide-border/40 p-2">
+                    {group.items.map((b) => {
+                      const carName =
+                        [b.cars?.brand, b.cars?.model].filter(Boolean).join(" ") ||
+                        "Vehicle";
+                      const customerName = b.users?.name || b.guest_name || "Guest";
+
+                      return (
+                        <div
+                          key={b.id}
+                          className="flex flex-col gap-2.5 p-3 transition hover:bg-muted/20 sm:flex-row sm:items-center sm:justify-between"
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-[#ffcc00]">
+                              <Car className="size-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="rounded bg-muted px-1.5 py-0.2 font-mono text-[11px] font-bold text-foreground">
+                                  #BK-{b.id}
+                                </span>
+                                <p className="font-bold text-foreground text-xs">
+                                  {carName}
+                                </p>
+                                <StatusBadge status={b.status} />
+                              </div>
+                              <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <User className="size-3" />
+                                  {customerName}
+                                </span>
+                                {isAdminOrStaff && b.cars?.plate_number ? (
+                                  <span className="font-mono text-foreground text-[11px]">
+                                    Plate: {b.cars.plate_number}
+                                  </span>
+                                ) : null}
+                                <span className="flex items-center gap-1 text-foreground text-[11px]">
+                                  <Clock className="size-3 text-[#ffcc00]" />
+                                  {formatTime(b.pickup_time)} – {formatTime(b.return_time)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-end">
+                            <Link
+                              href={`/shared/booking_details?id=${b.id}`}
+                              className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-[#ffcc00] hover:text-[#b38a00]"
+                            >
+                              <span>View</span>
+                              <ExternalLink className="size-3" />
+                            </Link>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
       ) : null}
 
-      {/* DAY DETAILS DIALOG (Modal for days with bookings) */}
+      {/* DAY DETAILS DIALOG (Modal for days with bookings - scrollable if > 4) */}
       <Dialog
         open={Boolean(selectedDate)}
         onOpenChange={(open) => !open && setSelectedDate(null)}
       >
-        <DialogContent className="max-h-[85vh] max-w-xl overflow-y-auto border-border bg-[#0d0f12] text-foreground sm:rounded-2xl">
+        <DialogContent className="max-h-[85vh] max-w-xl overflow-y-auto border-border bg-[#0d0f12] text-foreground sm:rounded-2xl p-6">
           <DialogHeader className="border-b border-border/80 pb-3">
-            <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground">
+            <DialogTitle className="flex items-center gap-2 text-base font-extrabold text-foreground">
               <CalendarIcon className="size-4 text-[#ffcc00]" />
               {selectedDate ? formatDate(selectedDate, "long") : "Day Schedule"}
             </DialogTitle>
@@ -356,7 +423,7 @@ export function CalendarView({
               No vehicle trips scheduled for this date.
             </div>
           ) : (
-            <div className="space-y-3 pt-2">
+            <div className="max-h-[60vh] space-y-2.5 overflow-y-auto pr-1 pt-2">
               {selectedDayBookings.map((b) => {
                 const carName =
                   [b.cars?.brand, b.cars?.model].filter(Boolean).join(" ") ||
@@ -366,7 +433,7 @@ export function CalendarView({
                 return (
                   <div
                     key={b.id}
-                    className="flex flex-col gap-2.5 rounded-xl border border-border bg-muted/20 p-3.5 transition hover:border-[#ffcc00]/50"
+                    className="flex flex-col gap-2 rounded-xl border border-border bg-muted/20 p-3.5 transition hover:border-[#ffcc00]/50"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div>

@@ -145,9 +145,9 @@ export async function fleetCounters(session: AppSession) {
 }
 
 /** The distinct car types (legacy `SELECT DISTINCT type FROM cars ...`). */
-export async function carTypes(session: AppSession): Promise<string[]> {
+export async function carTypes(session: AppSession, branchId?: number): Promise<string[]> {
   const supabase = await import("@/lib/auth").then((m) => m.getSupabase());
-  const branch = branchFilter(session);
+  const branch = branchFilter(session) ?? (branchId !== undefined ? branchId : null);
 
   let query = supabase.from("cars").select("type").in("status", ACTIVE_CAR_STATUSES);
 

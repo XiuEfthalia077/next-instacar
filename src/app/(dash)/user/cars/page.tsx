@@ -41,7 +41,7 @@ export default async function UserCarsPage({
 
   const [branches, types, fleet, content] = await Promise.all([
     listBranches(true),
-    carTypes(session),
+    carTypes(session, branchId),
     listCars(session, {
       search,
       type: typeFilter !== "All" ? typeFilter : undefined,

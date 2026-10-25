@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, Poppins } from "next/font/google";
+import { Suspense } from "react";
 
+import { TopLoader } from "@/components/common/top-loader";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -108,6 +110,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="flex min-h-full flex-col bg-background font-sans text-foreground">
+        <Suspense fallback={null}>
+          <TopLoader />
+        </Suspense>
         {children}
       </body>
     </html>
