@@ -352,7 +352,7 @@ export default async function SharedCarsPage({
                           <div className="flex items-center justify-between gap-2">
                             <span className="text-muted-foreground">1-6 hrs:</span>
                             <span className="font-extrabold text-foreground">
-                              ₱{car.ext_price_1_6 ?? 0} per hour
+                              ₱{car.ext_price_1_6 ?? 0}/hr
                             </span>
                           </div>
                           <div className="flex items-center justify-between gap-2 text-muted-foreground">

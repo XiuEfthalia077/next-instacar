@@ -1,11 +1,11 @@
 "use client";
 
-import { Edit3, Trash2, X } from "lucide-react";
+import { Edit3 } from "lucide-react";
 import * as React from "react";
 
 import { CarTypePicker } from "@/components/admin/car-type-picker";
 import { OperatorSelect, type OperatorOption } from "@/components/admin/operator-select";
-import { FileUploadDropzone } from "@/components/common/file-upload-dropzone";
+import { VehicleMediaStash } from "@/components/admin/vehicle-media-stash";
 import { LoadingButton } from "@/components/common/loading-button";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,18 +48,7 @@ export function EditCarDialog({
       : [];
   }, [car.image_path]);
 
-  const [markedToDelete, setMarkedToDelete] = React.useState<string[]>([]);
-  const [newPhotoCount, setNewPhotoCount] = React.useState(0);
-
-  const toggleDeleteImage = (img: string) => {
-    setMarkedToDelete((prev) =>
-      prev.includes(img) ? prev.filter((i) => i !== img) : [...prev, img],
-    );
-  };
-
   const carName = [car.brand, car.model].filter(Boolean).join(" ") || "Vehicle";
-  const activePhotosCount =
-    existingImages.length - markedToDelete.length + newPhotoCount;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -88,77 +77,8 @@ export function EditCarDialog({
         <form action={saveCarAction} className="space-y-4 pt-1">
           <input type="hidden" name="id" value={car.id} />
 
-          {/* Vehicle Media Upload Stash (Matching Image 3) */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-foreground">
-                Vehicle Media Upload Stash
-              </span>
-              <span className="rounded-full bg-[#ffcc00] px-2.5 py-0.5 text-[11px] font-extrabold text-black">
-                {activePhotosCount} Photos
-              </span>
-            </div>
-
-            {/* Existing photos with deletion preview */}
-            {existingImages.length > 0 ? (
-              <div className="flex flex-wrap gap-2 rounded-xl border border-border/60 bg-muted/20 p-2.5">
-                {existingImages.map((img) => {
-                  const isMarked = markedToDelete.includes(img);
-                  const url = carImageUrl(img);
-
-                  return (
-                    <div
-                      key={img}
-                      onClick={() => toggleDeleteImage(img)}
-                      className={`group relative size-16 cursor-pointer overflow-hidden rounded-xl border-2 transition ${
-                        isMarked
-                          ? "border-rose-500 opacity-40 ring-2 ring-rose-500/40"
-                          : "border-border hover:border-[#ffcc00]"
-                      }`}
-                      title={
-                        isMarked ? "Click to keep" : "Click to mark for deletion"
-                      }
-                    >
-                      {isMarked ? (
-                        <input
-                          type="hidden"
-                          name="delete_existing_images"
-                          value={img}
-                        />
-                      ) : null}
-
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={url}
-                        alt="Car photo"
-                        className="size-full object-cover"
-                      />
-
-                      {isMarked ? (
-                        <div className="absolute inset-0 flex items-center justify-center bg-rose-950/70 text-rose-300">
-                          <Trash2 className="size-4" />
-                        </div>
-                      ) : (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition group-hover:opacity-100">
-                          <Trash2 className="size-3.5 text-white" />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : null}
-
-            <FileUploadDropzone
-              name="car_images"
-              multiple
-              accept="image/jpeg,image/png,image/webp"
-              maxSizeMB={5}
-              description="Drag & drop multiple vehicle photos here, or click to browse"
-              helperText="Supports JPEG, PNG, WEBP formats"
-              onFileSelect={(file) => setNewPhotoCount(file ? 1 : 0)}
-            />
-          </div>
+          {/* Vehicle Media Upload Stash with Main Photo Selector */}
+          <VehicleMediaStash existingImages={existingImages} maxSizeMB={5} />
 
           {/* Form Fields Grid (Matching Image 3) */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

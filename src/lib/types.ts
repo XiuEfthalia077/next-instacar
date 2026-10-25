@@ -13,7 +13,8 @@ export type BookingStatus =
   | "Confirmed"
   | "Released"
   | "Completed"
-  | "Cancelled";
+  | "Cancelled"
+  | "Maintenance";
 
 export type BookingType = "online" | "manual";
 

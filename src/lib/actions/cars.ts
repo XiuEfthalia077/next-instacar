@@ -156,6 +156,9 @@ export async function saveCarAction(formData: FormData) {
     }
   }
 
+  const mainPhotoName = str(formData, "main_photo_name");
+  let designatedMainFileName: string | null = null;
+
   for (const upload of files(formData, "car_images")) {
     const fileName = buildFileName("car", upload);
     const result = await uploadFile(supabase, {
@@ -167,7 +170,24 @@ export async function saveCarAction(formData: FormData) {
     if (result.ok) {
       images = images.filter((name) => name !== DEFAULT_IMAGE);
       if (!images.includes(fileName)) images.push(fileName);
+      if (mainPhotoName && upload.name === mainPhotoName) {
+        designatedMainFileName = fileName;
+      }
     }
+  }
+
+  // If a newly uploaded file was designated as main photo:
+  if (designatedMainFileName && images.includes(designatedMainFileName)) {
+    images = [
+      designatedMainFileName,
+      ...images.filter((name) => name !== designatedMainFileName),
+    ];
+  } else if (mainPhotoName && images.includes(mainPhotoName)) {
+    // Or if an existing photo was designated as main photo:
+    images = [
+      mainPhotoName,
+      ...images.filter((name) => name !== mainPhotoName),
+    ];
   }
 
   if (!images.length) images = [DEFAULT_IMAGE];

@@ -41,20 +41,29 @@ import { formatPeso } from "@/lib/constants";
 import { siteAssetUrl } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 
+export type BlockedRange = {
+  start: string;
+  end: string;
+  reason: "Booked" | "Maintenance";
+};
+
 type RentCarFlowDialogProps = {
   car: CarWithOwner;
   agreementHtml?: string;
   trigger?: React.ReactNode;
+  blockedRanges?: BlockedRange[];
 };
 
 export function RentCarFlowDialog({
   car,
   agreementHtml,
   trigger,
+  blockedRanges = [],
 }: RentCarFlowDialogProps) {
   const [open, setOpen] = React.useState(false);
   const [qrModalOpen, setQrModalOpen] = React.useState(false);
   const [agreementModalOpen, setAgreementModalOpen] = React.useState(false);
+  const [deliveryConfirmOpen, setDeliveryConfirmOpen] = React.useState(false);
 
   // Form states
   const [quickDuration, setQuickDuration] = React.useState<"10h" | "24h" | "custom">("24h");
@@ -201,6 +210,11 @@ export function RentCarFlowDialog({
     setCalDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
   };
 
+  const hasDateOverlap = React.useMemo(() => {
+    if (!startDate || !endDate) return false;
+    return blockedRanges.some((r) => r.start <= endDate && r.end >= startDate);
+  }, [startDate, endDate, blockedRanges]);
+
   const handleSelectDay = (day: number | null) => {
     if (!day) return;
     const pad = (n: number) => String(n).padStart(2, "0");
@@ -220,19 +234,20 @@ export function RentCarFlowDialog({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          {trigger || (
-            <Button
-              type="button"
-              className="w-full gap-2 rounded-xl bg-[#ffcc00] py-2.5 font-bold text-black transition hover:bg-[#ffd633]"
-            >
-              <CheckCircle2 className="size-4" />
-              Book Now
-            </Button>
-          )}
-        </DialogTrigger>
+      {/* Trigger: Click opens Car Rental Agreement Modal FIRST */}
+      <div onClick={() => setAgreementModalOpen(true)}>
+        {trigger || (
+          <Button
+            type="button"
+            className="w-full gap-2 rounded-xl bg-[#ffcc00] py-2.5 font-bold text-black transition hover:bg-[#ffd633]"
+          >
+            <CheckCircle2 className="size-4" />
+            Book Now
+          </Button>
+        )}
+      </div>
 
+      <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto border-border bg-[#0d0f12] p-4 text-foreground sm:p-6 sm:rounded-2xl">
           <DialogHeader className="border-b border-border/80 pb-3">
             <DialogTitle className="text-lg font-black tracking-tight text-foreground">
@@ -257,7 +272,7 @@ export function RentCarFlowDialog({
                 </div>
                 <div className="flex items-center gap-1 text-[10px] font-bold">
                   <span className="rounded bg-emerald-600 px-2 py-0.5 text-white">Available</span>
-                  <span className="rounded bg-rose-600 px-2 py-0.5 text-white">Booked</span>
+                  <span className="rounded bg-rose-600 px-2 py-0.5 text-white">Booked / Maint</span>
                   <span className="rounded bg-[#ffcc00] px-2 py-0.5 text-black">Selected</span>
                 </div>
               </div>
@@ -301,22 +316,42 @@ export function RentCarFlowDialog({
 
                   const pad = (n: number) => String(n).padStart(2, "0");
                   const currentDayStr = `${calDate.getFullYear()}-${pad(calDate.getMonth() + 1)}-${pad(d)}`;
+                  const todayStr = new Date().toISOString().slice(0, 10);
+                  const blocked = blockedRanges.find(
+                    (r) => r.start <= currentDayStr && r.end >= currentDayStr,
+                  );
+                  const isPast = currentDayStr < todayStr;
+                  const isUnavailable = Boolean(blocked) || isPast;
                   const isSelected =
                     startDate && endDate && currentDayStr >= startDate && currentDayStr <= endDate;
-                  const isToday = new Date().toISOString().slice(0, 10) === currentDayStr;
+                  const isToday = todayStr === currentDayStr;
 
                   return (
                     <button
                       type="button"
                       key={currentDayStr}
-                      onClick={() => handleSelectDay(d)}
+                      disabled={isUnavailable}
+                      onClick={() => !isUnavailable && handleSelectDay(d)}
+                      title={
+                        blocked
+                          ? blocked.reason === "Maintenance"
+                            ? "Unavailable — Scheduled for Maintenance"
+                            : "Unavailable — Booked"
+                          : isPast
+                            ? "Past date"
+                            : "Available for Rent"
+                      }
                       className={cn(
-                        "flex h-8 items-center justify-center rounded-md font-bold transition",
+                        "flex h-8 items-center justify-center rounded-md font-bold transition text-xs",
                         isSelected
-                          ? "border-2 border-[#ffcc00] bg-[#ffcc00]/20 text-[#ffcc00]"
-                          : isToday
-                            ? "border border-border bg-muted/60 text-foreground"
-                            : "bg-muted/20 text-muted-foreground hover:bg-muted hover:text-foreground",
+                          ? "border-2 border-[#ffcc00] bg-[#ffcc00]/25 text-[#ffcc00] font-black shadow-sm"
+                          : blocked
+                            ? "border border-rose-500/50 bg-rose-500/20 text-rose-400 cursor-not-allowed opacity-90"
+                            : isPast
+                              ? "bg-muted/10 text-muted-foreground/30 cursor-not-allowed"
+                              : isToday
+                                ? "border border-[#ffcc00]/80 bg-[#ffcc00]/10 text-foreground"
+                                : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 hover:border-emerald-500",
                       )}
                     >
                       {d}
@@ -325,10 +360,13 @@ export function RentCarFlowDialog({
                 })}
               </div>
 
-              <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                <AlertCircle className="size-3 text-muted-foreground" />
-                <span>Grayed/Red dates are already booked. Please select available dates.</span>
-              </p>
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <AlertCircle className="size-3 text-muted-foreground" />
+                  Red dates are booked or scheduled for maintenance.
+                </span>
+                <span className="text-emerald-400 font-semibold">Green dates available</span>
+              </div>
             </div>
 
             {/* 2. QUICK DURATION TABS (Image 1) */}
@@ -441,7 +479,11 @@ export function RentCarFlowDialog({
 
                 <button
                   type="button"
-                  onClick={() => setFulfillmentType("Delivery")}
+                  onClick={() => {
+                    if (fulfillmentType !== "Delivery") {
+                      setDeliveryConfirmOpen(true);
+                    }
+                  }}
                   className={cn(
                     "flex items-center gap-3 rounded-xl border p-3 text-left transition",
                     fulfillmentType === "Delivery"
@@ -465,35 +507,70 @@ export function RentCarFlowDialog({
               </div>
             </div>
 
-            {/* 5. PICKUP ADDRESS BLOCK (Image 1) */}
-            <div className="rounded-xl border border-border bg-card p-3.5 space-y-2">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                <MapPin className="size-4 text-[#ffcc00]" />
-                <span>Pickup Address</span>
-              </div>
-              <div className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/20 p-3">
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#ffcc00]/20 text-[#ffcc00]">
-                  <MapPin className="size-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[10px] font-extrabold uppercase text-muted-foreground">
-                      Pickup Location
-                    </span>
+            {/* 5. ADDRESS BLOCK: CONDITIONAL PICKUP OR DELIVERY */}
+            {fulfillmentType === "Delivery" ? (
+              <div className="rounded-xl border border-[#ffcc00]/50 bg-[#ffcc00]/5 p-3.5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#ffcc00] uppercase tracking-wider">
+                    <Truck className="size-4" />
+                    <span>Delivery Address (Where should we deliver the vehicle?) *</span>
+                  </div>
+                  {deliveryAddress && (
                     <a
-                      href={mapSearchUrl}
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(deliveryAddress)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 text-[11px] font-bold text-[#ffcc00] hover:underline"
                     >
-                      <span>↗ Map</span>
+                      <MapPin className="size-3" />
+                      <span>View Map</span>
                     </a>
+                  )}
+                </div>
+                <textarea
+                  id="delivery_address_field"
+                  name="delivery_address"
+                  rows={2}
+                  required
+                  value={deliveryAddress}
+                  onChange={(e) => setDeliveryAddress(e.target.value)}
+                  placeholder="Enter complete street address, landmark, subdivision, hotel or delivery instructions..."
+                  className="w-full rounded-xl border border-border bg-card p-2.5 text-xs text-foreground outline-none transition focus:border-[#ffcc00] focus:ring-1 focus:ring-[#ffcc00]/50"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  📍 Our staff will deliver the vehicle directly to this address before your rental start time.
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-border bg-card p-3.5 space-y-2">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                  <MapPin className="size-4 text-[#ffcc00]" />
+                  <span>Pickup Address</span>
+                </div>
+                <div className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/20 p-3">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#ffcc00]/20 text-[#ffcc00]">
+                    <MapPin className="size-4" />
                   </div>
-                  <p className="text-xs font-bold text-foreground truncate">{branchAddress}</p>
-                  <p className="text-[11px] text-muted-foreground">🏢 {branchName}</p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[10px] font-extrabold uppercase text-muted-foreground">
+                        Pickup Location
+                      </span>
+                      <a
+                        href={mapSearchUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-[#ffcc00] hover:underline"
+                      >
+                        <span>↗ Map</span>
+                      </a>
+                    </div>
+                    <p className="text-xs font-bold text-foreground truncate">{branchAddress}</p>
+                    <p className="text-[11px] text-muted-foreground">🏢 {branchName}</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* 6. RETURN ADDRESS BLOCK (Clarified: Where we will collect the car) */}
             <div className="space-y-1.5">
@@ -653,14 +730,61 @@ export function RentCarFlowDialog({
             </div>
 
             {/* 10. CONFIRM RESERVATION BUTTON */}
+            {hasDateOverlap && (
+              <div className="flex items-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-rose-400">
+                <AlertCircle className="size-4 shrink-0" />
+                <span>Selected dates overlap with an existing booking or maintenance schedule. Please select available green dates.</span>
+              </div>
+            )}
+
             <LoadingButton
               type="submit"
-              disabled={!agreedToTerms || hours < 10}
+              disabled={!agreedToTerms || hours < 10 || hasDateOverlap}
               className="w-full rounded-xl bg-[#ffcc00] py-3 text-sm font-black text-black hover:bg-[#ffd633] transition"
             >
               Confirm Reservation
             </LoadingButton>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* DELIVERY CONFIRMATION MODAL */}
+      <Dialog open={deliveryConfirmOpen} onOpenChange={setDeliveryConfirmOpen}>
+        <DialogContent className="max-w-sm border-border bg-[#0d0f12] p-6 text-foreground sm:rounded-2xl">
+          <div className="flex flex-col items-center text-center space-y-3">
+            <div className="rounded-full bg-[#ffcc00]/15 p-3 text-[#ffcc00]">
+              <Truck className="size-6" />
+            </div>
+            <DialogTitle className="text-base font-extrabold text-foreground">
+              Do you want car delivery?
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+              We can deliver this vehicle straight to your home, airport, or hotel. Additional delivery fees apply depending on distance from our Pavia branch.
+            </DialogDescription>
+            <div className="grid grid-cols-2 gap-2.5 w-full pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setFulfillmentType("pickup");
+                  setDeliveryConfirmOpen(false);
+                }}
+                className="rounded-xl text-xs font-semibold"
+              >
+                No, Self Pickup
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  setFulfillmentType("Delivery");
+                  setDeliveryConfirmOpen(false);
+                }}
+                className="rounded-xl bg-[#ffcc00] font-black text-black hover:bg-[#ffd633]"
+              >
+                Yes, Deliver Car
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -704,7 +828,7 @@ export function RentCarFlowDialog({
         </DialogContent>
       </Dialog>
 
-      {/* FULL RENTAL AGREEMENT MODAL */}
+      {/* FULL RENTAL AGREEMENT MODAL (Appears FIRST before booking form) */}
       <Dialog open={agreementModalOpen} onOpenChange={setAgreementModalOpen}>
         <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto border-border bg-[#0d0f12] p-6 text-foreground sm:rounded-2xl">
           <DialogHeader className="border-b border-border/80 pb-3">
@@ -713,7 +837,7 @@ export function RentCarFlowDialog({
               Official Car Rental Agreement
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              Please review the terms and conditions in full.
+              Step 1 of 2 — Please review and accept the rental terms before reserving {carName}.
             </DialogDescription>
           </DialogHeader>
 
@@ -721,16 +845,25 @@ export function RentCarFlowDialog({
             {OFFICIAL_RENTAL_AGREEMENT}
           </div>
 
-          <div className="border-t border-border pt-3 flex justify-end">
+          <div className="border-t border-border pt-3 flex items-center justify-between">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setAgreementModalOpen(false)}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              Decline &amp; Cancel
+            </Button>
             <Button
               type="button"
               onClick={() => {
                 setAgreedToTerms(true);
                 setAgreementModalOpen(false);
+                setOpen(true);
               }}
-              className="bg-[#ffcc00] font-bold text-black hover:bg-[#ffd633]"
+              className="bg-[#ffcc00] font-black text-black hover:bg-[#ffd633]"
             >
-              I Accept Agreement
+              I Accept Agreement &amp; Continue to Booking →
             </Button>
           </div>
         </DialogContent>

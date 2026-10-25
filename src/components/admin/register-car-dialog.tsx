@@ -5,7 +5,7 @@ import * as React from "react";
 
 import { CarTypePicker } from "@/components/admin/car-type-picker";
 import { OperatorSelect, type OperatorOption } from "@/components/admin/operator-select";
-import { FileUploadDropzone } from "@/components/common/file-upload-dropzone";
+import { VehicleMediaStash } from "@/components/admin/vehicle-media-stash";
 import { LoadingButton } from "@/components/common/loading-button";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,7 +32,6 @@ export function RegisterCarDialog({
   trigger,
 }: RegisterCarDialogProps) {
   const [open, setOpen] = React.useState(false);
-  const [photoCount, setPhotoCount] = React.useState(0);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -59,27 +58,8 @@ export function RegisterCarDialog({
         </DialogHeader>
 
         <form action={saveCarAction} className="space-y-4 pt-1">
-          {/* Vehicle Media Upload Stash (Matching Image 3) */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-foreground">
-                Vehicle Media Upload Stash
-              </span>
-              <span className="rounded-full bg-[#ffcc00] px-2.5 py-0.5 text-[11px] font-extrabold text-black">
-                {photoCount} Photos
-              </span>
-            </div>
-
-            <FileUploadDropzone
-              name="car_images"
-              multiple
-              accept="image/jpeg,image/png,image/webp"
-              maxSizeMB={5}
-              description="Drag & drop multiple vehicle photos here, or click to browse"
-              helperText="Supports JPEG, PNG, WEBP formats"
-              onFileSelect={(file) => setPhotoCount(file ? 1 : 0)}
-            />
-          </div>
+          {/* Vehicle Media Upload Stash with Main Photo selector */}
+          <VehicleMediaStash maxSizeMB={5} />
 
           {/* Form Fields Grid (Matching Image 3) */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

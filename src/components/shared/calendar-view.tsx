@@ -67,6 +67,7 @@ export function CalendarView({
   // List View / Mobile Filter States
   const [searchQuery, setSearchQuery] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
+  const [dateFilter, setDateFilter] = React.useState<string>("");
 
   // Auto-switch to list on mobile screens and lock to list on mobile
   React.useEffect(() => {
@@ -80,15 +81,19 @@ export function CalendarView({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Filter bookings based on List View search and status filter
+  // Filter bookings based on List View search, status, and date filter
   const filteredBookings = React.useMemo(() => {
     return bookings.filter((b) => {
       if (statusFilter !== "all" && b.status !== statusFilter) return false;
+      if (dateFilter) {
+        if (!b.start_date || !b.end_date) return false;
+        if (b.start_date > dateFilter || b.end_date < dateFilter) return false;
+      }
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const carName = `${b.cars?.brand || ""} ${b.cars?.model || ""}`.toLowerCase();
         const customer = (b.users?.name || b.guest_name || "").toLowerCase();
-        const idMatch = String(b.id).includes(q);
+        const idMatch = String(Math.abs(b.id)).includes(q);
         const plateMatch = (b.cars?.plate_number || "").toLowerCase().includes(q);
         if (!carName.includes(q) && !customer.includes(q) && !idMatch && !plateMatch) {
           return false;
@@ -96,7 +101,7 @@ export function CalendarView({
       }
       return true;
     });
-  }, [bookings, statusFilter, searchQuery]);
+  }, [bookings, statusFilter, searchQuery, dateFilter]);
 
   // Filter bookings for selected day dialog
   const selectedDayBookings = React.useMemo(() => {
@@ -114,6 +119,7 @@ export function CalendarView({
     // For every day in the month, check which filtered bookings occur on that date
     for (let dayNum = 1; dayNum <= daysInMonth; dayNum++) {
       const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
+      if (dateFilter && dateStr !== dateFilter) continue;
       const dayBookings = filteredBookings.filter((b) => {
         if (!b.start_date || !b.end_date) return false;
         return b.start_date <= dateStr && b.end_date >= dateStr;
@@ -128,7 +134,7 @@ export function CalendarView({
       dateStr,
       items,
     }));
-  }, [filteredBookings, year, month, daysInMonth]);
+  }, [filteredBookings, year, month, daysInMonth, dateFilter]);
 
   return (
     <div className="space-y-4">
@@ -225,15 +231,19 @@ export function CalendarView({
                 return b.start_date <= dateStr && b.end_date >= dateStr;
               });
 
+              const hasMaintenance = dayBookings.some((b) => b.status === "Maintenance");
+
               return (
                 <div
                   key={dayNum}
                   onClick={() => setSelectedDate(dateStr)}
                   className={cn(
                     "group relative flex min-h-[120px] cursor-pointer flex-col rounded-xl border p-2 transition hover:border-[#ffcc00] hover:bg-muted/30 hover:shadow-md",
-                    isToday
-                      ? "border-[#ffcc00] bg-[#ffcc00]/5 ring-1 ring-[#ffcc00]"
-                      : "border-border/60 bg-card",
+                    hasMaintenance
+                      ? "border-rose-500/80 bg-rose-500/10 ring-1 ring-rose-500/40"
+                      : isToday
+                        ? "border-[#ffcc00] bg-[#ffcc00]/5 ring-1 ring-[#ffcc00]"
+                        : "border-border/60 bg-card",
                   )}
                 >
                   {/* Day header */}
@@ -243,16 +253,25 @@ export function CalendarView({
                         "flex size-6 items-center justify-center rounded-full text-xs font-extrabold transition",
                         isToday
                           ? "bg-[#ffcc00] text-black shadow-sm"
-                          : "text-foreground group-hover:text-[#ffcc00]",
+                          : hasMaintenance
+                            ? "bg-rose-500 text-white"
+                            : "text-foreground group-hover:text-[#ffcc00]",
                       )}
                     >
                       {dayNum}
                     </span>
-                    {dayBookings.length > 0 ? (
-                      <span className="rounded-full bg-muted/80 px-1.5 py-0.2 text-[10px] font-bold text-muted-foreground">
-                        {dayBookings.length} trip{dayBookings.length > 1 ? "s" : ""}
-                      </span>
-                    ) : null}
+                    <div className="flex items-center gap-1">
+                      {hasMaintenance ? (
+                        <span className="rounded bg-rose-500/20 px-1 py-0.2 text-[9px] font-black text-rose-400 border border-rose-500/30">
+                          🔧 Maint
+                        </span>
+                      ) : null}
+                      {dayBookings.length > 0 ? (
+                        <span className="rounded-full bg-muted/80 px-1.5 py-0.2 text-[10px] font-bold text-muted-foreground">
+                          {dayBookings.length} trip{dayBookings.length > 1 ? "s" : ""}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
 
                   {/* Booking Chips */}
@@ -262,8 +281,10 @@ export function CalendarView({
                         [b.cars?.brand, b.cars?.model].filter(Boolean).join(" ") ||
                         "Vehicle";
 
-                      const statusDot =
-                        b.status === "Confirmed" || b.status === "Released"
+                      const isMaintenance = b.status === "Maintenance";
+                      const statusDot = isMaintenance
+                        ? "bg-rose-500"
+                        : b.status === "Confirmed" || b.status === "Released"
                           ? "bg-emerald-500"
                           : b.status === "Pending"
                             ? "bg-amber-400"
@@ -274,7 +295,12 @@ export function CalendarView({
                       return (
                         <div
                           key={b.id}
-                          className="flex items-center gap-1 rounded-md border border-border/40 bg-muted/40 px-1.5 py-0.5 text-[10px] font-semibold text-foreground transition hover:border-[#ffcc00] hover:bg-[#ffcc00]/10"
+                          className={cn(
+                            "flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold transition",
+                            isMaintenance
+                              ? "border-rose-500/40 bg-rose-500/20 text-rose-300 hover:border-rose-400"
+                              : "border-border/40 bg-muted/40 text-foreground hover:border-[#ffcc00] hover:bg-[#ffcc00]/10",
+                          )}
                         >
                           <span
                             className={cn(
@@ -283,7 +309,7 @@ export function CalendarView({
                             )}
                           />
                           <span className="font-mono text-[9px] text-muted-foreground">
-                            #{b.id}
+                            {b.id < 0 ? "MAINT" : `#${b.id}`}
                           </span>
                           <span className="truncate">{carName}</span>
                         </div>
@@ -334,7 +360,29 @@ export function CalendarView({
               ) : null}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Date Filter specifically for List View */}
+              <div className="flex items-center gap-1.5 rounded-lg border border-border bg-muted/40 px-2.5 py-1 text-xs">
+                <CalendarIcon className="size-3.5 text-[#ffcc00]" />
+                <input
+                  type="date"
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  className="bg-transparent text-xs font-semibold text-foreground outline-none"
+                  title="Filter by Specific Date"
+                />
+                {dateFilter && (
+                  <button
+                    type="button"
+                    onClick={() => setDateFilter("")}
+                    className="text-muted-foreground hover:text-foreground"
+                    title="Clear date filter"
+                  >
+                    <X className="size-3" />
+                  </button>
+                )}
+              </div>
+
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
@@ -346,14 +394,16 @@ export function CalendarView({
                 <option value="Pending">Pending</option>
                 <option value="Completed">Completed</option>
                 <option value="Cancelled">Cancelled</option>
+                <option value="Maintenance">Maintenance</option>
               </select>
 
-              {(searchQuery || statusFilter !== "all") && (
+              {(searchQuery || statusFilter !== "all" || dateFilter) && (
                 <button
                   type="button"
                   onClick={() => {
                     setSearchQuery("");
                     setStatusFilter("all");
+                    setDateFilter("");
                   }}
                   className="inline-flex h-9 items-center gap-1 rounded-lg border border-border bg-muted/20 px-2.5 text-xs font-bold text-muted-foreground hover:text-foreground"
                 >
@@ -459,13 +509,23 @@ export function CalendarView({
                           </div>
 
                           <div className="flex items-center justify-end">
-                            <Link
-                              href={`/shared/booking_details?id=${b.id}`}
-                              className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-[#ffcc00] hover:text-[#b38a00]"
-                            >
-                              <span>View</span>
-                              <ExternalLink className="size-3" />
-                            </Link>
+                            {b.status === "Maintenance" ? (
+                              <Link
+                                href={`/shared/my_car_schedules?car_id=${b.car_id}`}
+                                className="inline-flex items-center gap-1 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20"
+                              >
+                                <span>Maintenance</span>
+                                <ExternalLink className="size-3" />
+                              </Link>
+                            ) : (
+                              <Link
+                                href={`/shared/booking_details?id=${b.id}`}
+                                className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-[#ffcc00] hover:text-[#b38a00]"
+                              >
+                                <span>View</span>
+                                <ExternalLink className="size-3" />
+                              </Link>
+                            )}
                           </div>
                         </div>
                       );
@@ -548,13 +608,23 @@ export function CalendarView({
                       <span className="text-muted-foreground">
                         {formatDate(b.start_date)} to {formatDate(b.end_date)}
                       </span>
-                      <Link
-                        href={`/shared/booking_details?id=${b.id}`}
-                        className="inline-flex items-center gap-1 font-bold text-[#ffcc00] hover:underline"
-                      >
-                        View Full Details
-                        <ExternalLink className="size-3" />
-                      </Link>
+                      {b.status === "Maintenance" ? (
+                        <Link
+                          href={`/shared/my_car_schedules?car_id=${b.car_id}`}
+                          className="inline-flex items-center gap-1 font-bold text-rose-400 hover:underline"
+                        >
+                          Manage Schedule
+                          <ExternalLink className="size-3" />
+                        </Link>
+                      ) : (
+                        <Link
+                          href={`/shared/booking_details?id=${b.id}`}
+                          className="inline-flex items-center gap-1 font-bold text-[#ffcc00] hover:underline"
+                        >
+                          View Full Details
+                          <ExternalLink className="size-3" />
+                        </Link>
+                      )}
                     </div>
                   </div>
                 );

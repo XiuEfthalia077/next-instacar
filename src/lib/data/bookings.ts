@@ -419,7 +419,102 @@ export async function calendarBookings(
     query = query.eq("branch_id", branch);
   }
 
-  return fetchRows<BookingRow>(query);
+  // Also query maintenance schedules from car_schedules
+  const schedQuery = supabase
+    .from("car_schedules")
+    .select(
+      `
+      id, car_id, start_date, end_date, reason, notes, created_at,
+      cars!car_schedules_car_id_fkey ( id, brand, model, plate_number, type, user_id, branch_id )
+    `,
+    )
+    .lte("start_date", to)
+    .gte("end_date", from)
+    .order("start_date", { ascending: true });
+
+  const [bookingRows, schedRows] = await Promise.all([
+    fetchRows<BookingRow>(query),
+    fetchRows<{
+      id: number;
+      car_id: number;
+      start_date: string;
+      end_date: string;
+      reason: string;
+      notes: string | null;
+      created_at: string;
+      cars: {
+        id: number;
+        brand: string;
+        model: string;
+        plate_number: string;
+        type: string;
+        user_id?: number | null;
+        branch_id?: number | null;
+      } | null;
+    }>(schedQuery),
+  ]);
+
+  const maintenanceEvents: BookingRow[] = [];
+  for (const s of schedRows) {
+    if (session.role === "operator" && s.cars?.user_id !== session.userId) {
+      continue;
+    }
+    if (branch !== null && s.cars?.branch_id !== branch) {
+      continue;
+    }
+
+    maintenanceEvents.push({
+      id: -s.id,
+      user_id: null,
+      created_by: null,
+      last_action_by: null,
+      last_action_at: null,
+      last_action_type: null,
+      car_id: s.car_id,
+      branch_id: s.cars?.branch_id ?? null,
+      start_date: s.start_date,
+      end_date: s.end_date,
+      pickup_time: "08:00:00",
+      return_time: "18:00:00",
+      status: "Maintenance",
+      booking_type: "manual",
+      fulfillment_type: "Pickup",
+      delivery_address: null,
+      return_delivery_address: null,
+      total_price: 0,
+      discount_price: 0,
+      down_payment: 0,
+      extension_price: 0,
+      extension_hours: 0,
+      delivery_fee: 0,
+      pickup_fee: 0,
+      proof_billing_path: null,
+      proof_payment_path: null,
+      remarks: s.notes || s.reason,
+      guest_name: s.notes ? `Maintenance: ${s.notes}` : `Maintenance (${s.reason})`,
+      gmail: null,
+      phone_number: null,
+      primary_id_path: null,
+      secondary_id_path: null,
+      created_at: s.created_at,
+      cars: s.cars
+        ? {
+            id: s.cars.id,
+            brand: s.cars.brand,
+            model: s.cars.model,
+            plate_number: s.cars.plate_number,
+            branch_id: s.cars.branch_id ?? null,
+            user_id: s.cars.user_id ?? null,
+            status: "Maintenance",
+            type: s.cars.type,
+          }
+        : null,
+      users: null,
+      branches: null,
+    });
+  }
+
+  return [...bookingRows, ...maintenanceEvents];
 }
 
 /** Status distribution used by the charts of the dashboards. */

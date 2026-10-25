@@ -24,6 +24,7 @@ const DEFAULT_TYPES = [
   "Convertible",
   "Luxury / Executive",
   "Electric / Hybrid",
+  "Others (Custom)",
 ];
 
 const STORAGE_KEY = "instacar_custom_car_types";
@@ -136,7 +137,7 @@ export function CarTypePicker({
         </PopoverTrigger>
 
         <PopoverContent
-          className="w-[320px] rounded-xl border-border bg-[#0d0f12] p-2 text-foreground shadow-2xl"
+          className="z-[200] w-[320px] rounded-xl border-border bg-[#0d0f12] p-2 text-foreground shadow-2xl"
           align="start"
         >
           {/* Search & Add Bar */}

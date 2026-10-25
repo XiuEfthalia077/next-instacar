@@ -39,7 +39,10 @@ export default async function UserCarsPage({
   const branchFilterParam = searchParam(params, "branch");
   const branchId = branchFilterParam && branchFilterParam !== "All" ? Number(branchFilterParam) : undefined;
 
-  const [branches, availableFleet, fleet, content] = await Promise.all([
+  const supabase = await import("@/lib/auth").then((m) => m.getSupabase());
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  const [branches, availableFleet, fleet, content, activeBookingsRes, activeSchedulesRes] = await Promise.all([
     listBranches(true),
     listCars(session, {
       branchId,
@@ -52,16 +55,70 @@ export default async function UserCarsPage({
       perPage: 100,
     }),
     siteContent(),
+    supabase
+      .from("bookings")
+      .select("car_id, start_date, end_date, status")
+      .in("status", ["Pending", "Confirmed", "Released"])
+      .gte("end_date", todayStr),
+    supabase
+      .from("car_schedules")
+      .select("car_id, start_date, end_date, reason")
+      .gte("end_date", todayStr),
   ]);
+
+  const activeBookings = (activeBookingsRes.data || []) as Array<{
+    car_id: number;
+    start_date: string | null;
+    end_date: string | null;
+    status: string;
+  }>;
+
+  const activeSchedules = (activeSchedulesRes.data || []) as Array<{
+    car_id: number;
+    start_date: string;
+    end_date: string;
+    reason: string;
+  }>;
+
+  const blockedDatesByCar: Record<
+    number,
+    Array<{ start: string; end: string; reason: "Booked" | "Maintenance" }>
+  > = {};
+
+  for (const b of activeBookings) {
+    if (!b.start_date || !b.end_date) continue;
+    if (!blockedDatesByCar[b.car_id]) blockedDatesByCar[b.car_id] = [];
+    blockedDatesByCar[b.car_id].push({
+      start: b.start_date,
+      end: b.end_date,
+      reason: "Booked",
+    });
+  }
+
+  for (const s of activeSchedules) {
+    if (!blockedDatesByCar[s.car_id]) blockedDatesByCar[s.car_id] = [];
+    blockedDatesByCar[s.car_id].push({
+      start: s.start_date,
+      end: s.end_date,
+      reason: "Maintenance",
+    });
+  }
 
   // Dynamic Car Type Extraction:
   // Must only show car types that currently have available cars in inventory.
-  // If a car type is completely booked, in maintenance, or unavailable, it disappears entirely from this dropdown.
+  // MPV and Van are strictly separated.
   const dynamicAvailableTypes = Array.from(
     new Set(
       availableFleet.rows
         .filter((c) => c.status === "Available" || c.status === "Active")
-        .map((c) => (c.type ? c.type.trim() : ""))
+        .flatMap((c) => {
+          if (!c.type) return [];
+          const trimmed = c.type.trim();
+          if (trimmed === "MPV / Van" || trimmed === "MPV/Van") {
+            return ["MPV", "Van"];
+          }
+          return [trimmed];
+        })
         .filter((t): t is string => Boolean(t) && t.length > 0),
     ),
   ).sort();
@@ -233,6 +290,7 @@ export default async function UserCarsPage({
                     <RentCarFlowDialog
                       car={car}
                       agreementHtml={content.rental_agreement_html ?? ""}
+                      blockedRanges={blockedDatesByCar[car.id] || []}
                     />
                   </div>
                 </div>

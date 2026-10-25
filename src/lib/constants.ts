@@ -345,6 +345,7 @@ export const STATUS_BADGE: Record<string, string> = {
   Released: "bg-sky-100 text-sky-800 border-sky-200",
   Completed: "bg-indigo-100 text-indigo-800 border-indigo-200",
   Cancelled: "bg-rose-100 text-rose-800 border-rose-200",
+  Maintenance: "bg-rose-500/20 text-rose-400 border-rose-500/40",
 };
 
 /** Calendar event colours - ported from fetch_bookings.php. */
@@ -355,4 +356,5 @@ export const STATUS_COLOR: Record<string, string> = {
   Released: "#6366f1",
   Completed: "#6366f1",
   Cancelled: "#f43f5e",
+  Maintenance: "#ef4444",
 };
