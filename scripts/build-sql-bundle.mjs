@@ -46,6 +46,7 @@ const PARTS = [
   "migrations/20260101000500_public_site_stats.sql",
   "migrations/20260101000600_customer_directory.sql",
   "migrations/20260101000900_auto_cancel_stale_bookings.sql",
+  "migrations/20260101001000_car_amortization.sql",
   "seed.sql",
   "seed-car-images.sql",
   "migrations/20260101000700_auth_users_sync.sql",

@@ -88,6 +88,7 @@ export interface Car {
   ext_price_7_10: number;
   ext_price_11_12: number;
   ext_price_13_24: number;
+  monthly_amortization?: number;
 }
 
 export interface CarSchedule {

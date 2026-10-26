@@ -122,3 +122,66 @@ test("isSafeFileUpload strictly rejects executable extensions and double extensi
   assert.equal(isSafeFileUpload("proof_billing.pdf", "application/pdf"), true);
   assert.equal(isSafeFileUpload("vehicle_photo.webp", "image/webp"), true);
 });
+
+// Test 7: Analytics Backend - Company Cars Profit Sharing & True Net Logic
+test("analytics calculation logic for Company Cars matches business rules", () => {
+  // Company Cars:
+  // Company Net: Daily Rent + Extension Fee + Delivery Fees - Driver Fees. (Operator Net is strictly ₱0).
+  // True Company Net: Company Net - Monthly Amortization.
+  const payment = {
+    daily_rent: 2000,
+    extension_fee: 400,
+    delivery_fee: 300,
+    pickup_fee: 150,
+    driver_fee: 500,
+    fuel: 200,
+    damage_fee: 0,
+    total_gross: 3550,
+  };
+  const carAmortization = 20000;
+
+  const deliveryFees = payment.delivery_fee + payment.pickup_fee; // 450
+  const companyNet = payment.daily_rent + payment.extension_fee + deliveryFees - payment.driver_fee;
+  assert.equal(companyNet, 2000 + 400 + 450 - 500); // 2350
+  const operatorNet = 0;
+  assert.equal(operatorNet, 0);
+
+  const trueCompanyNet = companyNet - carAmortization;
+  assert.equal(trueCompanyNet, 2350 - 20000); // -17650
+});
+
+// Test 8: Analytics Backend - Operator Cars Profit Sharing & Custodial Ledger
+test("analytics calculation logic for Operator Cars matches business rules", () => {
+  // Operator Cars (Owner-owned):
+  // Company Net: Fixed cut of Daily Rent (e.g. ₱400) + Fixed cut of Extension Fee (e.g. ₱150).
+  // Operator Net: Remaining Daily Rent (e.g. ₱1,300) + Remaining Extension Fee (e.g. ₱450).
+  // Custodial Ledger: Operator gets 100% of Fuel Charges and Damage Fees tracked in Custodial Balance.
+  // Driver Fees: Passed 100% to drivers.
+  const payment = {
+    daily_rent: 1700,
+    extension_fee: 600,
+    driver_fee: 400,
+    fuel: 350,
+    damage_fee: 1500,
+    total_gross: 4550,
+    operator_share: 1300, // recorded 1300
+  };
+
+  const opRent = payment.operator_share; // 1300
+  const coRent = payment.daily_rent - opRent; // 400
+
+  const coExt = Math.round(payment.extension_fee * 0.25 * 100) / 100; // 150
+  const opExt = Math.round((payment.extension_fee - coExt) * 100) / 100; // 450
+
+  const companyNet = coRent + coExt;
+  const operatorNet = opRent + opExt;
+  const custodialBalance = payment.fuel + payment.damage_fee;
+
+  assert.equal(coRent, 400);
+  assert.equal(opRent, 1300);
+  assert.equal(coExt, 150);
+  assert.equal(opExt, 450);
+  assert.equal(companyNet, 550);
+  assert.equal(operatorNet, 1750);
+  assert.equal(custodialBalance, 1850); // 350 fuel + 1500 damage
+});

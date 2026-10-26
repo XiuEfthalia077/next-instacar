@@ -85,7 +85,13 @@ export async function listCars(
     query.range((page - 1) * perPage, page * perPage - 1),
   );
 
-  return { rows, count };
+  const amortizations = await import("@/lib/data/amortization").then((m) => m.getCarAmortizations());
+  const enrichedRows = rows.map((car) => ({
+    ...car,
+    monthly_amortization: car.monthly_amortization ?? amortizations[car.id] ?? 0,
+  }));
+
+  return { rows: enrichedRows, count };
 }
 
 /** One car with its owner and branch. */
@@ -96,7 +102,12 @@ export async function getCar(carId: number): Promise<CarWithOwner | null> {
     supabase.from("cars").select(CAR_SELECT).eq("id", carId).limit(1),
   );
 
-  return rows[0] ?? null;
+  if (!rows[0]) return null;
+  const amortizations = await import("@/lib/data/amortization").then((m) => m.getCarAmortizations());
+  return {
+    ...rows[0],
+    monthly_amortization: rows[0].monthly_amortization ?? amortizations[rows[0].id] ?? 0,
+  };
 }
 
 /** Fleet counters for the fleet manager header. */

@@ -20,6 +20,7 @@ import {
   ShoppingCart,
   Star,
   Store,
+  TrendingUp,
   Users,
   Wallet,
   Wrench,
@@ -205,6 +206,7 @@ export const SIDEBAR_NAV: Record<UserRole, NavGroup[]> = {
           label: "Analytics",
           icon: BarChart3,
           children: [
+            { label: "Profit Analytics", href: "/admin/analytics", icon: TrendingUp },
             { label: "Fleet Revenue", href: "/admin/admin_revenue", icon: Settings },
             { label: "Fleet Breakdown", href: "/admin/expenses", icon: FileSpreadsheet },
             { label: "Income Statement", href: "/admin/income", icon: BarChart3 },

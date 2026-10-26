@@ -655,11 +655,31 @@ create policy bookings_insert on public.bookings
 drop policy if exists bookings_update on public.bookings;
 create policy bookings_update on public.bookings
   for update using (
-    public.current_user_role() in ('admin', 'staff')
-    or user_id = public.current_user_id()
+    public.is_admin()
+    or (
+      public.is_staff()
+      and (
+        (branch_id is not null and branch_id = public.current_user_branch_id())
+        or exists (
+          select 1 from public.cars c
+          where c.id = bookings.car_id
+            and c.branch_id = public.current_user_branch_id()
+        )
+      )
+    )
   ) with check (
-    public.current_user_role() in ('admin', 'staff')
-    or user_id = public.current_user_id()
+    public.is_admin()
+    or (
+      public.is_staff()
+      and (
+        (branch_id is not null and branch_id = public.current_user_branch_id())
+        or exists (
+          select 1 from public.cars c
+          where c.id = bookings.car_id
+            and c.branch_id = public.current_user_branch_id()
+        )
+      )
+    )
   );
 
 drop policy if exists bookings_delete on public.bookings;
@@ -1533,6 +1553,18 @@ $$;
 revoke all on function public.auto_cancel_stale_bookings(bigint) from public;
 grant execute on function public.auto_cancel_stale_bookings(bigint)
   to authenticated;
+
+
+-- --------------------------------------------------------------------------
+-- migrations/20260101001000_car_amortization.sql
+-- --------------------------------------------------------------------------
+
+-- ============================================================================
+-- InstaCar — Add monthly_amortization to cars for Company profit analytics
+-- ============================================================================
+
+ALTER TABLE cars ADD COLUMN IF NOT EXISTS monthly_amortization NUMERIC DEFAULT 0;
+COMMENT ON COLUMN cars.monthly_amortization IS 'Monthly financing or lease amortization for Company-owned vehicles used in net profit analytics.';
 
 
 -- --------------------------------------------------------------------------

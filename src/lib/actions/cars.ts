@@ -17,6 +17,7 @@
 import { revalidatePath } from "next/cache";
 
 import { getSupabase, requireRole } from "@/lib/auth";
+import { saveCarAmortization } from "@/lib/data/amortization";
 import { today } from "@/lib/data/scope";
 import { flashRedirect } from "@/lib/flash";
 import {
@@ -247,6 +248,8 @@ export async function saveCarAction(formData: FormData) {
     ext_price_13_24: num(formData, "ext_price_13_24"),
   };
 
+  const monthlyAmortization = num(formData, "monthly_amortization");
+
   if (carId) {
     const { error } = await supabase
       .from("cars")
@@ -255,16 +258,25 @@ export async function saveCarAction(formData: FormData) {
 
     if (error) flashRedirect(home, "error", `Update failed: ${error.message}`);
 
+    await saveCarAmortization(carId, monthlyAmortization);
     revalidateFleet();
     flashRedirect(home, "success", "Vehicle updated successfully!");
   }
 
-  const { error } = await supabase.from("cars").insert({
-    ...payload,
-    status: "Available",
-  });
+  const { data: inserted, error } = await supabase
+    .from("cars")
+    .insert({
+      ...payload,
+      status: "Available",
+    })
+    .select("id")
+    .maybeSingle();
 
   if (error) flashRedirect(home, "error", `Insert failed: ${error.message}`);
+
+  if (inserted?.id) {
+    await saveCarAmortization(inserted.id, monthlyAmortization);
+  }
 
   let message = "Car added successfully!";
 

@@ -91,10 +91,10 @@ export default async function AdminDashboardPage({
               {branchName === null ? "Viewing All Branches" : `Viewing: ${branchName}`}
             </span>
 
-            <div className="mt-4">
+            <div className="mt-4 flex flex-wrap items-center gap-2.5">
               <Link
                 href="/admin/contact_messages"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#ffcc00] px-6 py-2.5 text-sm font-bold text-black transition hover:-translate-y-0.5 hover:bg-[#ffd633] hover:shadow-[0_4px_15px_rgba(255,204,0,0.4)]"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#ffcc00] px-5 py-2.5 text-sm font-bold text-black transition hover:-translate-y-0.5 hover:bg-[#ffd633] hover:shadow-[0_4px_15px_rgba(255,204,0,0.4)]"
               >
                 <Mail className="size-4" />
                 View Messages
@@ -103,6 +103,14 @@ export default async function AdminDashboardPage({
                     {stats.unreadMessages}
                   </span>
                 ) : null}
+              </Link>
+
+              <Link
+                href="/admin/analytics"
+                className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-2.5 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-white/20"
+              >
+                <TrendingUp className="size-4 text-[#ffcc00]" />
+                Profit Analytics
               </Link>
             </div>
           </div>
