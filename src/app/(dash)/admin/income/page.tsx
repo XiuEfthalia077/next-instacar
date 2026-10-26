@@ -171,7 +171,7 @@ export default async function AdminIncomePage({
 
           <TableBody>
             {rows.map((row) => (
-              <TableRow key={row.month} className="hover:bg-[#fffbe6]">
+              <TableRow key={row.month} className="transition-colors hover:bg-amber-500/10 dark:hover:bg-amber-400/10">
                 <TableCell className="pl-4 font-bold text-foreground">
                   {monthLabel(row.month)}
                 </TableCell>

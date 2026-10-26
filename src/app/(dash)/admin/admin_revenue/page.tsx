@@ -266,7 +266,7 @@ export default async function AdminRevenuePage({
                   </TableHeader>
 
                   <TableBody>
-                    <TableRow className="hover:bg-[#fffbe6]">
+                    <TableRow className="transition-colors hover:bg-amber-500/10 dark:hover:bg-amber-400/10">
                       {MONTHS.map((month) => {
                         const gross = monthMap.get(month) ?? 0;
                         return (
@@ -283,8 +283,8 @@ export default async function AdminRevenuePage({
                         );
                       })}
 
-                      <TableCell className="min-w-[130px] bg-[#fffbe6] text-center dark:bg-[#1a1600]">
-                        <span className="text-sm font-extrabold text-[#926c00] dark:text-[#ffd700]">
+                      <TableCell className="min-w-[130px] bg-amber-500/10 text-center dark:bg-amber-400/10">
+                        <span className="text-sm font-extrabold text-[#b38a00] dark:text-[#ffd700]">
                           <Money value={car.total} />
                         </span>
                       </TableCell>

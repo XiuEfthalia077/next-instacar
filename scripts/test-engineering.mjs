@@ -18,7 +18,6 @@ function safeNext(value) {
 }
 
 test("safeNext rejects external domains, protocol-relative, and backslash bypasses", () => {
-  // Bypasses that must be rejected (return empty string)
   assert.equal(safeNext("/\\attacker.com"), "");
   assert.equal(safeNext("//attacker.com"), "");
   assert.equal(safeNext("http://attacker.com"), "");
@@ -27,7 +26,6 @@ test("safeNext rejects external domains, protocol-relative, and backslash bypass
   assert.equal(safeNext("/path\\with\\backslash"), "");
   assert.equal(safeNext("   "), "");
 
-  // Safe internal paths that must be accepted
   assert.equal(safeNext("/user/dashboard"), "/user/dashboard");
   assert.equal(safeNext("/admin/bookings_online?filter=Confirmed"), "/admin/bookings_online?filter=Confirmed");
   assert.equal(safeNext("/shared/calendar#top"), "/shared/calendar#top");
@@ -51,9 +49,7 @@ test("checkRateLimit throttles burst requests within window", () => {
   assert.equal(checkLimit("user1", 3).success, true);
   assert.equal(checkLimit("user1", 3).success, true);
   assert.equal(checkLimit("user1", 3).success, true);
-  // 4th request must fail
   assert.equal(checkLimit("user1", 3).success, false);
-  // Different key must still succeed
   assert.equal(checkLimit("user2", 3).success, true);
 });
 
@@ -68,12 +64,61 @@ test("assertBranchAccess enforces physical branch boundaries for staff", () => {
     return { allowed: true };
   }
 
-  // Admin can access any branch
   assert.equal(verifyAccess("admin", 1, 2).allowed, true);
   assert.equal(verifyAccess("admin", null, 2).allowed, true);
-
-  // Staff can only access their own branch
   assert.equal(verifyAccess("staff", 1, 1).allowed, true);
   assert.equal(verifyAccess("staff", 2, 2).allowed, true);
   assert.equal(verifyAccess("staff", 1, 2).allowed, false);
+});
+
+// Test 4: Security - XSS Rich Text Sanitizer
+import { sanitizeRichText, cleanSearchQuery, isSafeFileUpload } from "../src/lib/security.ts";
+
+test("sanitizeRichText strips script tags, event handlers, and dangerous URIs", () => {
+  const maliciousScript = "<p>Hello</p><script>alert('XSS')</script>";
+  assert.equal(sanitizeRichText(maliciousScript), "<p>Hello</p>");
+
+  const maliciousIframe = "<p>Terms</p><iframe src='http://evil.com'></iframe>";
+  assert.equal(sanitizeRichText(maliciousIframe), "<p>Terms</p>");
+
+  const maliciousEventHandler = '<p onmouseover="alert(1)" onclick="stealCookies()">Agreement Section</p>';
+  assert.equal(sanitizeRichText(maliciousEventHandler), "<p>Agreement Section</p>");
+
+  const maliciousHref = '<a href="javascript:alert(1)">Click Here</a>';
+  assert.equal(sanitizeRichText(maliciousHref), '<a href="#">Click Here</a>');
+
+  const safeHtml = "<h3>Agreement Article 1</h3><p><strong>Renter:</strong> John Doe</p>";
+  assert.equal(sanitizeRichText(safeHtml), safeHtml);
+});
+
+// Test 5: Security - PostgREST SQL/Filter Injection Protection
+test("cleanSearchQuery removes PostgREST syntax punctuation to prevent injection", () => {
+  const queryWithOperators = "john,email.ilike.%admin%";
+  assert.equal(cleanSearchQuery(queryWithOperators), "john email ilike admin");
+
+  const queryWithQuotesAndParens = "test') or (role=admin";
+  assert.equal(cleanSearchQuery(queryWithQuotesAndParens), "test or role=admin");
+
+  const safeTerm = "Toyota Fortuner 2024";
+  assert.equal(cleanSearchQuery(safeTerm), "Toyota Fortuner 2024");
+});
+
+// Test 6: Security - File Upload Whitelist and Script Execution Prevention
+test("isSafeFileUpload strictly rejects executable extensions and double extensions", () => {
+  // Executable files must be rejected
+  assert.equal(isSafeFileUpload("exploit.php", "image/jpeg"), false);
+  assert.equal(isSafeFileUpload("payload.phtml", "image/png"), false);
+  assert.equal(isSafeFileUpload("script.js", "application/javascript"), false);
+  assert.equal(isSafeFileUpload("script.sh", "text/plain"), false);
+  assert.equal(isSafeFileUpload("malware.exe", "application/octet-stream"), false);
+
+  // Double extension bypasses must be rejected
+  assert.equal(isSafeFileUpload("shell.php.jpg", "image/jpeg"), false);
+  assert.equal(isSafeFileUpload("backdoor.js.png", "image/png"), false);
+
+  // Valid image and document files must be accepted
+  assert.equal(isSafeFileUpload("car_front.jpg", "image/jpeg"), true);
+  assert.equal(isSafeFileUpload("valid_id.png", "image/png"), true);
+  assert.equal(isSafeFileUpload("proof_billing.pdf", "application/pdf"), true);
+  assert.equal(isSafeFileUpload("vehicle_photo.webp", "image/webp"), true);
 });

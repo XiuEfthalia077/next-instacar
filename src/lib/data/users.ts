@@ -7,6 +7,7 @@
  */
 
 import { applyBranch, branchFilter, fetchRows, fetchRowsWithCount } from "@/lib/data/scope";
+import { cleanSearchQuery } from "@/lib/security";
 import type { AppSession, User, UserRole } from "@/lib/types";
 
 export type UserWithBranch = User & {
@@ -67,8 +68,11 @@ export async function listUsers(
   }
 
   if (filters.search) {
-    const term = `%${filters.search.trim()}%`;
-    query = query.or(`name.ilike.${term},email.ilike.${term},phone.ilike.${term}`);
+    const clean = cleanSearchQuery(filters.search);
+    if (clean) {
+      const term = `%${clean}%`;
+      query = query.or(`name.ilike.${term},email.ilike.${term},phone.ilike.${term}`);
+    }
   }
 
   const { rows, count } = await fetchRowsWithCount<UserWithBranch>(
@@ -101,8 +105,11 @@ export async function listStaff(
   }
 
   if (filters.search) {
-    const term = `%${filters.search.trim()}%`;
-    query = query.or(`name.ilike.${term},email.ilike.${term},phone.ilike.${term}`);
+    const clean = cleanSearchQuery(filters.search);
+    if (clean) {
+      const term = `%${clean}%`;
+      query = query.or(`name.ilike.${term},email.ilike.${term},phone.ilike.${term}`);
+    }
   }
 
   return fetchRows<UserWithBranch>(query);

@@ -162,18 +162,12 @@ export async function uploadQrCodeAction(formData: FormData) {
 /* Rental agreement (site content)                                     */
 /* ------------------------------------------------------------------ */
 
-function sanitizeHtml(html: string): string {
-  return html
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
-    .replace(/\son\w+\s*=\s*"[^"]*"/gi, "")
-    .replace(/\son\w+\s*=\s*'[^']*'/gi, "")
-    .replace(/javascript:/gi, "");
-}
+import { sanitizeRichText } from "@/lib/security";
 
 export async function saveRentalAgreementAction(formData: FormData) {
   const session = await requireRole("admin", "operator");
 
-  const html = sanitizeHtml(str(formData, "rental_agreement_html"));
+  const html = sanitizeRichText(str(formData, "rental_agreement_html"));
   const supabase = await getSupabase();
 
   const { data: existing } = await supabase

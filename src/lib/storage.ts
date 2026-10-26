@@ -64,13 +64,20 @@ export function getExtension(fileName: string) {
   return parts.length > 1 ? parts.pop() ?? "" : "";
 }
 
+import { isSafeFileUpload } from "@/lib/security";
+
 /**
  * Validates a file the same way the legacy `upload()` helper did:
  * 5 MB maximum, MIME whitelist and extension whitelist.
+ * Also strictly blocks executable scripts, double extensions, and dangerous payloads.
  */
 export function validateUpload(file: File): string | null {
   if (file.size > MAX_UPLOAD_BYTES) {
     return "File is too large. Maximum size is 5MB.";
+  }
+
+  if (!isSafeFileUpload(file.name, file.type)) {
+    return "Invalid or dangerous file. Only JPG, PNG, WEBP, and PDF documents are permitted.";
   }
 
   if (!(ALLOWED_MIME_TYPES as readonly string[]).includes(file.type)) {

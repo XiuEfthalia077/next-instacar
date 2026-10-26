@@ -282,7 +282,7 @@ export default async function AdminExpensesPage({
 
                 <TableBody>
                   {CATEGORIES.map(({ key, label }) => (
-                    <TableRow key={key} className="hover:bg-[#fffbe6]">
+                    <TableRow key={key} className="transition-colors hover:bg-amber-500/10 dark:hover:bg-amber-400/10">
                       <TableCell className="pl-4 font-bold text-slate-700 dark:text-slate-200">
                         {label}
                       </TableCell>

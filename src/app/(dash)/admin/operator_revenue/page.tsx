@@ -177,7 +177,7 @@ export default async function AdminOperatorRevenuePage({
       <PageHeader
         title="Centralized Operator Remittance"
         subtitle={branchLabel}
-        description="Centralized revenue tracking grouped by vehicle owner with expandable car breakdowns."
+        description="Centralized operator revenue tracking with single consolidated operator cards and detailed breakdown modals."
       />
 
       <Flash {...flash} />

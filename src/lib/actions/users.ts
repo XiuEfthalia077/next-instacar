@@ -104,23 +104,50 @@ export async function saveUserAction(formData: FormData) {
       );
     }
 
-    // `public.users` is the master table. The database trigger mirrors the
-    // bcrypt hash that GoTrue generated back into `users.password`.
-    const { error } = await supabase.from("users").insert({
-      auth_id: created.user.id,
-      name,
-      email,
-      phone: phone || null,
-      role,
-      branch_id: branchId,
-      is_verified: 1,
-    });
+    // The Postgres trigger `trg_auth_users_provision_legacy` on `auth.users`
+    // often immediately inserts a matching row into `public.users`.
+    // Check if a row already exists for this auth_id or email, and update it
+    // with the target role and branch; otherwise insert a new row.
+    const { data: existingRow } = await supabase
+      .from("users")
+      .select("id")
+      .or(`auth_id.eq.${created.user.id},email.eq.${email}`)
+      .maybeSingle();
 
-    if (error) {
+    let userSyncError = null;
+
+    if (existingRow) {
+      const { error: updateErr } = await supabase
+        .from("users")
+        .update({
+          auth_id: created.user.id,
+          name,
+          email,
+          phone: phone || null,
+          role,
+          branch_id: branchId,
+          is_verified: 1,
+        })
+        .eq("id", (existingRow as { id: number }).id);
+      userSyncError = updateErr;
+    } else {
+      const { error: insertErr } = await supabase.from("users").insert({
+        auth_id: created.user.id,
+        name,
+        email,
+        phone: phone || null,
+        role,
+        branch_id: branchId,
+        is_verified: 1,
+      });
+      userSyncError = insertErr;
+    }
+
+    if (userSyncError) {
       // Roll the Supabase account back so a failed insert leaves no orphan.
       await admin.auth.admin.deleteUser(created.user.id);
 
-      flashRedirect(usersHome(role), "error", `Failed to create account: ${error.message}`);
+      flashRedirect(usersHome(role), "error", `Failed to create account: ${userSyncError.message}`);
     }
 
     revalidatePath("/admin/users");
@@ -214,10 +241,25 @@ export async function deleteUserAction(formData: FormData) {
 
   const supabase = await getSupabase();
 
+  const { data: existingData } = await supabase
+    .from("users")
+    .select("id, auth_id")
+    .eq("id", userId)
+    .maybeSingle();
+
+  const existing = existingData as { id: number; auth_id: string | null } | null;
+
   const { error } = await supabase.from("users").delete().eq("id", userId);
 
   if (error) {
     flashRedirect(usersHome(role), "error", `Delete failed: ${error.message}`);
+  }
+
+  if (existing?.auth_id) {
+    const admin = getAdminClient();
+    if (admin) {
+      await admin.auth.admin.deleteUser(existing.auth_id);
+    }
   }
 
   revalidatePath("/admin/users");
