@@ -46,10 +46,17 @@ export function GoogleButton({ label }: { label: string }) {
     try {
       const supabase = createClient();
 
+      const searchParams = new URLSearchParams(window.location.search);
+      const next = searchParams.get("next");
+      const callbackUrl = new URL("/auth/callback", window.location.origin);
+      if (next && next.startsWith("/")) {
+        callbackUrl.searchParams.set("next", next);
+      }
+
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: callbackUrl.toString(),
         },
       });
 

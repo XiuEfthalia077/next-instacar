@@ -136,8 +136,8 @@ export function BookingActions({
       ) : null}
 
       <Dialog open={action !== null} onOpenChange={(open) => !open && setAction(null)}>
-        <DialogContent className="rounded-2xl sm:max-w-md">
-          <DialogHeader>
+        <DialogContent className="rounded-2xl p-6 sm:p-8 sm:max-w-md">
+          <DialogHeader className="border-b border-border/70 pb-3 pr-8">
             <DialogTitle className="flex items-center gap-2 text-lg font-bold">
               {Icon ? <Icon className={`size-5 ${copy?.iconClass}`} /> : null}
               {copy?.title}

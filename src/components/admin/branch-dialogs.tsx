@@ -98,8 +98,8 @@ export function NewBranchDialog() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="rounded-2xl sm:max-w-lg">
-        <DialogHeader>
+      <DialogContent className="rounded-2xl p-6 sm:p-8 sm:max-w-lg">
+        <DialogHeader className="border-b border-border/70 pb-3 pr-8">
           <DialogTitle className="flex items-center gap-2 text-lg font-bold">
             <PlusCircle className="size-4 text-[#b38a00] dark:text-[#ffd700]" />
             New Branch
@@ -147,8 +147,8 @@ export function EditBranchDialog({ branch }: { branch: BranchValues }) {
         </button>
       </DialogTrigger>
 
-      <DialogContent className="rounded-2xl sm:max-w-lg">
-        <DialogHeader>
+      <DialogContent className="rounded-2xl p-6 sm:p-8 sm:max-w-lg">
+        <DialogHeader className="border-b border-border/70 pb-3 pr-8">
           <DialogTitle className="flex items-center gap-2 text-lg font-bold">
             <Pencil className="size-4 text-[#b38a00] dark:text-[#ffd700]" />
             Edit Branch
@@ -212,8 +212,8 @@ export function BranchToggleDialog({
         </button>
       </DialogTrigger>
 
-      <DialogContent className="rounded-2xl sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="rounded-2xl p-6 sm:p-8 sm:max-w-md">
+        <DialogHeader className="border-b border-border/70 pb-3 pr-8">
           <DialogTitle className="text-lg font-bold">
             {deactivate ? "Deactivate this branch?" : "Activate this branch?"}
           </DialogTitle>

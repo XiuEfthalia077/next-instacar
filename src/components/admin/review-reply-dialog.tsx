@@ -63,9 +63,9 @@ export function ReviewReplyDialog({ review }: { review: ReviewReplyTarget }) {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="rounded-2xl p-6 sm:p-8 sm:max-w-lg">
         <form action={replyReviewAction} className="grid gap-4">
-          <DialogHeader>
+          <DialogHeader className="border-b border-border/70 pb-3 pr-8">
             <DialogTitle className="flex items-center gap-2 text-base font-bold">
               <MessageSquareQuote className="size-4 text-amber-500" />
               Review Details &amp; Response

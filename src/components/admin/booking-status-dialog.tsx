@@ -83,8 +83,8 @@ export function BookingStatusDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="rounded-2xl sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="rounded-2xl p-6 sm:p-8 sm:max-w-md">
+        <DialogHeader className="border-b border-border/70 pb-3 pr-8">
           <DialogTitle className="flex items-center gap-2 text-lg font-bold">
             <Icon className={`size-5 ${copy.iconClass}`} />
             {copy.title}

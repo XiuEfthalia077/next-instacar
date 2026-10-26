@@ -56,8 +56,8 @@ export function DocumentPreviewButton({
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto rounded-2xl p-4 sm:max-w-3xl">
-        <DialogHeader className="pr-8 text-left">
+      <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto rounded-2xl p-6 sm:p-8 sm:max-w-3xl">
+        <DialogHeader className="border-b border-border/80 pb-3 pr-8 text-left">
           <DialogTitle className="flex items-center gap-2 text-base font-bold">
             <FileText className="size-4 text-[#b38a00] dark:text-[#ffd700]" />
             {document.label}
@@ -68,7 +68,7 @@ export function DocumentPreviewButton({
         </DialogHeader>
 
         {document.isPdf ? (
-          <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border bg-muted/40 px-6 py-10 text-center">
+          <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border bg-muted/40 p-8 sm:p-12 text-center">
             <FileText className="size-10 text-muted-foreground" />
             <p className="text-sm font-semibold text-foreground">
               This document is a PDF file.
@@ -80,12 +80,12 @@ export function DocumentPreviewButton({
             </Button>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-border bg-black">
+          <div className="overflow-hidden rounded-xl border border-border bg-black/80 p-4 sm:p-6 flex items-center justify-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={document.url}
               alt={document.label}
-              className="mx-auto max-h-[70vh] w-auto object-contain"
+              className="mx-auto max-h-[68vh] w-auto rounded-lg object-contain"
             />
           </div>
         )}

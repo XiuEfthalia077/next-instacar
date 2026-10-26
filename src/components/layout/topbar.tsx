@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Globe2, LogOut, Menu, MoonStar, Store, Sun, UserRound } from "lucide-react";
+import { Check, ChevronDown, Globe2, LogOut, Menu, MoonStar, Store, Sun, UserRound } from "lucide-react";
 
 import {
   DropdownMenu,
@@ -69,58 +69,103 @@ export function Topbar({
   const firstLetter = (session.name || "G").charAt(0).toUpperCase();
   const logoutFormRef = useRef<HTMLFormElement>(null);
 
+  const currentBranchName =
+    session.viewBranch === "all"
+      ? "All Branches"
+      : branches.find((b) => String(b.id) === String(session.viewBranch))?.name ?? "Selected Branch";
+
   return (
     <nav className="sticky top-0 z-30 border-b border-[#e2e8f0] bg-white transition-colors dark:border-[#27272a] dark:bg-[#141414]">
-      <div className="flex flex-nowrap items-center justify-between gap-2 px-3.5 py-4 md:px-6">
-        <div className="flex min-w-0 items-center gap-2">
+      <div className="flex flex-nowrap items-center justify-between gap-2 px-3 py-3 sm:px-6 sm:py-3.5">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <button
             type="button"
             onClick={onToggleSidebar}
             aria-label="Toggle navigation"
-            className="flex shrink-0 items-center justify-center rounded-lg bg-[#FFD700] py-2 pl-2.5 pr-2.5 text-lg text-black md:hidden"
+            className="flex shrink-0 items-center justify-center rounded-lg bg-[#FFD700] p-2 text-black md:hidden active:scale-95 transition-transform"
           >
             <Menu className="size-5" />
           </button>
 
           <div className="min-w-0">
-            <div className="whitespace-nowrap text-[0.95rem] font-black uppercase leading-tight tracking-[0.5px] text-black sm:text-[1.1rem] dark:text-white">
+            <div className="whitespace-nowrap text-sm font-black uppercase leading-tight tracking-[0.5px] text-black sm:text-base dark:text-white">
               {PANEL_TITLE.split(" ").slice(0, -1).join(" ")}{" "}
               <span className="text-[#FFD700]">
                 {PANEL_TITLE.split(" ").slice(-1).join(" ")}
               </span>
             </div>
-            <div className="whitespace-nowrap text-[10px] font-extrabold tracking-[1px] text-[#6c757d] dark:text-[#a1a1aa]">
+            <div className="whitespace-nowrap text-[9px] sm:text-[10px] font-extrabold tracking-[1px] text-[#6c757d] dark:text-[#a1a1aa]">
               {session.role.toUpperCase()} ACCESS
             </div>
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2 gap-sm-3">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2.5">
           {session.role === "admin" ? (
-            <form action={switchBranchAction} className="hidden sm:block">
-              <label
-                htmlFor="branch-switcher"
-                className="inline-flex cursor-pointer items-center gap-2 whitespace-nowrap rounded-[10px] border-[1.5px] border-[#ffcc00] bg-[#fffbe6] px-3 py-1.5 text-[0.8rem] font-bold text-[#8a6a00] transition-all hover:-translate-y-px hover:bg-[#fff3b0] hover:shadow-[0_4px_12px_rgba(255,204,0,0.25)] dark:bg-[#1a1600] dark:text-[#ffcc00] dark:border-[rgba(255,204,0,0.4)] dark:hover:bg-[#262100] dark:hover:border-[#ffcc00]"
-              >
-                <Store className="size-4" />
-                <select
-                  id="branch-switcher"
-                  name="branch"
-                  defaultValue={
-                    session.viewBranch === "all" ? "all" : String(session.viewBranch)
-                  }
-                  onChange={(event) => event.currentTarget.form?.requestSubmit()}
-                  className="cursor-pointer appearance-none bg-transparent outline-none"
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[10px] border-[1.5px] border-[#ffcc00] bg-[#fffbe6] px-2 py-1.5 sm:px-3 text-xs font-bold text-[#8a6a00] transition-all hover:bg-[#fff3b0] dark:bg-[#1a1600] dark:text-[#ffcc00] dark:border-[rgba(255,204,0,0.4)] dark:hover:bg-[#262100] dark:hover:border-[#ffcc00]"
+                  title="Switch Branch"
                 >
-                  <option value="all">All Branches</option>
-                  {branches.map((branch) => (
-                    <option key={branch.id} value={branch.id}>
-                      {branch.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </form>
+                  <Store className="size-3.5 shrink-0" />
+                  <span className="max-w-[80px] truncate xs:max-w-[110px] sm:max-w-[150px] md:max-w-[200px]">
+                    {currentBranchName}
+                  </span>
+                  <ChevronDown className="size-3 opacity-70 shrink-0" />
+                </button>
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent
+                align="end"
+                className="w-56 rounded-xl border border-border bg-[#18181b] p-1.5 shadow-2xl z-[200]"
+              >
+                <form action={switchBranchAction}>
+                  <button
+                    type="submit"
+                    name="branch"
+                    value="all"
+                    className={cn(
+                      "flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold transition-colors",
+                      session.viewBranch === "all"
+                        ? "bg-[#ffcc00] text-black shadow-xs font-extrabold"
+                        : "text-foreground hover:bg-[#27272a] hover:text-white",
+                    )}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Globe2 className="size-3.5" />
+                      All Branches
+                    </span>
+                    {session.viewBranch === "all" && <Check className="size-3.5" />}
+                  </button>
+
+                  {branches.map((b) => {
+                    const isSelected = String(session.viewBranch) === String(b.id);
+                    return (
+                      <button
+                        key={b.id}
+                        type="submit"
+                        name="branch"
+                        value={String(b.id)}
+                        className={cn(
+                          "flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold transition-colors mt-0.5",
+                          isSelected
+                            ? "bg-[#ffcc00] text-black shadow-xs font-extrabold"
+                            : "text-foreground hover:bg-[#27272a] hover:text-white",
+                        )}
+                      >
+                        <span className="flex items-center gap-2 truncate">
+                          <Store className="size-3.5 shrink-0 text-[#ffcc00]" />
+                          <span className="truncate">{b.name}</span>
+                        </span>
+                        {isSelected && <Check className="size-3.5 shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </form>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : null}
 
           <ThemeToggle />

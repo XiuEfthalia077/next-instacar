@@ -153,8 +153,8 @@ export function AddUserDialog({
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="rounded-2xl sm:max-w-lg">
-        <DialogHeader>
+      <DialogContent className="rounded-2xl p-6 sm:p-8 sm:max-w-lg">
+        <DialogHeader className="border-b border-border/70 pb-3 pr-8">
           <DialogTitle className="text-lg font-bold">
             New {roleLabel}
           </DialogTitle>
@@ -256,8 +256,8 @@ export function EditUserDialog({
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="rounded-2xl sm:max-w-lg">
-        <DialogHeader>
+      <DialogContent className="rounded-2xl p-6 sm:p-8 sm:max-w-lg">
+        <DialogHeader className="border-b border-border/70 pb-3 pr-8">
           <DialogTitle className="text-lg font-bold">
             Edit {roleLabel}
           </DialogTitle>
@@ -362,8 +362,8 @@ export function DeleteUserDialog({
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="rounded-2xl sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="rounded-2xl p-6 sm:p-8 sm:max-w-md">
+        <DialogHeader className="border-b border-border/70 pb-3 pr-8">
           <DialogTitle className="text-lg font-bold">Delete user?</DialogTitle>
           <DialogDescription>
             Are you sure you want to delete this user?{" "}

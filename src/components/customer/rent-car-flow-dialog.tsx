@@ -248,8 +248,8 @@ export function RentCarFlowDialog({
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto border-border bg-[#0d0f12] p-4 text-foreground sm:p-6 sm:rounded-2xl">
-          <DialogHeader className="border-b border-border/80 pb-3">
+        <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto border-border bg-[#0d0f12] p-6 text-foreground sm:p-8 sm:rounded-2xl">
+          <DialogHeader className="border-b border-border/80 pb-4 pr-8">
             <DialogTitle className="text-lg font-black tracking-tight text-foreground">
               Book {carName}
             </DialogTitle>
@@ -830,27 +830,27 @@ export function RentCarFlowDialog({
 
       {/* FULL RENTAL AGREEMENT MODAL (Appears FIRST before booking form) */}
       <Dialog open={agreementModalOpen} onOpenChange={setAgreementModalOpen}>
-        <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto border-border bg-[#0d0f12] p-6 text-foreground sm:rounded-2xl">
-          <DialogHeader className="border-b border-border/80 pb-3">
-            <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground">
+        <DialogContent className="flex flex-col max-h-[90vh] max-w-2xl sm:max-w-3xl overflow-hidden p-0 border-border bg-[#0d0f12] text-foreground sm:rounded-2xl shadow-2xl">
+          <DialogHeader className="border-b border-border/80 px-6 py-5 bg-card shrink-0 pr-14 text-left">
+            <DialogTitle className="flex items-center gap-2.5 text-base sm:text-lg font-extrabold text-foreground">
               <FileCheck className="size-5 text-[#ffcc00]" />
               Official Car Rental Agreement
             </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
+            <DialogDescription className="mt-1 text-xs text-muted-foreground font-medium">
               Step 1 of 2 — Please review and accept the rental terms before reserving {carName}.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="max-h-[55vh] space-y-3 overflow-y-auto pr-2 text-xs leading-relaxed text-foreground/90 whitespace-pre-wrap font-sans">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 sm:p-8 m-4 rounded-xl border border-border/70 bg-muted/20 text-xs sm:text-[13px] leading-relaxed text-foreground/90 whitespace-pre-wrap font-sans shadow-inner selection:bg-[#ffcc00] selection:text-black">
             {OFFICIAL_RENTAL_AGREEMENT}
           </div>
 
-          <div className="border-t border-border pt-3 flex items-center justify-between">
+          <div className="border-t border-border/80 px-6 py-4 bg-card shrink-0 flex items-center justify-between gap-3">
             <Button
               type="button"
               variant="ghost"
               onClick={() => setAgreementModalOpen(false)}
-              className="text-xs text-muted-foreground hover:text-foreground"
+              className="text-xs font-bold text-muted-foreground hover:text-foreground transition-colors"
             >
               Decline &amp; Cancel
             </Button>
@@ -861,7 +861,7 @@ export function RentCarFlowDialog({
                 setAgreementModalOpen(false);
                 setOpen(true);
               }}
-              className="bg-[#ffcc00] font-black text-black hover:bg-[#ffd633]"
+              className="h-10 px-5 rounded-xl bg-[#ffcc00] font-black text-xs sm:text-sm text-black shadow-md hover:bg-[#ffd633] transition-all hover:scale-[1.01] active:scale-[0.99]"
             >
               I Accept Agreement &amp; Continue to Booking →
             </Button>

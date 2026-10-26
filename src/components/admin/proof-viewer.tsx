@@ -92,17 +92,17 @@ export function ProofThumbnails({
           if (!open) setSelected(null);
         }}
       >
-        <DialogContent className="max-h-[90vh] overflow-y-auto rounded-2xl sm:max-w-3xl">
-          <DialogHeader>
+        <DialogContent className="max-h-[90vh] overflow-y-auto rounded-2xl p-6 sm:p-8 sm:max-w-3xl">
+          <DialogHeader className="border-b border-border/80 pb-3 pr-8">
             <DialogTitle className="text-lg font-bold">Proof of Payment</DialogTitle>
             <DialogDescription className="truncate">
               {selected?.name ?? "—"}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex min-h-[200px] items-center justify-center rounded-xl border border-border bg-muted/40 p-3 text-center">
+          <div className="flex min-h-[200px] items-center justify-center rounded-xl border border-border bg-black/60 p-4 sm:p-6 text-center">
             {selected?.isPdf ? (
-              <div className="py-6">
+              <div className="py-8">
                 <FileText className="mx-auto size-16 text-rose-600" />
                 <p className="mt-3 text-sm text-muted-foreground">
                   PDF file — click &ldquo;Open in new tab&rdquo; to view.
@@ -113,12 +113,12 @@ export function ProofThumbnails({
               <img
                 src={selected.url}
                 alt="Proof of payment"
-                className="max-h-[60vh] w-auto max-w-full rounded-lg object-contain"
+                className="max-h-[60vh] w-auto max-w-full rounded-lg object-contain shadow-lg"
               />
             ) : null}
           </div>
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 border-t border-border/80 pt-4">
             {selected ? (
               <Button asChild variant="outline" className="rounded-lg font-semibold">
                 <a href={selected.url} target="_blank" rel="noreferrer">

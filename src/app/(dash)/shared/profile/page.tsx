@@ -1,24 +1,11 @@
-import {
-  FileText,
-  KeyRound,
-  QrCode,
-  Shield,
-  Upload,
-  User,
-} from "lucide-react";
+import { FileText } from "lucide-react";
 
+import { CompanyQrCodeCard } from "@/components/admin/company-qr-code-card";
 import { RentalAgreementEditor } from "@/components/admin/rental-agreement-editor";
-import { FileUploadDropzone } from "@/components/common/file-upload-dropzone";
 import { Flash } from "@/components/common/flash";
-import { LoadingButton } from "@/components/common/loading-button";
 import { PageHeader } from "@/components/common/page-header";
 import { SectionCard } from "@/components/common/section-card";
 import { ProfileEditor } from "@/components/profile/profile-editor";
-import { BookingDocumentButton } from "@/components/shared/booking-document-viewer";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { uploadQrCodeAction } from "@/lib/actions/profile";
 import { getCurrentUser, requireSession } from "@/lib/auth";
 import { siteContent } from "@/lib/data/misc";
 import { readFlash } from "@/lib/flash";
@@ -43,7 +30,7 @@ export default async function SharedProfilePage({
   const isAdminOrOperator = session.role === "admin" || session.role === "operator";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 pb-10">
       <PageHeader
         title="Account Settings & Portal Preferences"
         subtitle="Profile & Configurations"
@@ -57,50 +44,17 @@ export default async function SharedProfilePage({
 
       {/* Admin/Operator Extra Settings */}
       {isAdminOrOperator ? (
-        <div className="grid gap-6 md:grid-cols-2 pt-2">
-          {/* Admin/Operator QR Code */}
-          <SectionCard title="Company Payment QR Code" icon={QrCode}>
-            <div className="mb-4 flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 p-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={qrUrl}
-                alt="Payment QR"
-                className="max-h-48 rounded-lg object-contain shadow-sm"
-              />
-              <div className="mt-3 flex items-center gap-2">
-                <p className="text-xs text-muted-foreground">
-                  Active GCash/Maya QR code
-                </p>
-                <BookingDocumentButton
-                  label="Preview Full QR"
-                  url={qrUrl}
-                  fileName="payment_qr.png"
-                />
-              </div>
-            </div>
-
-            <form action={uploadQrCodeAction} className="space-y-3">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Upload New QR Code Image
-              </Label>
-              <FileUploadDropzone
-                name="qr_code_image"
-                accept="image/png,image/jpeg,image/webp"
-                maxSizeMB={5}
-                helperText="Drag & drop PNG, JPG or WEBP payment QR code."
-              />
-              <LoadingButton
-                type="submit"
-                className="w-full font-bold bg-[#ffcc00] text-black hover:bg-[#ffd633]"
-              >
-                <Upload className="size-4 mr-2" />
-                Save & Update QR
-              </LoadingButton>
-            </form>
-          </SectionCard>
+        <div className="grid gap-8 lg:grid-cols-2 pt-2">
+          {/* Admin/Operator Payment QR Code */}
+          <CompanyQrCodeCard initialQrUrl={qrUrl} />
 
           {/* Admin/Operator Rental Agreement Visual Editor */}
-          <SectionCard title="Rental Terms & Agreement Editor" icon={FileText}>
+          <SectionCard
+            title="Rental Terms & Agreement Editor"
+            icon={FileText}
+            className="overflow-hidden shadow-sm"
+            bodyClassName="p-6 sm:p-7"
+          >
             <RentalAgreementEditor initialContent={rentalAgreement} />
           </SectionCard>
         </div>

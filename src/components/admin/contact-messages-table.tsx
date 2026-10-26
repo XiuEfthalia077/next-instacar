@@ -228,8 +228,8 @@ export function ContactMessagesTable({
           if (!open) setViewing(null);
         }}
       >
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
+        <DialogContent className="rounded-2xl p-6 sm:p-8 sm:max-w-lg">
+          <DialogHeader className="border-b border-border/70 pb-3 pr-8">
             <DialogTitle className="flex items-center gap-2 text-base font-bold">
               <Mail className="size-4 text-[#b38a00] dark:text-[#ffd700]" />
               Inquiry Details
@@ -295,8 +295,8 @@ export function ContactMessagesTable({
           if (!open) setDeleting(null);
         }}
       >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
+        <DialogContent className="rounded-2xl p-6 sm:p-8 sm:max-w-md">
+          <DialogHeader className="border-b border-border/70 pb-3 pr-8">
             <DialogTitle>Delete Inquiry?</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete the message from &quot;

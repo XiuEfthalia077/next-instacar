@@ -107,8 +107,8 @@ export function TrackStageDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto border-border bg-[#0d0f12] p-5 text-foreground sm:p-6 sm:rounded-2xl">
-        <DialogHeader className="border-b border-border/80 pb-3">
+      <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto border-border bg-[#0d0f12] p-6 text-foreground sm:p-8 sm:rounded-2xl">
+        <DialogHeader className="border-b border-border/80 pb-4 pr-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="flex size-8 items-center justify-center rounded-xl bg-[#ffcc00]/20 text-[#ffcc00]">

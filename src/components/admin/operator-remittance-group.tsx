@@ -108,7 +108,7 @@ function OperatorBreakdownModal({
 
       <DialogContent className="max-h-[92vh] max-w-4xl overflow-hidden p-0 sm:rounded-2xl border-border bg-[#0d0f12] text-foreground flex flex-col">
         {/* Modal Header */}
-        <DialogHeader className="border-b border-border/80 p-5 sm:p-6 bg-card shrink-0">
+        <DialogHeader className="border-b border-border/80 p-5 sm:p-6 pr-12 bg-card shrink-0">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#ffcc00]/15 text-[#ffcc00] ring-1 ring-[#ffcc00]/40">

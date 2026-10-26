@@ -62,8 +62,8 @@ export function EditReservationDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="max-h-[92vh] overflow-y-auto rounded-2xl sm:max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-h-[92vh] overflow-y-auto rounded-2xl p-6 sm:p-8 sm:max-w-2xl">
+        <DialogHeader className="border-b border-border/70 pb-3 pr-8">
           <DialogTitle className="flex items-center gap-2 text-lg font-bold">
             <ClipboardList className="size-5 text-[#b38a00] dark:text-[#ffd700]" />
             Edit Reservation Details
