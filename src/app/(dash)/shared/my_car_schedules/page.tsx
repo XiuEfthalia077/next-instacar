@@ -88,20 +88,20 @@ export default async function SharedMyCarSchedulesPage({
 
       <Flash {...flash} />
 
-      <div className="grid gap-8 lg:gap-10 xl:gap-12 lg:grid-cols-12">
+      <div className="grid gap-10 lg:gap-12 xl:gap-14 lg:grid-cols-12 items-start">
         {/* Create Schedule Form */}
         <div className="lg:col-span-5">
           <SectionCard
             title="Add Schedule Blackout"
             icon={PlusCircle}
             className="overflow-hidden shadow-sm"
-            bodyClassName="p-6 sm:p-7"
+            bodyClassName="p-6 sm:p-8 lg:p-9"
           >
-            <form action={saveScheduleAction} className="space-y-5">
+            <form action={saveScheduleAction} className="space-y-6">
               <div>
                 <Label
                   htmlFor="car_id"
-                  className="mb-2 block text-xs font-extrabold uppercase tracking-wider text-muted-foreground"
+                  className="mb-2.5 block text-xs font-extrabold uppercase tracking-wider text-muted-foreground"
                 >
                   Select Vehicle
                 </Label>
@@ -110,7 +110,7 @@ export default async function SharedMyCarSchedulesPage({
                   name="car_id"
                   required
                   defaultValue={selectedCarId ? String(selectedCarId) : ""}
-                  className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm font-medium text-foreground shadow-xs transition-colors hover:border-[#ffcc00] focus:border-[#ffcc00] focus:outline-none focus:ring-2 focus:ring-[#ffcc00]/20"
+                  className="h-12 w-full rounded-xl border border-border/80 bg-background/80 px-4 py-2.5 text-sm font-medium text-foreground shadow-xs transition-colors hover:border-[#ffcc00] focus:border-[#ffcc00] focus:outline-none focus:ring-2 focus:ring-[#ffcc00]/20"
                 >
                   <option value="" disabled>
                     Choose a vehicle...
@@ -127,7 +127,7 @@ export default async function SharedMyCarSchedulesPage({
                 <div>
                   <Label
                     htmlFor="start_date"
-                    className="mb-2 block text-xs font-extrabold uppercase tracking-wider text-muted-foreground"
+                    className="mb-2.5 block text-xs font-extrabold uppercase tracking-wider text-muted-foreground"
                   >
                     Start Date
                   </Label>
@@ -136,13 +136,13 @@ export default async function SharedMyCarSchedulesPage({
                     name="start_date"
                     type="date"
                     required
-                    className="h-11 rounded-xl border-border px-4 text-sm font-medium transition-colors hover:border-[#ffcc00] focus-visible:border-[#ffcc00] focus-visible:ring-[#ffcc00]/20"
+                    className="h-12 w-full rounded-xl border-border/80 bg-background/80 px-4 py-2.5 text-sm font-medium transition-colors hover:border-[#ffcc00] focus-visible:border-[#ffcc00] focus-visible:ring-[#ffcc00]/20"
                   />
                 </div>
                 <div>
                   <Label
                     htmlFor="end_date"
-                    className="mb-2 block text-xs font-extrabold uppercase tracking-wider text-muted-foreground"
+                    className="mb-2.5 block text-xs font-extrabold uppercase tracking-wider text-muted-foreground"
                   >
                     End Date
                   </Label>
@@ -151,7 +151,7 @@ export default async function SharedMyCarSchedulesPage({
                     name="end_date"
                     type="date"
                     required
-                    className="h-11 rounded-xl border-border px-4 text-sm font-medium transition-colors hover:border-[#ffcc00] focus-visible:border-[#ffcc00] focus-visible:ring-[#ffcc00]/20"
+                    className="h-12 w-full rounded-xl border-border/80 bg-background/80 px-4 py-2.5 text-sm font-medium transition-colors hover:border-[#ffcc00] focus-visible:border-[#ffcc00] focus-visible:ring-[#ffcc00]/20"
                   />
                 </div>
               </div>
@@ -159,7 +159,7 @@ export default async function SharedMyCarSchedulesPage({
               <div>
                 <Label
                   htmlFor="reason"
-                  className="mb-2 block text-xs font-extrabold uppercase tracking-wider text-muted-foreground"
+                  className="mb-2.5 block text-xs font-extrabold uppercase tracking-wider text-muted-foreground"
                 >
                   Reason
                 </Label>
@@ -168,7 +168,7 @@ export default async function SharedMyCarSchedulesPage({
                   name="reason"
                   required
                   defaultValue="Maintenance"
-                  className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm font-medium text-foreground shadow-xs transition-colors hover:border-[#ffcc00] focus:border-[#ffcc00] focus:outline-none focus:ring-2 focus:ring-[#ffcc00]/20"
+                  className="h-12 w-full rounded-xl border border-border/80 bg-background/80 px-4 py-2.5 text-sm font-medium text-foreground shadow-xs transition-colors hover:border-[#ffcc00] focus:border-[#ffcc00] focus:outline-none focus:ring-2 focus:ring-[#ffcc00]/20"
                 >
                   <option value="Maintenance">Maintenance</option>
                   <option value="Personal Use">Personal Use</option>
@@ -180,7 +180,7 @@ export default async function SharedMyCarSchedulesPage({
               <div>
                 <Label
                   htmlFor="notes"
-                  className="mb-2 block text-xs font-extrabold uppercase tracking-wider text-muted-foreground"
+                  className="mb-2.5 block text-xs font-extrabold uppercase tracking-wider text-muted-foreground"
                 >
                   Notes / Details
                 </Label>
@@ -189,7 +189,7 @@ export default async function SharedMyCarSchedulesPage({
                   name="notes"
                   rows={3}
                   placeholder="e.g. 50,000km change oil, brake pad replacement..."
-                  className="min-h-[100px] rounded-xl border-border p-3.5 text-sm font-medium transition-colors hover:border-[#ffcc00] focus-visible:border-[#ffcc00] focus-visible:ring-[#ffcc00]/20"
+                  className="min-h-[120px] w-full rounded-xl border-border/80 bg-background/80 p-4 text-sm font-medium leading-relaxed transition-colors hover:border-[#ffcc00] focus-visible:border-[#ffcc00] focus-visible:ring-[#ffcc00]/20"
                 />
               </div>
 
@@ -209,15 +209,15 @@ export default async function SharedMyCarSchedulesPage({
             title="Active & Upcoming Schedules"
             icon={CalendarRange}
             className="overflow-hidden shadow-sm"
-            bodyClassName="p-6 sm:p-7"
+            bodyClassName="p-6 sm:p-8 lg:p-9"
           >
             {/* Filter by car */}
-            <form method="get" className="mb-5">
+            <form method="get" className="mb-6">
               <div className="flex flex-wrap items-center gap-3">
                 <select
                   name="car_id"
                   defaultValue={carFilterParam || "all"}
-                  className="h-10 min-w-[200px] flex-1 rounded-xl border border-border bg-background px-3.5 text-sm font-medium text-foreground transition-colors hover:border-[#ffcc00] focus:border-[#ffcc00] focus:outline-none"
+                  className="h-11 min-w-[200px] flex-1 rounded-xl border border-border/80 bg-background px-4 text-sm font-medium text-foreground transition-colors hover:border-[#ffcc00] focus:border-[#ffcc00] focus:outline-none"
                 >
                   <option value="all">All Vehicles</option>
                   {fleet.rows.map((car) => (
@@ -228,7 +228,7 @@ export default async function SharedMyCarSchedulesPage({
                 </select>
                 <button
                   type="submit"
-                  className="h-10 rounded-xl bg-[#ffcc00] px-5 text-xs font-extrabold text-black shadow-xs transition hover:bg-[#ffd633]"
+                  className="h-11 rounded-xl bg-[#ffcc00] px-6 text-xs font-extrabold text-black shadow-xs transition hover:bg-[#ffd633]"
                 >
                   Filter
                 </button>
@@ -242,14 +242,14 @@ export default async function SharedMyCarSchedulesPage({
                 description="There are no active or upcoming blackout schedules registered."
               />
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-border">
+              <div className="overflow-x-auto rounded-xl border border-border/80">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-border bg-muted/60 text-[11px] uppercase tracking-wider text-muted-foreground">
-                      <th className="px-4 py-3.5 text-left font-extrabold">Vehicle</th>
-                      <th className="px-4 py-3.5 text-left font-extrabold">Dates</th>
-                      <th className="px-4 py-3.5 text-left font-extrabold">Reason</th>
-                      <th className="px-4 py-3.5 text-right font-extrabold">Actions</th>
+                    <tr className="border-b border-border/80 bg-muted/60 text-[11px] uppercase tracking-wider text-muted-foreground">
+                      <th className="px-5 py-3.5 text-left font-extrabold">Vehicle</th>
+                      <th className="px-5 py-3.5 text-left font-extrabold">Dates</th>
+                      <th className="px-5 py-3.5 text-left font-extrabold">Reason</th>
+                      <th className="px-5 py-3.5 text-right font-extrabold">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -261,15 +261,15 @@ export default async function SharedMyCarSchedulesPage({
                       return (
                         <tr
                           key={s.id}
-                          className="border-b border-border last:border-0 transition-colors hover:bg-muted/40"
+                          className="border-b border-border/60 last:border-0 transition-colors hover:bg-muted/40"
                         >
-                          <td className="px-4 py-3.5 font-semibold text-foreground">
+                          <td className="px-5 py-4 font-semibold text-foreground">
                             <p className="font-bold">{carName}</p>
                             <p className="text-xs text-muted-foreground font-mono">
                               {s.cars?.plate_number ?? "—"}
                             </p>
                           </td>
-                          <td className="px-4 py-3.5 text-xs text-foreground">
+                          <td className="px-5 py-4 text-xs text-foreground">
                             <p className="font-semibold text-foreground">
                               {formatDate(s.start_date)} - {formatDate(s.end_date)}
                             </p>
@@ -279,12 +279,12 @@ export default async function SharedMyCarSchedulesPage({
                               </p>
                             ) : null}
                           </td>
-                          <td className="px-4 py-3.5">
+                          <td className="px-5 py-4">
                             <span className="inline-flex items-center rounded-full bg-amber-500/15 px-3 py-1 text-xs font-bold text-amber-500 dark:text-amber-400">
                               {s.reason}
                             </span>
                           </td>
-                          <td className="px-4 py-3.5 text-right">
+                          <td className="px-5 py-4 text-right">
                             <form action={deleteScheduleAction}>
                               <input type="hidden" name="id" value={s.id} />
                               <button

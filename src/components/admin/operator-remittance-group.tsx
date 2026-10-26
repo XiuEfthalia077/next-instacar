@@ -106,22 +106,22 @@ function OperatorBreakdownModal({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
 
-      <DialogContent className="max-h-[92vh] max-w-4xl overflow-hidden p-0 sm:rounded-2xl border-border bg-[#0d0f12] text-foreground flex flex-col">
+      <DialogContent className="w-[96vw] max-w-5xl h-[88vh] max-h-[88vh] overflow-hidden p-0 rounded-2xl border-border bg-[#0d0f12] text-foreground flex flex-col shadow-2xl">
         {/* Modal Header */}
-        <DialogHeader className="border-b border-border/80 p-5 sm:p-6 pr-12 bg-card shrink-0">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
+        <DialogHeader className="border-b border-border/80 p-5 sm:p-6 pr-14 sm:pr-16 bg-card shrink-0">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-3.5 min-w-0">
               <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#ffcc00]/15 text-[#ffcc00] ring-1 ring-[#ffcc00]/40">
                 <UserCheck className="size-6" />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <DialogTitle className="text-lg font-extrabold text-foreground">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <DialogTitle className="text-xl font-black text-foreground truncate">
                     {group.operatorName}
                   </DialogTitle>
                   <RemittanceStatusBadge status={status} />
                 </div>
-                <DialogDescription className="mt-0.5 text-xs text-muted-foreground">
+                <DialogDescription className="mt-1 text-xs text-muted-foreground">
                   Remittance breakdown across {group.cars.length} registered vehicle
                   {group.cars.length === 1 ? "" : "s"}
                 </DialogDescription>
@@ -129,30 +129,30 @@ function OperatorBreakdownModal({
             </div>
 
             {/* Financial Summary KPIs */}
-            <div className="grid grid-cols-3 gap-2 shrink-0">
-              <div className="rounded-xl border border-border bg-muted/30 px-3 py-1.5 text-center">
-                <p className="text-[10px] font-bold uppercase text-muted-foreground">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 shrink-0">
+              <div className="rounded-xl border border-border/80 bg-muted/40 px-3.5 py-2 text-center min-w-[85px] sm:min-w-[110px]">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                   Total Owed
                 </p>
-                <p className="text-sm font-extrabold text-foreground">
+                <p className="text-xs sm:text-sm font-extrabold text-foreground mt-0.5">
                   {peso(group.totalOwed)}
                 </p>
               </div>
-              <div className="rounded-xl border border-border bg-muted/30 px-3 py-1.5 text-center">
-                <p className="text-[10px] font-bold uppercase text-muted-foreground">
+              <div className="rounded-xl border border-border/80 bg-muted/40 px-3.5 py-2 text-center min-w-[85px] sm:min-w-[110px]">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                   Total Paid
                 </p>
-                <p className="text-sm font-extrabold text-emerald-500">
+                <p className="text-xs sm:text-sm font-extrabold text-emerald-500 mt-0.5">
                   {peso(group.totalPaid)}
                 </p>
               </div>
-              <div className="rounded-xl border border-border bg-muted/30 px-3 py-1.5 text-center">
-                <p className="text-[10px] font-bold uppercase text-muted-foreground">
+              <div className="rounded-xl border border-border/80 bg-muted/40 px-3.5 py-2 text-center min-w-[85px] sm:min-w-[110px]">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                   Net Balance
                 </p>
                 <p
                   className={cn(
-                    "text-sm font-extrabold",
+                    "text-xs sm:text-sm font-extrabold mt-0.5",
                     isClear ? "text-emerald-500" : "text-rose-500",
                   )}
                 >
@@ -164,44 +164,46 @@ function OperatorBreakdownModal({
 
           {/* Quick Vehicle Filter Tabs if > 2 cars */}
           {group.cars.length > 1 && (
-            <div className="mt-4 flex gap-1.5 overflow-x-auto pt-1">
-              <button
-                type="button"
-                onClick={() => setActiveCarTab("all")}
-                className={cn(
-                  "rounded-lg px-3 py-1 text-xs font-bold transition",
-                  activeCarTab === "all"
-                    ? "bg-[#ffcc00] text-black shadow-xs"
-                    : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
-                )}
-              >
-                All Vehicles ({group.cars.length})
-              </button>
-              {group.cars.map((car) => {
-                const name =
-                  [car.brand, car.model].filter(Boolean).join(" ") || "Vehicle";
-                return (
-                  <button
-                    key={car.carId}
-                    type="button"
-                    onClick={() => setActiveCarTab(car.carId)}
-                    className={cn(
-                      "whitespace-nowrap rounded-lg px-3 py-1 text-xs font-bold transition",
-                      activeCarTab === car.carId
-                        ? "bg-[#ffcc00] text-black shadow-xs"
-                        : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
-                    )}
-                  >
-                    {name} {car.plateNumber ? `[${car.plateNumber}]` : ""}
-                  </button>
-                );
-              })}
+            <div className="mt-4 w-full max-w-full overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden pt-1">
+              <div className="flex items-center gap-2 flex-nowrap min-w-max pb-1">
+                <button
+                  type="button"
+                  onClick={() => setActiveCarTab("all")}
+                  className={cn(
+                    "rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all shrink-0",
+                    activeCarTab === "all"
+                      ? "bg-[#ffcc00] text-black shadow-sm"
+                      : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
+                  )}
+                >
+                  All Vehicles ({group.cars.length})
+                </button>
+                {group.cars.map((car) => {
+                  const name =
+                    [car.brand, car.model].filter(Boolean).join(" ") || "Vehicle";
+                  return (
+                    <button
+                      key={car.carId}
+                      type="button"
+                      onClick={() => setActiveCarTab(car.carId)}
+                      className={cn(
+                        "whitespace-nowrap rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all shrink-0",
+                        activeCarTab === car.carId
+                          ? "bg-[#ffcc00] text-black shadow-sm"
+                          : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
+                      )}
+                    >
+                      {name} {car.plateNumber ? `[${car.plateNumber}]` : ""}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </DialogHeader>
 
-        {/* Modal Body: Cars & Bookings Breakdown */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
+        {/* Modal Body: Cars & Bookings Breakdown - Single Clean Scrollbar */}
+        <div className="flex-1 min-h-0 overflow-y-auto p-5 sm:p-6 space-y-6">
           {filteredCars.map((car) => {
             const carStatus = remittanceStatus(car.totalOwed, car.totalPaid);
             const carClear = car.balance <= 0 && car.totalOwed > 0;
@@ -215,13 +217,13 @@ function OperatorBreakdownModal({
             return (
               <div
                 key={car.carId}
-                className="overflow-hidden rounded-2xl border border-border bg-card/60 shadow-xs"
+                className="overflow-hidden rounded-2xl border border-border bg-card/60 shadow-sm"
               >
                 {/* Vehicle Header Bar */}
-                <div className="flex flex-col gap-3 border-b border-border bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Car className="size-4 text-[#ffcc00]" />
+                <div className="flex flex-col gap-3.5 border-b border-border/80 bg-muted/20 p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Car className="size-4 text-[#ffcc00] shrink-0" />
                       <h4 className="text-base font-extrabold text-foreground">
                         {carName}
                       </h4>
@@ -233,20 +235,22 @@ function OperatorBreakdownModal({
                       <RemittanceStatusBadge status={carStatus} />
                     </div>
                     {car.branchName && (
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        Branch: {car.branchName}
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Branch: <span className="font-medium text-foreground/80">{car.branchName}</span>
                       </p>
                     )}
                   </div>
 
                   {/* Actions & Balances for this vehicle */}
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-semibold">
+                  <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-border/80 bg-background/90 px-3.5 py-1.5 text-xs font-semibold shadow-xs">
                       <span className="text-muted-foreground">Owed:</span>
                       <span className="font-bold text-foreground">{peso(car.totalOwed)}</span>
-                      <span className="text-muted-foreground">| Paid:</span>
+                      <span className="text-muted-foreground/40 hidden sm:inline">•</span>
+                      <span className="text-muted-foreground">Paid:</span>
                       <span className="font-bold text-emerald-500">{peso(car.totalPaid)}</span>
-                      <span className="text-muted-foreground">| Balance:</span>
+                      <span className="text-muted-foreground/40 hidden sm:inline">•</span>
+                      <span className="text-muted-foreground">Balance:</span>
                       <span
                         className={cn(
                           "font-bold",
@@ -257,7 +261,7 @@ function OperatorBreakdownModal({
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2 shrink-0">
                       <RemittanceRecordDialog
                         kind="operator"
                         targetId={car.carId}
@@ -276,17 +280,17 @@ function OperatorBreakdownModal({
                 </div>
 
                 {/* Contributing Bookings Breakdown Table */}
-                <div className="p-4">
-                  <div className="mb-2.5 flex items-center justify-between text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
+                <div className="p-4 sm:p-5">
+                  <div className="mb-3 flex items-center justify-between text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
                     <span className="flex items-center gap-1.5">
                       <ClipboardList className="size-3.5 text-[#ffcc00]" />
                       Contributing Bookings ({car.bookings.length})
                     </span>
-                    <span>Total Operator Share: {peso(car.totalOwed)}</span>
+                    <span>Total Operator Share: <span className="text-foreground font-bold">{peso(car.totalOwed)}</span></span>
                   </div>
 
                   {car.bookings.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
+                    <div className="rounded-xl border border-dashed border-border/80 p-5 text-center text-xs text-muted-foreground">
                       No bookings recorded for this vehicle yet.
                     </div>
                   ) : (
@@ -349,9 +353,9 @@ function OperatorBreakdownModal({
         </div>
 
         {/* Modal Footer */}
-        <DialogFooter className="border-t border-border/80 p-4 bg-card shrink-0">
+        <DialogFooter className="border-t border-border/80 px-6 py-4 bg-card shrink-0 flex items-center justify-end">
           <DialogClose asChild>
-            <Button variant="outline" className="font-bold">
+            <Button variant="outline" className="rounded-xl px-5 font-bold">
               Close Breakdown
             </Button>
           </DialogClose>
