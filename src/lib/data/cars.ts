@@ -225,8 +225,28 @@ export async function operatorCars(session: AppSession): Promise<CarWithOwner[]>
   );
 }
 
-/** All branches (used by the branch switcher and the branch pages). */
-export async function listBranches(activeOnly = false) {
+type CachedBranch = {
+  id: number;
+  name: string;
+  address: string | null;
+  phone: string | null;
+  is_active: boolean;
+  created_at: string;
+};
+
+let cachedBranches: { rows: CachedBranch[]; timestamp: number; activeOnly: boolean } | null = null;
+
+/** All branches (cached in-process with a 60-second TTL to accelerate dashboard navigation). */
+export async function listBranches(activeOnly = false): Promise<CachedBranch[]> {
+  const now = Date.now();
+  if (
+    cachedBranches &&
+    cachedBranches.activeOnly === activeOnly &&
+    now - cachedBranches.timestamp < 60_000
+  ) {
+    return cachedBranches.rows;
+  }
+
   const supabase = await import("@/lib/auth").then((m) => m.getSupabase());
 
   let query = supabase.from("branches").select("*").order("name", { ascending: true });
@@ -235,14 +255,9 @@ export async function listBranches(activeOnly = false) {
     query = query.eq("is_active", true);
   }
 
-  return fetchRows<{
-    id: number;
-    name: string;
-    address: string | null;
-    phone: string | null;
-    is_active: boolean;
-    created_at: string;
-  }>(query);
+  const rows = await fetchRows<CachedBranch>(query);
+  cachedBranches = { rows, timestamp: now, activeOnly };
+  return rows;
 }
 
 /** Blocked periods of a car (legacy `car_schedules`). */

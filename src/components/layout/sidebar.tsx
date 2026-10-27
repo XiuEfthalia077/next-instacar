@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronRight, X } from "lucide-react";
 
 import { SIDEBAR_NAV, isNavParent } from "@/lib/constants";
@@ -95,9 +95,34 @@ export function Sidebar({
     }
   }, [groups, pathname, searchParams]);
 
+  const lastNavTimeRef = useRef<number>(0);
+  const navigatingHrefRef = useRef<string | null>(null);
+
   useEffect(() => {
+    navigatingHrefRef.current = null;
     setMobileOpen(false);
-  }, [pathname, setMobileOpen]);
+  }, [pathname, searchParams, setMobileOpen]);
+
+  const handleLinkClick = (e: React.MouseEvent, href: string, active: boolean) => {
+    const now = Date.now();
+
+    // 1. Guard against clicking the currently active page
+    if (active) {
+      e.preventDefault();
+      setMobileOpen(false);
+      return;
+    }
+
+    // 2. Debounce/throttle rapid spam clicks within 400ms or duplicate in-flight transition
+    if (navigatingHrefRef.current === href || now - lastNavTimeRef.current < 400) {
+      e.preventDefault();
+      return;
+    }
+
+    lastNavTimeRef.current = now;
+    navigatingHrefRef.current = href;
+    setMobileOpen(false);
+  };
 
   const toggle = (label: string) =>
     setOpen((prev) =>
@@ -111,7 +136,8 @@ export function Sidebar({
       <li key={child.href}>
         <Link
           href={child.href}
-          onClick={() => setMobileOpen(false)}
+          prefetch={true}
+          onClick={(e) => handleLinkClick(e, child.href, active)}
           className={cn(
             "flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] transition-colors",
             active
@@ -188,7 +214,8 @@ export function Sidebar({
                       <li key={entry.href}>
                         <Link
                           href={entry.href}
-                          onClick={() => setMobileOpen(false)}
+                          prefetch={true}
+                          onClick={(e) => handleLinkClick(e, entry.href, active)}
                           className={cn(
                             "relative mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] transition-colors",
                             active

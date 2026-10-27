@@ -6,46 +6,104 @@ import * as React from "react";
 export function TopLoader() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [loading, setLoading] = React.useState(false);
+  const [visible, setVisible] = React.useState(false);
   const [progress, setProgress] = React.useState(0);
-  const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const [fading, setFading] = React.useState(false);
 
-  const resetLoader = React.useCallback(() => {
+  // References to manage timers and state without re-render lag
+  const delayTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const intervalTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const safetyTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const fadeTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const lastNavTimeRef = React.useRef<number>(0);
+  const activeTargetHrefRef = React.useRef<string | null>(null);
+  const visitedUrlsRef = React.useRef<Set<string>>(new Set());
+
+  // Mark current URL as visited
+  React.useEffect(() => {
+    const current = window.location.pathname + window.location.search;
+    visitedUrlsRef.current.add(current);
+    visitedUrlsRef.current.add(window.location.pathname);
+  }, [pathname, searchParams]);
+
+  // Complete and cleanly fade out the loader
+  const completeLoader = React.useCallback(() => {
+    if (delayTimerRef.current) clearTimeout(delayTimerRef.current);
+    if (intervalTimerRef.current) clearInterval(intervalTimerRef.current);
+    if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
+
+    activeTargetHrefRef.current = null;
+
     setProgress(100);
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      setLoading(false);
-      setProgress(0);
+    setFading(false);
+
+    if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+    fadeTimerRef.current = setTimeout(() => {
+      setFading(true);
+      fadeTimerRef.current = setTimeout(() => {
+        setVisible(false);
+        setProgress(0);
+        setFading(false);
+      }, 300);
     }, 200);
   }, []);
 
-  // When route changes, complete and hide loader
+  // When route changes, complete loader smoothly
   React.useEffect(() => {
-    resetLoader();
-  }, [pathname, searchParams, resetLoader]);
+    completeLoader();
+  }, [pathname, searchParams, completeLoader]);
 
-  // Intercept click on links to start loader
+  // Intercept click on navigation links
   React.useEffect(() => {
-    let safetyTimer: NodeJS.Timeout | null = null;
-    let intervalTimer: NodeJS.Timeout | null = null;
+    const startLoader = (targetHref: string) => {
+      const now = Date.now();
 
-    const startLoader = () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      if (safetyTimer) clearTimeout(safetyTimer);
-      if (intervalTimer) clearInterval(intervalTimer);
+      // 1. Click Debounce / Throttling — ignore spam clicks within 400ms
+      if (now - lastNavTimeRef.current < 400 && activeTargetHrefRef.current === targetHref) {
+        return;
+      }
+      lastNavTimeRef.current = now;
 
-      setLoading(true);
-      setProgress(30);
+      // 2. Sticky Loading Bar — if already navigating to this target, keep advancing, never snap back to 0%
+      if (activeTargetHrefRef.current === targetHref) {
+        return;
+      }
+      activeTargetHrefRef.current = targetHref;
 
-      intervalTimer = setInterval(() => {
-        setProgress((prev) => (prev < 85 ? prev + 15 : prev));
-      }, 150);
+      // Clear any pending completion/fade timers
+      if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+      if (delayTimerRef.current) clearTimeout(delayTimerRef.current);
 
-      // Strict safety timeout: NEVER hang longer than 2.5s under any circumstance
-      safetyTimer = setTimeout(() => {
-        if (intervalTimer) clearInterval(intervalTimer);
-        resetLoader();
-      }, 2500);
+      // 3. Loading State Persistence & Cache Threshold:
+      // If navigating to a recently visited route, Next.js serves from in-memory Client Router Cache (<100ms).
+      // Delay showing the loader by 150ms so fast transitions never flash.
+      const isVisited =
+        visitedUrlsRef.current.has(targetHref) ||
+        visitedUrlsRef.current.has(targetHref.split("?")[0]);
+      const showDelay = isVisited ? 150 : 60;
+
+      delayTimerRef.current = setTimeout(() => {
+        setVisible(true);
+        setFading(false);
+        // Sticky progress: never drop below current progress level
+        setProgress((prev) => Math.max(prev > 0 && prev < 90 ? prev : 30, 30));
+
+        if (intervalTimerRef.current) clearInterval(intervalTimerRef.current);
+        intervalTimerRef.current = setInterval(() => {
+          setProgress((prev) => {
+            if (prev >= 90) return prev;
+            // Smooth natural asymptotic trickle towards 90%
+            const diff = 90 - prev;
+            return prev + Math.max(diff * 0.15, 1.5);
+          });
+        }, 120);
+
+        // Strict safety timeout: never hang longer than 3 seconds
+        if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
+        safetyTimerRef.current = setTimeout(() => {
+          completeLoader();
+        }, 3000);
+      }, showDelay);
     };
 
     const handleDocumentClick = (e: MouseEvent) => {
@@ -62,23 +120,23 @@ export function TopLoader() {
         !e.metaKey &&
         !e.shiftKey
       ) {
-        // If clicking current path, don't trigger loader
         const currentUrl = window.location.pathname + window.location.search;
+        // If clicking current path, don't trigger loader
         if (href === currentUrl || href === window.location.pathname) {
           return;
         }
-        startLoader();
+        startLoader(href);
       }
     };
 
     const handleFormSubmit = (e: Event) => {
       const form = e.target as HTMLFormElement;
       if (form.getAttribute("data-no-loader")) return;
-      startLoader();
+      startLoader(form.action || window.location.pathname);
     };
 
     const handleError = () => {
-      resetLoader();
+      completeLoader();
     };
 
     document.addEventListener("click", handleDocumentClick);
@@ -91,12 +149,14 @@ export function TopLoader() {
       document.removeEventListener("submit", handleFormSubmit);
       window.removeEventListener("error", handleError);
       window.removeEventListener("unhandledrejection", handleError);
-      if (safetyTimer) clearTimeout(safetyTimer);
-      if (intervalTimer) clearInterval(intervalTimer);
+      if (delayTimerRef.current) clearTimeout(delayTimerRef.current);
+      if (intervalTimerRef.current) clearInterval(intervalTimerRef.current);
+      if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
+      if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
     };
-  }, [resetLoader]);
+  }, [completeLoader]);
 
-  if (!loading && progress === 0) return null;
+  if (!visible && progress === 0) return null;
 
   return (
     <div
@@ -104,10 +164,13 @@ export function TopLoader() {
       aria-hidden="true"
     >
       <div
-        className="h-full bg-gradient-to-r from-[#ffcc00] via-[#ffd700] to-[#ffcc00] shadow-[0_0_10px_#ffcc00,0_0_5px_#ffd700] transition-all duration-200 ease-out"
+        className="h-full bg-gradient-to-r from-[#ffcc00] via-[#ffd700] to-[#ffcc00] shadow-[0_0_12px_#ffcc00,0_0_6px_#ffd700]"
         style={{
           width: `${progress}%`,
-          opacity: loading ? 1 : 0,
+          opacity: fading ? 0 : visible ? 1 : 0,
+          transition: fading
+            ? "opacity 300ms ease-out, width 200ms ease-out"
+            : "width 200ms cubic-bezier(0.4, 0, 0.2, 1), opacity 150ms ease-in",
         }}
       />
     </div>
