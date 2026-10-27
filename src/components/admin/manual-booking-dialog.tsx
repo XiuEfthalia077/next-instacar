@@ -220,9 +220,10 @@ export function ManualBookingDialog({
     cars.find(
       (car) =>
         String(car.id) === carId &&
-        (!typeFilter || car.type === typeFilter) &&
-        !conflictingCars.has(car.id),
+        (!typeFilter || car.type === typeFilter),
     ) ?? null;
+
+  const isCarConflicted = selectedCar ? conflictingCars.has(selectedCar.id) : false;
 
   const basePrice =
     selectedCar && hours > 0
@@ -252,14 +253,17 @@ export function ManualBookingDialog({
       ? "Pickup time cannot be in the past!"
       : tooShort
         ? `${hours.toFixed(1)} hrs (Min 10h)`
-        : hours > 0
-          ? `${Math.ceil(hours)} Hours`
-          : "0 Hours";
+        : isCarConflicted
+          ? "Selected car is unavailable for these dates. Please choose another."
+          : hours > 0
+            ? `${Math.ceil(hours)} Hours`
+            : "0 Hours";
 
   const formValid =
     !!pickup &&
     !!returnAt &&
     !!selectedCar &&
+    !isCarConflicted &&
     !pickupInPast &&
     !invalidRange &&
     !tooShort &&
@@ -587,7 +591,7 @@ export function ManualBookingDialog({
               <select
                 id="manual-car"
                 name="car_id"
-                value={selectedCar ? String(selectedCar.id) : ""}
+                value={carId}
                 onChange={(event) => setCarId(event.target.value)}
                 required
                 className={filterControlClass}
@@ -598,13 +602,14 @@ export function ManualBookingDialog({
                   .map((car) => {
                     const conflict = conflictingCars.has(car.id);
                     return (
-                      <option key={car.id} value={car.id} disabled={conflict}>
+                      <option key={car.id} value={String(car.id)} disabled={conflict}>
                         {carLabel(car)} — {formatPeso(Number(car.price_24_hours ?? 0))}/24h
                         {conflict ? " (NOT AVAILABLE)" : ""}
                       </option>
                     );
                   })}
               </select>
+              <input type="hidden" name="vehicle_id" value={carId} />
 
               <p
                 className={cn(

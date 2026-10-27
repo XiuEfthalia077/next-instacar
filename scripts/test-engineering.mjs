@@ -240,3 +240,36 @@ test("QStash email job payload validates required fields for all 4 flows", () =>
     false,
   );
 });
+
+// Test 11: Vehicle ID parsing from FormData (handling car_id, vehicle_id, string, number, or JSON object)
+test("parseVehicleId handles car_id, vehicle_id, and object serialization robustly", () => {
+  function parseVehicleId(formMap) {
+    for (const key of ["car_id", "vehicle_id", "carId", "vehicleId"]) {
+      const raw = formMap[key];
+      if (!raw) continue;
+      if (typeof raw === "string") {
+        const trimmed = raw.trim();
+        if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+          try {
+            const parsed = JSON.parse(trimmed);
+            if (parsed && typeof parsed.id === "number") return parsed.id;
+            if (parsed && typeof parsed.car_id === "number") return parsed.car_id;
+            if (parsed && typeof parsed.vehicle_id === "number") return parsed.vehicle_id;
+          } catch {}
+        }
+        const num = Number.parseInt(trimmed, 10);
+        if (Number.isFinite(num) && num > 0) return num;
+      }
+      if (typeof raw === "number" && raw > 0) return raw;
+    }
+    return 0;
+  }
+
+  assert.equal(parseVehicleId({ car_id: "4" }), 4);
+  assert.equal(parseVehicleId({ vehicle_id: "7" }), 7);
+  assert.equal(parseVehicleId({ vehicle_id: 12 }), 12);
+  assert.equal(parseVehicleId({ car_id: JSON.stringify({ id: 9 }) }), 9);
+  assert.equal(parseVehicleId({ vehicle_id: JSON.stringify({ vehicle_id: 15 }) }), 15);
+  assert.equal(parseVehicleId({}), 0);
+  assert.equal(parseVehicleId({ car_id: "invalid" }), 0);
+});

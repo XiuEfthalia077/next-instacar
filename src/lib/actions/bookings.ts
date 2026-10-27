@@ -57,6 +57,34 @@ function int(form: FormData, key: string, fallback = 0): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+/**
+ * Robustly parses vehicle/car id from FormData.
+ * Accepts car_id, vehicle_id, carId, vehicleId, as string, number, or JSON object { id: ... }.
+ */
+function parseVehicleId(form: FormData): number {
+  for (const key of ["car_id", "vehicle_id", "carId", "vehicleId"]) {
+    const raw = form.get(key);
+    if (!raw) continue;
+    if (typeof raw === "string") {
+      const trimmed = raw.trim();
+      if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (parsed && typeof parsed.id === "number") return parsed.id;
+          if (parsed && typeof parsed.car_id === "number") return parsed.car_id;
+          if (parsed && typeof parsed.vehicle_id === "number") return parsed.vehicle_id;
+        } catch {
+          // ignore
+        }
+      }
+      const num = Number.parseInt(trimmed, 10);
+      if (Number.isFinite(num) && num > 0) return num;
+    }
+    if (typeof raw === "number" && raw > 0) return raw;
+  }
+  return 0;
+}
+
 function money(form: FormData, key: string): number {
   const parsed = Number.parseFloat(str(form, key).replace(/,/g, ""));
   return Number.isFinite(parsed) ? parsed : 0;
@@ -221,7 +249,6 @@ type CarPricing = {
   id: number;
   brand: string | null;
   model: string | null;
-  year: number | null;
   branch_id: number | null;
   price_10_hours: number | null;
   price_12_hours: number | null;
@@ -236,15 +263,21 @@ type CarPricing = {
 };
 
 async function carPricing(carId: number): Promise<CarPricing | null> {
-  const supabase = await getSupabase();
+  const adminClient = getAdminClient();
+  const supabase = adminClient ?? (await getSupabase());
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("cars")
     .select(
-      "id, brand, model, year, branch_id, price_10_hours, price_12_hours, price_24_hours, ext_price_1_6, ext_price_7_10, ext_price_11_12, ext_price_13_24, operator_10_hours, operator_12_hours, operator_24_hours",
+      "id, brand, model, branch_id, price_10_hours, price_12_hours, price_24_hours, ext_price_1_6, ext_price_7_10, ext_price_11_12, ext_price_13_24, operator_10_hours, operator_12_hours, operator_24_hours",
     )
     .eq("id", carId)
     .maybeSingle();
+
+  if (error) {
+    console.error(`[carPricing] Error querying car #${carId}:`, error.message);
+    return null;
+  }
 
   return (data as CarPricing | null) ?? null;
 }
@@ -513,7 +546,7 @@ export async function updateBookingStatusAction(formData: FormData) {
 export async function addManualBookingAction(formData: FormData) {
   const session = await requireRole("admin", "staff");
 
-  const carId = int(formData, "car_id");
+  const carId = parseVehicleId(formData);
   const startDate = str(formData, "start_date");
   const endDate = str(formData, "end_date");
   const pickupTime = timeValue(str(formData, "pickup_time"));
@@ -523,7 +556,7 @@ export async function addManualBookingAction(formData: FormData) {
     session.role === "staff" ? "/staff/bookings_manual" : "/admin/bookings_manual";
 
   if (!carId || !startDate || !endDate) {
-    flashRedirect(home, "error", "Please fill in all required fields.");
+    flashRedirect(home, "error", "Please fill in all required fields (vehicle and rental dates).");
   }
 
   const overlap = await hasOverlap({
@@ -657,7 +690,7 @@ export async function addManualBookingAction(formData: FormData) {
 
   // Feature B: Queue walk-in / manual booking confirmation to client & admin
   try {
-    const carName = `${car.brand ?? ""} ${car.model ?? ""} (${car.year ?? ""})`.trim() || "Vehicle";
+    const carName = `${car.brand ?? ""} ${car.model ?? ""}`.trim() || "Vehicle";
     let recipientEmail = guestEmail;
     let recipientName = guestName || "Customer";
 
@@ -736,7 +769,7 @@ export async function updateBookingAction(formData: FormData) {
 
   if (!bookingId) flashRedirect(home, "error", "Invalid booking.");
 
-  const carId = int(formData, "car_id");
+  const carId = parseVehicleId(formData);
   const pickupRaw = str(formData, "pickup_datetime");
   const returnRaw = str(formData, "return_datetime");
 
@@ -1482,7 +1515,7 @@ export async function payRemainingBalanceAction(formData: FormData) {
 export async function createBookingAction(formData: FormData) {
   const session = await requireRole("user", "admin", "staff");
 
-  const carId = int(formData, "car_id");
+  const carId = parseVehicleId(formData);
   const startDate = str(formData, "start_date");
   const endDate = str(formData, "end_date");
   const pickupTime = timeValue(str(formData, "pickup_time"));
@@ -1595,7 +1628,7 @@ export async function createBookingAction(formData: FormData) {
 
   // Feature B: Queue online booking confirmation to client & notification to admin
   try {
-    const carName = `${car.brand ?? ""} ${car.model ?? ""} (${car.year ?? ""})`.trim() || "Vehicle";
+    const carName = `${car.brand ?? ""} ${car.model ?? ""}`.trim() || "Vehicle";
 
     if (session.email) {
       await queueEmail({
