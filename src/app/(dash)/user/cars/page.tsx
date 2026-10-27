@@ -18,7 +18,7 @@ export default async function UserCarsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const session = await requireRole("user");
+  const session = await requireRole("user", "admin", "staff");
   const params = await searchParams;
   const flash = readFlash(params);
 

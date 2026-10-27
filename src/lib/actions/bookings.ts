@@ -1298,7 +1298,7 @@ export async function payRemainingBalanceAction(formData: FormData) {
 /* ------------------------------------------------------------------ */
 
 export async function createBookingAction(formData: FormData) {
-  const session = await requireRole("user");
+  const session = await requireRole("user", "admin", "staff");
 
   const carId = int(formData, "car_id");
   const startDate = str(formData, "start_date");
