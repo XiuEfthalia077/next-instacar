@@ -39,6 +39,7 @@ import { sendMail } from "@/lib/mailer";
 import { BUCKETS, buildFileName, uploadFile, removeFile } from "@/lib/storage";
 import { bookingPhotoKey } from "@/lib/storage";
 import { insertBranchId } from "@/lib/data/scope";
+import { getAdminClient } from "@/lib/supabase-admin";
 import type { AppSession } from "@/lib/types";
 
 /* ------------------------------------------------------------------ */
@@ -1188,6 +1189,122 @@ export async function deleteBookingItemAction(formData: FormData) {
 
   revalidatePath("/shared/booking_details");
   flashRedirect(back, "success", "Item deleted.");
+}
+
+/* ------------------------------------------------------------------ */
+/* 6a-2. Hard delete booking (admin only)                             */
+/* ------------------------------------------------------------------ */
+
+export async function deleteBookingAction(formData: FormData) {
+  await requireRole("admin");
+
+  const bookingId = int(formData, "booking_id");
+  const redirectTo = str(formData, "redirect_to", "/admin/bookings_online");
+
+  if (!bookingId) {
+    flashRedirect(redirectTo, "error", "Invalid booking ID.");
+  }
+
+  const supabase = getAdminClient() ?? (await getSupabase());
+
+  // 1. Fetch booking to verify existence and check linked car
+  const { data: booking, error: fetchErr } = await supabase
+    .from("bookings")
+    .select("id, car_id, status, booking_type, primary_id_path, secondary_id_path, proof_billing_path, proof_payment_path")
+    .eq("id", bookingId)
+    .maybeSingle();
+
+  if (fetchErr || !booking) {
+    flashRedirect(redirectTo, "error", "Booking not found or already deleted.");
+  }
+
+  // 2. Cleanup storage photos & verification uploads if any
+  try {
+    const { data: photos } = await supabase
+      .from("booking_photos")
+      .select("file_name")
+      .eq("booking_id", bookingId);
+
+    if (photos && photos.length > 0) {
+      for (const p of photos) {
+        if (p.file_name) {
+          await removeFile(supabase, BUCKETS.bookingPhotos, bookingPhotoKey(p.file_name));
+        }
+      }
+    }
+
+    const docPaths = [
+      booking.primary_id_path,
+      booking.secondary_id_path,
+      booking.proof_billing_path,
+      booking.proof_payment_path,
+    ].filter(Boolean) as string[];
+
+    for (const docPath of docPaths) {
+      await removeFile(supabase, BUCKETS.bookingUploads, docPath);
+    }
+  } catch (err) {
+    console.error("[deleteBookingAction] Storage cleanup error:", err);
+  }
+
+  // 3. Hard delete row from bookings table (cascades to payments, photos, remarks)
+  const { error: deleteErr } = await supabase
+    .from("bookings")
+    .delete()
+    .eq("id", bookingId);
+
+  if (deleteErr) {
+    console.error("[deleteBookingAction] Failed to delete booking:", deleteErr);
+    flashRedirect(redirectTo, "error", `Failed to delete booking: ${deleteErr.message}`);
+  }
+
+  // 4. Release vehicle back to Available if no other active booking holds it
+  if (booking.car_id) {
+    try {
+      const { data: otherBookings } = await supabase
+        .from("bookings")
+        .select("id")
+        .eq("car_id", booking.car_id)
+        .in("status", ["Confirmed", "Released", "Active"])
+        .limit(1);
+
+      if (!otherBookings || otherBookings.length === 0) {
+        const { data: carData } = await supabase
+          .from("cars")
+          .select("status")
+          .eq("id", booking.car_id)
+          .maybeSingle();
+
+        if (carData && carData.status !== "Maintenance") {
+          await supabase
+            .from("cars")
+            .update({ status: "Available" })
+            .eq("id", booking.car_id);
+        }
+      }
+    } catch (err) {
+      console.error("[deleteBookingAction] Car status check error:", err);
+    }
+  }
+
+  // 5. Revalidate cache
+  revalidatePath("/admin/bookings_online");
+  revalidatePath("/admin/bookings_manual");
+  revalidatePath("/admin/dashboard");
+  revalidatePath("/admin/analytics");
+  revalidatePath("/admin/expenses");
+  revalidatePath("/admin/calendar");
+  revalidatePath("/shared/calendar");
+  revalidatePath("/shared/cars");
+
+  const destination =
+    redirectTo === "/shared/booking_details" || redirectTo.startsWith("/shared/booking_details")
+      ? booking.booking_type === "manual"
+        ? "/admin/bookings_manual"
+        : "/admin/bookings_online"
+      : redirectTo;
+
+  flashRedirect(destination, "success", `Booking #BK-${bookingId} was permanently deleted.`);
 }
 
 /* ------------------------------------------------------------------ */

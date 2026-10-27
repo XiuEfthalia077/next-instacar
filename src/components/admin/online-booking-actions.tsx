@@ -10,9 +10,11 @@ import {
   Flag,
   Lock,
   Pencil,
+  Trash2,
 } from "lucide-react";
 
 import { BookingStatusDialog } from "@/components/admin/booking-status-dialog";
+import { DeleteBookingDialog } from "@/components/admin/delete-booking-dialog";
 import {
   EditReservationDialog,
   type EditableReservation,
@@ -53,6 +55,7 @@ export function OnlineBookingActions({
 }) {
   const [editOpen, setEditOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [target, setTarget] = useState<StatusTarget>("Confirmed");
 
   const locked = booking.status === "Completed" || booking.status === "Cancelled";
@@ -145,6 +148,17 @@ export function OnlineBookingActions({
             <CircleX className="size-4" />
             Cancel
           </DropdownMenuItem>
+
+          <DropdownMenuSeparator />
+
+          <DropdownMenuItem
+            variant="destructive"
+            className={`${ITEM_CLASS} text-rose-600 focus:text-rose-600 dark:text-rose-400`}
+            onSelect={() => setDeleteOpen(true)}
+          >
+            <Trash2 className="size-4" />
+            Delete Booking
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -154,6 +168,13 @@ export function OnlineBookingActions({
         booking={booking}
         filter={filter}
         documents={documents}
+      />
+
+      <DeleteBookingDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        bookingId={booking.id}
+        redirectTo={`/admin/bookings_online?filter=${encodeURIComponent(filter)}`}
       />
 
       <BookingStatusDialog

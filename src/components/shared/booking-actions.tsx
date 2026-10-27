@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarClock, CircleCheck, CircleX, Flag } from "lucide-react";
+import { CalendarClock, CircleCheck, CircleX, Flag, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { DeleteBookingDialog } from "@/components/admin/delete-booking-dialog";
 import {
   Dialog,
   DialogClose,
@@ -76,11 +77,13 @@ export function BookingActions({
   documents,
   filter = "All",
   canEdit,
+  isAdmin = true,
 }: {
   booking: EditableReservation & { status: string; booking_type: string | null };
   documents: BookingDocument[];
   filter?: string;
   canEdit: boolean;
+  isAdmin?: boolean;
 }) {
   const [action, setAction] = useState<StatusAction | null>(null);
 
@@ -126,6 +129,7 @@ export function BookingActions({
           booking={booking}
           filter={filter}
           documents={documents}
+          isAdmin={isAdmin}
           trigger={
             <Button type="button" variant="outline" className="w-full gap-2 font-semibold">
               <CalendarClock className="size-4" />
@@ -133,6 +137,25 @@ export function BookingActions({
             </Button>
           }
         />
+      ) : null}
+
+      {isAdmin ? (
+        <div className="pt-2 border-t border-border">
+          <DeleteBookingDialog
+            bookingId={booking.id}
+            redirectTo={source === "manual" ? "/admin/bookings_manual" : "/admin/bookings_online"}
+            trigger={
+              <Button
+                type="button"
+                variant="destructive"
+                className="w-full gap-2 font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-sm"
+              >
+                <Trash2 className="size-4" />
+                Delete Booking
+              </Button>
+            }
+          />
+        </div>
       ) : null}
 
       <Dialog open={action !== null} onOpenChange={(open) => !open && setAction(null)}>

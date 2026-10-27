@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ClipboardList } from "lucide-react";
+import { ClipboardList, Trash2 } from "lucide-react";
 
+import { DeleteBookingDialog } from "@/components/admin/delete-booking-dialog";
 import { DocumentPreviewButton, type BookingDocument } from "@/components/admin/document-preview";
 import { Button } from "@/components/ui/button";
 import {
@@ -238,15 +239,31 @@ export function EditReservationDialog({
             </div>
           </div>
 
-          <DialogFooter className="gap-2 border-t border-border pt-4">
-            <DialogClose asChild>
-              <Button type="button" variant="outline" className="rounded-lg px-4 font-semibold">
-                Cancel
+          <DialogFooter className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 border-t border-border pt-4">
+            <DeleteBookingDialog
+              bookingId={booking.id}
+              redirectTo={`/admin/bookings_online?filter=${encodeURIComponent(filter)}`}
+              trigger={
+                <Button
+                  type="button"
+                  variant="destructive"
+                  className="w-full sm:w-auto gap-2 font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-sm"
+                >
+                  <Trash2 className="size-4" />
+                  Delete Booking
+                </Button>
+              }
+            />
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <DialogClose asChild>
+                <Button type="button" variant="outline" className="rounded-lg px-4 font-semibold">
+                  Cancel
+                </Button>
+              </DialogClose>
+              <Button type="submit" className="rounded-lg px-4 font-bold bg-[#ffcc00] text-black hover:bg-[#e6b800]">
+                Save Changes
               </Button>
-            </DialogClose>
-            <Button type="submit" className="rounded-lg px-4 font-bold">
-              Save Changes
-            </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>
