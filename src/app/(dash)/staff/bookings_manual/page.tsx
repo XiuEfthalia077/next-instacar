@@ -203,8 +203,8 @@ export default async function StaffBookingsManualPage({
       perPage,
     }),
     fetchRows<{ status: string }>(counterQuery),
-    fetchRows<{ id: number; name: string | null }>(
-      supabase.from("users").select("id, name").eq("role", "user").order("name", { ascending: true }),
+    fetchRows<{ id: number; name: string | null; email?: string | null }>(
+      supabase.from("users").select("id, name, email").eq("role", "user").order("name", { ascending: true }),
     ),
     fetchRows<{
       id: number;
@@ -258,6 +258,7 @@ export default async function StaffBookingsManualPage({
   const customersForDialog = customers.map((customer) => ({
     id: customer.id,
     name: customer.name ?? "Unnamed customer",
+    email: customer.email ?? null,
   }));
 
   const auditIds = [

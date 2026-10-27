@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
-import { House } from "lucide-react";
+import { useActionState, useEffect, useState } from "react";
+import { Check, House, Loader2, X } from "lucide-react";
 
 import { GoogleButton } from "@/components/auth/google-button";
 import { PasswordField } from "@/components/auth/password-field";
@@ -10,11 +10,76 @@ import { signUpAction } from "@/lib/actions/auth";
 import { IDLE_STATE } from "@/lib/action-state";
 
 /**
- * Registration form — port of the `<form action="process/auth/registerprocess.php">`
- * block of `car-rental/register.php`.
+ * Registration form with real-time password requirements checklist,
+ * live email availability checking, matching password validation,
+ * and state preservation across errors.
  */
 export function RegisterForm() {
   const [state, formAction, isPending] = useActionState(signUpAction, IDLE_STATE);
+
+  // Form input state to preserve inputs on validation failure
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  // Real-time email check state
+  const [emailChecking, setEmailChecking] = useState(false);
+  const [emailExists, setEmailExists] = useState(false);
+
+  // Password validation checks (Regex: at least 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special character)
+  const hasMinLength = password.length >= 8;
+  const hasUpper = /[A-Z]/.test(password);
+  const hasLower = /[a-z]/.test(password);
+  const hasNumber = /\d/.test(password);
+  const hasSpecial = /[^a-zA-Z0-9]/.test(password);
+
+  const isPasswordValid =
+    hasMinLength && hasUpper && hasLower && hasNumber && hasSpecial;
+
+  const passwordsMatch =
+    password.length > 0 && confirmPassword.length > 0 && password === confirmPassword;
+  const passwordsMismatch =
+    confirmPassword.length > 0 && password !== confirmPassword;
+
+  // Real-time debounced email uniqueness verification
+  useEffect(() => {
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(trimmed)) {
+      setEmailExists(false);
+      setEmailChecking(false);
+      return;
+    }
+
+    setEmailChecking(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/auth/check-email?email=${encodeURIComponent(trimmed)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setEmailExists(Boolean(data.exists));
+        } else {
+          setEmailExists(false);
+        }
+      } catch {
+        setEmailExists(false);
+      } finally {
+        setEmailChecking(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [email]);
+
+  const canSubmit =
+    !isPending &&
+    !emailChecking &&
+    !emailExists &&
+    isPasswordValid &&
+    passwordsMatch &&
+    name.trim().length >= 2 &&
+    phone.trim().length >= 7;
 
   return (
     <form action={formAction} className="text-start">
@@ -26,6 +91,8 @@ export function RegisterForm() {
           id="register-name"
           name="name"
           type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
           className="auth-form-control"
           placeholder="John Doe"
           autoComplete="name"
@@ -34,18 +101,34 @@ export function RegisterForm() {
       </div>
 
       <div className="mb-3">
-        <label htmlFor="register-email" className="auth-form-label text-xs font-bold">
-          Email Address
-        </label>
+        <div className="flex items-center justify-between">
+          <label htmlFor="register-email" className="auth-form-label text-xs font-bold">
+            Email Address
+          </label>
+          {emailChecking ? (
+            <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+              <Loader2 className="size-3 animate-spin" /> Checking...
+            </span>
+          ) : null}
+        </div>
         <input
           id="register-email"
           name="email"
           type="email"
-          className="auth-form-control"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className={`auth-form-control ${
+            emailExists ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""
+          }`}
           placeholder="JohnDoe@example.com"
           autoComplete="email"
           required
         />
+        {emailExists ? (
+          <p className="mt-1 flex items-center gap-1 text-xs text-red-400 font-medium">
+            <X className="size-3.5" /> Email already registered. Please sign in or use another.
+          </p>
+        ) : null}
       </div>
 
       <div className="mb-3">
@@ -56,6 +139,8 @@ export function RegisterForm() {
           id="register-phone"
           name="phone"
           type="tel"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
           className="auth-form-control"
           placeholder="09123456789"
           autoComplete="tel"
@@ -70,8 +155,61 @@ export function RegisterForm() {
         <PasswordField
           id="register-password"
           name="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
           autoComplete="new-password"
         />
+
+        {/* Real-time Password Requirements Checklist */}
+        {password.length > 0 ? (
+          <div className="mt-2 rounded-lg border border-border/80 bg-muted/40 p-2.5 text-[11px] space-y-1">
+            <p className="font-semibold text-muted-foreground mb-1 text-[11px]">
+              Password Requirements:
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[11px]">
+              <span
+                className={`flex items-center gap-1.5 transition-colors ${
+                  hasMinLength ? "text-emerald-500 dark:text-emerald-400 font-medium" : "text-muted-foreground"
+                }`}
+              >
+                {hasMinLength ? <Check className="size-3" /> : <span className="size-3 text-center leading-3">•</span>}
+                At least 8 characters
+              </span>
+              <span
+                className={`flex items-center gap-1.5 transition-colors ${
+                  hasUpper ? "text-emerald-500 dark:text-emerald-400 font-medium" : "text-muted-foreground"
+                }`}
+              >
+                {hasUpper ? <Check className="size-3" /> : <span className="size-3 text-center leading-3">•</span>}
+                1 uppercase letter (A-Z)
+              </span>
+              <span
+                className={`flex items-center gap-1.5 transition-colors ${
+                  hasLower ? "text-emerald-500 dark:text-emerald-400 font-medium" : "text-muted-foreground"
+                }`}
+              >
+                {hasLower ? <Check className="size-3" /> : <span className="size-3 text-center leading-3">•</span>}
+                1 lowercase letter (a-z)
+              </span>
+              <span
+                className={`flex items-center gap-1.5 transition-colors ${
+                  hasNumber ? "text-emerald-500 dark:text-emerald-400 font-medium" : "text-muted-foreground"
+                }`}
+              >
+                {hasNumber ? <Check className="size-3" /> : <span className="size-3 text-center leading-3">•</span>}
+                1 number (0-9)
+              </span>
+              <span
+                className={`col-span-1 sm:col-span-2 flex items-center gap-1.5 transition-colors ${
+                  hasSpecial ? "text-emerald-500 dark:text-emerald-400 font-medium" : "text-muted-foreground"
+                }`}
+              >
+                {hasSpecial ? <Check className="size-3" /> : <span className="size-3 text-center leading-3">•</span>}
+                1 special character (!@#$%^&*...)
+              </span>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <div className="mb-4">
@@ -84,8 +222,19 @@ export function RegisterForm() {
         <PasswordField
           id="register-confirm-password"
           name="confirm_password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
           autoComplete="new-password"
         />
+        {passwordsMismatch ? (
+          <p className="mt-1 flex items-center gap-1 text-xs text-red-400 font-medium">
+            <X className="size-3.5" /> Passwords do not match.
+          </p>
+        ) : passwordsMatch ? (
+          <p className="mt-1 flex items-center gap-1 text-xs text-emerald-500 dark:text-emerald-400 font-medium">
+            <Check className="size-3.5" /> Passwords match.
+          </p>
+        ) : null}
       </div>
 
       {state.error ? (
@@ -109,8 +258,8 @@ export function RegisterForm() {
       <button
         type="submit"
         name="submit"
-        className="btn-register"
-        disabled={isPending}
+        className="btn-register disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={!canSubmit}
       >
         {isPending ? "Creating Account..." : "Create Account"}
       </button>

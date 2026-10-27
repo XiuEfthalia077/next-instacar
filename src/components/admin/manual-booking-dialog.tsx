@@ -1,12 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarDays,
   Car,
+  Check,
+  ChevronDown,
   CircleDollarSign,
   PlusCircle,
+  Search,
   UserRound,
+  X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -23,6 +27,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { filterControlClass } from "@/components/common/filter-bar";
+import { FileUploadDropzone } from "@/components/common/file-upload-dropzone";
 import { calculatePriceByHours } from "@/lib/pricing";
 import { addManualBookingAction } from "@/lib/actions/bookings";
 import { formatPeso } from "@/lib/constants";
@@ -31,6 +36,7 @@ import { cn } from "@/lib/utils";
 export type ManualCustomerOption = {
   id: number;
   name: string;
+  email?: string | null;
 };
 
 export type BusySlot = {
@@ -111,6 +117,42 @@ export function ManualBookingDialog({
   const [discount, setDiscount] = useState("0");
   const [downPayment, setDownPayment] = useState("0");
   const [now, setNow] = useState(0);
+
+  // Searchable select state for registered members
+  const [memberSearch, setMemberSearch] = useState("");
+  const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
+  const memberDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        memberDropdownRef.current &&
+        !memberDropdownRef.current.contains(event.target as Node)
+      ) {
+        setMemberDropdownOpen(false);
+      }
+    }
+    if (memberDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [memberDropdownOpen]);
+
+  const filteredCustomers = useMemo(() => {
+    if (!memberSearch.trim()) return customers;
+    const q = memberSearch.toLowerCase();
+    return customers.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        String(c.id).includes(q) ||
+        (c.email && c.email.toLowerCase().includes(q)),
+    );
+  }, [customers, memberSearch]);
+
+  const selectedCustomer = useMemo(
+    () => customers.find((c) => String(c.id) === userId),
+    [customers, userId],
+  );
 
   /** Seed the schedule the first time the dialog opens (legacy defaults to now + 10h). */
   const handleOpenChange = (next: boolean) => {
@@ -273,25 +315,108 @@ export function ManualBookingDialog({
             </div>
 
             {customerType === "registered" ? (
-              <div className="sm:col-span-2">
-                <Label htmlFor="manual-member" className="mb-1 block text-xs font-bold">
-                  Select Member
+              <div className="sm:col-span-2 relative" ref={memberDropdownRef}>
+                <Label htmlFor="manual-member-trigger" className="mb-1 block text-xs font-bold">
+                  Select Member <span className="text-rose-600">*</span>
                 </Label>
-                <select
-                  id="manual-member"
+                <input
+                  type="hidden"
                   name="user_id"
                   value={userId}
-                  onChange={(event) => setUserId(event.target.value)}
-                  required
-                  className={filterControlClass}
+                  required={customerType === "registered"}
+                />
+
+                <button
+                  type="button"
+                  id="manual-member-trigger"
+                  onClick={() => setMemberDropdownOpen((prev) => !prev)}
+                  className={cn(
+                    filterControlClass,
+                    "flex w-full items-center justify-between text-left font-normal cursor-pointer py-2.5 px-3 rounded-lg border",
+                    !selectedCustomer && "text-muted-foreground",
+                  )}
                 >
-                  <option value="">-- Select Member --</option>
-                  {customers.map((customer) => (
-                    <option key={customer.id} value={customer.id}>
-                      {customer.name}
-                    </option>
-                  ))}
-                </select>
+                  <span className="truncate font-medium">
+                    {selectedCustomer
+                      ? `${selectedCustomer.name} (ID: #${selectedCustomer.id})`
+                      : "-- Select Member --"}
+                  </span>
+                  <div className="flex items-center gap-1.5 shrink-0 text-muted-foreground">
+                    {userId ? (
+                      <span
+                        role="button"
+                        aria-label="Clear selection"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setUserId("");
+                        }}
+                        className="p-0.5 hover:text-foreground transition-colors"
+                      >
+                        <X className="size-3.5" />
+                      </span>
+                    ) : null}
+                    <ChevronDown className="size-4" />
+                  </div>
+                </button>
+
+                {memberDropdownOpen ? (
+                  <div className="absolute left-0 right-0 top-full z-50 mt-1.5 rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl p-2 animate-in fade-in-0 zoom-in-95">
+                    <div className="relative mb-2">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                      <input
+                        type="text"
+                        value={memberSearch}
+                        onChange={(e) => setMemberSearch(e.target.value)}
+                        placeholder="Search member name or ID..."
+                        autoFocus
+                        className="w-full rounded-lg border border-border/80 bg-background/80 py-1.5 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:border-[#ffcc00] focus:outline-none focus:ring-1 focus:ring-[#ffcc00]"
+                      />
+                    </div>
+
+                    <div className="max-h-52 overflow-y-auto space-y-1">
+                      {filteredCustomers.length > 0 ? (
+                        filteredCustomers.map((customer) => {
+                          const isSelected = String(customer.id) === userId;
+                          return (
+                            <button
+                              key={customer.id}
+                              type="button"
+                              onClick={() => {
+                                setUserId(String(customer.id));
+                                setMemberDropdownOpen(false);
+                                setMemberSearch("");
+                              }}
+                              className={cn(
+                                "flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-xs transition-colors text-left",
+                                isSelected
+                                  ? "bg-[#ffcc00] font-bold text-black"
+                                  : "hover:bg-muted text-foreground",
+                              )}
+                            >
+                              <div className="min-w-0">
+                                <p className="truncate font-semibold">{customer.name}</p>
+                                <p
+                                  className={cn(
+                                    "text-[10px]",
+                                    isSelected ? "text-black/80" : "text-muted-foreground",
+                                  )}
+                                >
+                                  Member ID: #{customer.id}
+                                  {customer.email ? ` • ${customer.email}` : ""}
+                                </p>
+                              </div>
+                              {isSelected ? <Check className="size-4 shrink-0 text-black" /> : null}
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <div className="py-4 text-center text-xs text-muted-foreground">
+                          No matching registered members found.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             ) : (
               <>
@@ -338,48 +463,33 @@ export function ManualBookingDialog({
             )}
 
             <div>
-              <Label htmlFor="manual-primary" className="mb-1 block text-xs font-bold">
-                Primary ID <span className="text-rose-600">*</span>
-              </Label>
-              <Input
-                id="manual-primary"
-                type="file"
+              <FileUploadDropzone
                 name="primary_id"
-                accept="image/*,.pdf"
+                label="Primary ID"
                 required
-                className="cursor-pointer rounded-lg file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-2.5 file:py-1 file:text-xs file:font-semibold"
+                accept="image/*,.pdf"
+                helperText="JPG, PNG, or PDF (Max 5MB)"
               />
-              <p className="mt-1 text-[11px] text-muted-foreground">JPG, PNG, or PDF</p>
             </div>
 
             <div>
-              <Label htmlFor="manual-secondary" className="mb-1 block text-xs font-bold">
-                Secondary ID <span className="font-medium text-muted-foreground">(optional)</span>
-              </Label>
-              <Input
-                id="manual-secondary"
-                type="file"
+              <FileUploadDropzone
                 name="secondary_id"
+                label="Secondary ID (optional)"
+                required={false}
                 accept="image/*,.pdf"
-                className="cursor-pointer rounded-lg file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-2.5 file:py-1 file:text-xs file:font-semibold"
+                helperText="JPG, PNG, or PDF (Max 5MB)"
               />
             </div>
 
             <div className="sm:col-span-2">
-              <Label htmlFor="manual-billing" className="mb-1 block text-xs font-bold">
-                Proof of Billing <span className="text-rose-600">*</span>
-              </Label>
-              <Input
-                id="manual-billing"
-                type="file"
+              <FileUploadDropzone
                 name="proof_of_billing"
-                accept="image/*,.pdf"
+                label="Proof of Billing"
                 required
-                className="cursor-pointer rounded-lg file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-2.5 file:py-1 file:text-xs file:font-semibold"
+                accept="image/*,.pdf"
+                helperText="Utility bill, statement, etc. (Max 5MB)"
               />
-              <p className="mt-1 text-[11px] text-muted-foreground">
-                Utility bill, statement, etc.
-              </p>
             </div>
 
             <div className="sm:col-span-2">

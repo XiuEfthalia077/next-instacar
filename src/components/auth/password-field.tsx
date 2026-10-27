@@ -12,11 +12,19 @@ export function PasswordField({
   name,
   autoComplete,
   placeholder = "••••••••",
+  value,
+  onChange,
+  required = true,
+  className,
 }: {
   id: string;
   name: string;
   autoComplete?: string;
   placeholder?: string;
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  required?: boolean;
+  className?: string;
 }) {
   const [visible, setVisible] = useState(false);
 
@@ -26,10 +34,12 @@ export function PasswordField({
         id={id}
         name={name}
         type={visible ? "text" : "password"}
-        className="auth-form-control"
+        className={className ? `auth-form-control ${className}` : "auth-form-control"}
         placeholder={placeholder}
         autoComplete={autoComplete}
-        required
+        required={required}
+        value={value}
+        onChange={onChange}
       />
       <button
         type="button"

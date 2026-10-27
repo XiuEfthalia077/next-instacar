@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
+import { RealtimeListener } from "@/components/common/realtime-listener";
 import { ROLE_HOME } from "@/lib/constants";
 import type { AppSession, Branch } from "@/lib/types";
 
@@ -39,6 +40,7 @@ export function DashboardFrame({
 
   return (
     <div className="min-h-screen bg-background">
+      <RealtimeListener />
       <Suspense
         fallback={
           <aside className="fixed inset-y-0 left-0 z-[1090] hidden w-[220px] border-r border-[#333] bg-black p-[20px_14px] md:block xl:w-[260px]" />

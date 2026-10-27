@@ -49,55 +49,65 @@ export async function getViewBranchCookie(): Promise<number | "all"> {
  */
 export async function getSession(): Promise<AppSession | null> {
   await connection();
-  const supabase = await getSupabase();
+  try {
+    const supabase = await getSupabase();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
 
-  if (!user) return null;
+    if (error || !user) return null;
 
-  const { data: profile } = await supabase
-    .from("users")
-    .select("id, name, email, role, branch_id, is_verified")
-    .eq("auth_id", user.id)
-    .maybeSingle();
+    const { data: profile } = await supabase
+      .from("users")
+      .select("id, name, email, role, branch_id, is_verified")
+      .eq("auth_id", user.id)
+      .maybeSingle();
 
-  if (!profile) return null;
+    if (!profile) return null;
 
-  const role = profile.role as UserRole;
+    const role = profile.role as UserRole;
 
-  return {
-    userId: profile.id,
-    authUserId: user.id,
-    name: profile.name,
-    email: profile.email,
-    role,
-    branchId: profile.branch_id ?? null,
-    // Admins may switch the branch they look at; everyone else is pinned
-    // to the branch recorded on their own account.
-    viewBranch:
-      role === "admin" ? await getViewBranchCookie() : (profile.branch_id ?? "all"),
-  };
+    return {
+      userId: profile.id,
+      authUserId: user.id,
+      name: profile.name,
+      email: profile.email,
+      role,
+      branchId: profile.branch_id ?? null,
+      // Admins may switch the branch they look at; everyone else is pinned
+      // to the branch recorded on their own account.
+      viewBranch:
+        role === "admin" ? await getViewBranchCookie() : (profile.branch_id ?? "all"),
+    };
+  } catch {
+    return null;
+  }
 }
 
 /** The legacy `users` row of the signed-in account. */
 export async function getCurrentUser(): Promise<User | null> {
-  const supabase = await getSupabase();
+  try {
+    const supabase = await getSupabase();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
 
-  if (!user) return null;
+    if (error || !user) return null;
 
-  const { data: profile } = await supabase
-    .from("users")
-    .select("*")
-    .eq("auth_id", user.id)
-    .maybeSingle();
+    const { data: profile } = await supabase
+      .from("users")
+      .select("*")
+      .eq("auth_id", user.id)
+      .maybeSingle();
 
-  return (profile as User | null) ?? null;
+    return (profile as User | null) ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /** Redirects to the login page when nobody is signed in. */

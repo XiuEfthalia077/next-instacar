@@ -1,14 +1,8 @@
 /**
  * SMTP mailer.
  *
- * The legacy app used PHPMailer (`car-rental/config/send_email.php` and
- * `car-rental/contact_process.php`). The same SMTP credentials are now read
- * from the environment (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`,
- * `SMTP_FROM`), so the transactional e-mails keep working.
- *
- * Sending is best effort: when the SMTP settings are missing the caller only
- * gets `false` and the database write still counts as done — exactly the
- * "Saved with Warning" behaviour of `contact_process.php`.
+ * Transports transactional emails and website inquiries.
+ * Credentials read from environment (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM, ADMIN_INBOX).
  */
 
 import nodemailer from "nodemailer";
@@ -28,20 +22,24 @@ let transporter: nodemailer.Transporter | null = null;
 function getTransporter() {
   if (transporter) return transporter;
 
+  const port = Number(process.env.SMTP_PORT ?? 465);
+  const isSecure = port === 465;
+  const pass = (process.env.SMTP_PASSWORD ?? "").replace(/\s+/g, "");
+
   transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT ?? 587),
-    secure: Number(process.env.SMTP_PORT ?? 587) === 465,
+    port,
+    secure: isSecure,
     auth: {
       user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASSWORD,
+      pass,
     },
   });
 
   return transporter;
 }
 
-/** Sends an HTML mail. Returns `{ ok: false }` when SMTP is not configured. */
+/** Sends an HTML mail. Returns `{ ok: false }` when SMTP fails. */
 export async function sendMail(options: {
   to: string;
   replyTo?: string;
@@ -50,12 +48,17 @@ export async function sendMail(options: {
   text?: string;
 }): Promise<MailResult> {
   if (!smtpConfigured()) {
+    console.warn("[Mailer] SMTP credentials missing in environment variables.");
     return { ok: false, error: "SMTP is not configured." };
   }
 
+  const fromAddress =
+    process.env.SMTP_FROM ||
+    `"InstaCar Support" <${process.env.SMTP_USER}>`;
+
   try {
-    await getTransporter().sendMail({
-      from: process.env.SMTP_FROM ?? process.env.SMTP_USER,
+    const info = await getTransporter().sendMail({
+      from: fromAddress,
       to: options.to,
       replyTo: options.replyTo,
       subject: options.subject,
@@ -63,20 +66,23 @@ export async function sendMail(options: {
       text: options.text,
     });
 
+    console.info(`[Mailer] Message delivered successfully. ID: ${info.messageId}`);
     return { ok: true };
   } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error(`[Mailer] Email delivery failed: ${errorMsg}`);
     return {
       ok: false,
-      error: error instanceof Error ? error.message : String(error),
+      error: errorMsg,
     };
   }
 }
 
-/** The inbox that receives the website inquiries. */
+/** The inbox that receives website inquiries. */
 export function adminInbox() {
   return (
     process.env.ADMIN_INBOX ??
     process.env.SMTP_USER ??
-    "ramesesjay1@gmail.com"
+    "ramesesjay@gmail.com"
   );
 }

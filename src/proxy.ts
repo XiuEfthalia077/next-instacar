@@ -55,9 +55,31 @@ export async function proxy(request: NextRequest) {
   }
 
   // Refreshes the Supabase session cookie when it is close to expiring.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user: { id: string } | null = null;
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (error) {
+      const msg = (error.message || "").toLowerCase();
+      if (
+        msg.includes("refresh token") ||
+        msg.includes("invalid refresh") ||
+        error.name === "AuthApiError" ||
+        error.status === 400
+      ) {
+        // Clear corrupted auth cookies so the client stops looping with invalid tokens
+        const allCookies = request.cookies.getAll();
+        for (const cookie of allCookies) {
+          if (cookie.name.startsWith("sb-") || cookie.name.includes("auth-token")) {
+            response.cookies.delete(cookie.name);
+          }
+        }
+      }
+    } else {
+      user = data?.user ?? null;
+    }
+  } catch {
+    user = null;
+  }
 
   const { pathname, search } = request.nextUrl;
 
