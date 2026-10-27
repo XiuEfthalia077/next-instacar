@@ -348,6 +348,9 @@ export const STATUS_BADGE: Record<string, string> = {
   Completed: "bg-indigo-100 text-indigo-800 border-indigo-200",
   Cancelled: "bg-rose-100 text-rose-800 border-rose-200",
   Maintenance: "bg-rose-500/20 text-rose-400 border-rose-500/40",
+  Active: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/40",
+  Available: "bg-[#ffcc00]/20 text-[#b38a00] dark:text-[#ffd700] border-[#ffcc00]/40",
+  Booked: "bg-sky-500/20 text-sky-400 border-sky-500/40",
 };
 
 /** Calendar event colours - ported from fetch_bookings.php. */

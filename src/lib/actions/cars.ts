@@ -195,7 +195,8 @@ export async function saveCarAction(formData: FormData) {
   images = [...new Set(images)];
 
   /* ---------------- owner / branch ---------------- */
-  let ownerId = existing?.user_id ?? session.userId;
+  let ownerId: number | null =
+    session.role === "operator" ? session.userId : (existing?.user_id ?? null);
 
   if (session.role === "admin") {
     const picked = int(formData, "user_id");
@@ -208,13 +209,14 @@ export async function saveCarAction(formData: FormData) {
 
       const row = owner as { id: number; name: string; role: string } | null;
 
-      if (!row || !["operator", "admin"].includes(row.role)) {
-        flashRedirect(home, "error", "Invalid operator selected.");
+      if (!row || row.role !== "operator") {
+        flashRedirect(home, "error", "Invalid operator selected. Only users with the Operator role can be assigned.");
       }
 
       ownerId = row.id;
-    } else if (!carId) {
-      ownerId = session.userId;
+    } else {
+      // Unassigned = Company-owned (user_id is null)
+      ownerId = null;
     }
   }
 

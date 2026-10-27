@@ -193,6 +193,22 @@ export function EditCarDialog({
                 className="mt-1 font-mono uppercase"
               />
             </div>
+
+            <div>
+              <Label htmlFor={`status-${car.id}`} className="text-xs font-bold text-foreground">
+                Operational Status
+              </Label>
+              <select
+                id={`status-${car.id}`}
+                name="status"
+                defaultValue={car.status ?? "Available"}
+                className="mt-1 flex h-10 w-full rounded-xl border border-input bg-card px-3 text-xs font-medium text-foreground focus:border-[#ffcc00] focus:outline-none"
+              >
+                <option value="Available">Available</option>
+                <option value="Active">Active</option>
+                <option value="Maintenance">Maintenance</option>
+              </select>
+            </div>
           </div>
 
           {/* Branch Assignment */}

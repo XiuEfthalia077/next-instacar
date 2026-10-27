@@ -80,7 +80,7 @@ export default async function SharedCarsPage({
             s
               .from("users")
               .select("id, name, email")
-              .in("role", ["operator", "admin"])
+              .eq("role", "operator")
               .order("name", { ascending: true }),
           ),
         )
@@ -372,17 +372,12 @@ export default async function SharedCarsPage({
                         </div>
                       </td>
 
-                      {/* STATUS (Image 4 & User Rule: Yellow "Active" if operator, Black "Company Owned" if unassigned) */}
+                      {/* STATUS (Operational Status: Active, Available, Maintenance) */}
                       <td className="px-3 py-3 text-center">
-                        {isAssignedToOperator ? (
-                          <span className="inline-block rounded-full bg-[#ffcc00]/20 px-3 py-1 text-[11px] font-extrabold text-[#b38a00] dark:text-[#ffd700] border border-[#ffcc00]/40">
-                            Active
-                          </span>
-                        ) : (
-                          <span className="inline-block rounded-full bg-black px-3 py-1 text-[11px] font-extrabold text-white border border-white/20">
-                            Company Owned
-                          </span>
-                        )}
+                        <StatusBadge
+                          status={car.status || "Available"}
+                          className="rounded-full px-3 py-1 text-[11px] font-extrabold"
+                        />
                       </td>
 
                       {/* ACTIONS */}
