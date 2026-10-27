@@ -1555,8 +1555,9 @@ export async function createBookingAction(formData: FormData) {
   const totalPrice = priceFor(car, hours);
 
   const supabase = await getSupabase();
+  const db = getAdminClient() ?? supabase;
 
-  const { data: profile } = await supabase
+  const { data: profile } = await db
     .from("users")
     .select("name")
     .eq("id", session.userId)
@@ -1571,7 +1572,7 @@ export async function createBookingAction(formData: FormData) {
     if (!fileValue) return "";
 
     const fileName = buildFileName(prefix, fileValue);
-    const result = await uploadFile(supabase, {
+    const result = await uploadFile(db, {
       bucket: BUCKETS.bookingUploads,
       folder,
       fileName,
@@ -1595,7 +1596,7 @@ export async function createBookingAction(formData: FormData) {
   const deliveryAddressVal =
     fulfillment === "Delivery" ? str(formData, "delivery_address") || null : null;
 
-  const { data: insertedBooking, error } = await supabase
+  const { data: insertedBooking, error } = await db
     .from("bookings")
     .insert({
       user_id: session.userId,

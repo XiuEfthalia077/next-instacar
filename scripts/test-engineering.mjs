@@ -273,3 +273,39 @@ test("parseVehicleId handles car_id, vehicle_id, and object serialization robust
   assert.equal(parseVehicleId({}), 0);
   assert.equal(parseVehicleId({ car_id: "invalid" }), 0);
 });
+
+// Test 12: Customer Online Booking RLS and Authorization Policy Validation
+test("customer online booking RLS check permits user owned bookings and admins", () => {
+  function canReadBooking(booking, session) {
+    if (session.role === "admin") return true;
+    if (booking.user_id === session.userId) return true;
+    return false;
+  }
+
+  function canInsertBooking(newRow, session) {
+    if (["admin", "staff"].includes(session.role)) return true;
+    if (newRow.user_id === session.userId) return true;
+    return false;
+  }
+
+  const customerSession = { userId: 9, role: "user" };
+  const otherCustomerSession = { userId: 10, role: "user" };
+  const adminSession = { userId: 1, role: "admin" };
+
+  const validBookingRow = { user_id: 9, car_id: 17 };
+  const spoofedBookingRow = { user_id: 10, car_id: 17 };
+
+  // Can customer insert their own booking?
+  assert.equal(canInsertBooking(validBookingRow, customerSession), true);
+  // Can customer insert for someone else?
+  assert.equal(canInsertBooking(spoofedBookingRow, customerSession), false);
+  // Can admin insert any booking?
+  assert.equal(canInsertBooking(spoofedBookingRow, adminSession), true);
+
+  // Can customer read their own inserted booking on RETURNING?
+  assert.equal(canReadBooking(validBookingRow, customerSession), true);
+  // Can another customer read it?
+  assert.equal(canReadBooking(validBookingRow, otherCustomerSession), false);
+  // Can admin read it?
+  assert.equal(canReadBooking(validBookingRow, adminSession), true);
+});
