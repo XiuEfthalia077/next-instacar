@@ -31,14 +31,14 @@ export function LoadingButton({
       disabled={disabled || isLoading}
       className={cn(
         "cursor-pointer transition-all duration-200 ease-in-out active:scale-[0.98]",
-        isLoading && "opacity-80 cursor-wait",
+        isLoading && "opacity-80 cursor-wait pointer-events-none select-none",
         className,
       )}
       {...props}
     >
       {isLoading ? (
         <>
-          <Loader2 className="size-4 animate-spin" />
+          <Loader2 className="size-4 animate-spin shrink-0" />
           <span>{loadingText || children}</span>
         </>
       ) : (

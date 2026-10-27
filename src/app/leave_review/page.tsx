@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 export const instant = false;
 
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/common/loading-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -112,7 +113,9 @@ export default async function LeaveReviewPage({
             <Button variant="outline" asChild>
               <a href="/user/mybookings">Cancel</a>
             </Button>
-            <Button type="submit">Submit Review</Button>
+            <LoadingButton type="submit" loadingText="Submitting Review...">
+              Submit Review
+            </LoadingButton>
           </div>
         </form>
       </SectionCard>

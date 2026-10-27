@@ -5,6 +5,7 @@ import { CircleCheck, History, Trash2 } from "lucide-react";
 import { ProofThumbnails, type ProofItem } from "@/components/admin/proof-viewer";
 import { dateOnly, peso } from "@/components/admin/finance-format";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/common/loading-button";
 import {
   Dialog,
   DialogClose,
@@ -94,10 +95,15 @@ function DeleteRemittanceDialog({
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="submit" variant="destructive" className="rounded-lg px-4 font-bold">
+            <LoadingButton
+              type="submit"
+              variant="destructive"
+              loadingText="Deleting..."
+              className="rounded-lg px-4 font-bold"
+            >
               <Trash2 className="size-4" />
               Delete Remittance
-            </Button>
+            </LoadingButton>
           </DialogFooter>
         </form>
       </DialogContent>

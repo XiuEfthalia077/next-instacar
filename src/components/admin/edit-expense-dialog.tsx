@@ -4,6 +4,7 @@ import { Edit3, Receipt } from "lucide-react";
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/common/loading-button";
 import {
   Dialog,
   DialogContent,
@@ -129,13 +130,14 @@ export function EditExpenseDialog({ expense }: EditExpenseDialogProps) {
             >
               Cancel
             </Button>
-            <Button
+            <LoadingButton
               type="submit"
               size="sm"
+              loadingText="Saving..."
               className="bg-[#ffcc00] text-black font-extrabold hover:bg-[#e6b800] text-xs"
             >
               Save Changes
-            </Button>
+            </LoadingButton>
           </DialogFooter>
         </form>
       </DialogContent>

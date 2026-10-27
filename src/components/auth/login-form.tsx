@@ -7,6 +7,7 @@ import { House } from "lucide-react";
 
 import { GoogleButton } from "@/components/auth/google-button";
 import { PasswordField } from "@/components/auth/password-field";
+import { LoadingButton } from "@/components/common/loading-button";
 import { signInAction } from "@/lib/actions/auth";
 import { IDLE_STATE } from "@/lib/action-state";
 
@@ -74,9 +75,15 @@ export function LoginForm() {
         </p>
       ) : null}
 
-      <button type="submit" name="submit" className="btn-login" disabled={isPending}>
-        {isPending ? "Signing In..." : "Sign In"}
-      </button>
+      <LoadingButton
+        type="submit"
+        name="submit"
+        loading={isPending}
+        loadingText="Signing In..."
+        className="btn-login w-full h-auto py-3 font-bold"
+      >
+        Sign In
+      </LoadingButton>
 
       <div className="divider">OR</div>
 

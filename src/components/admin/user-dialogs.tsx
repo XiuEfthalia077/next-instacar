@@ -4,6 +4,7 @@ import { useId, useState } from "react";
 import { Eye, EyeOff, Pencil, Trash, UserPlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/common/loading-button";
 import {
   Dialog,
   DialogClose,
@@ -221,9 +222,9 @@ export function AddUserDialog({
                 Close
               </Button>
             </DialogClose>
-            <Button type="submit" className="rounded-lg px-4 font-bold">
+            <LoadingButton type="submit" loadingText="Saving..." className="rounded-lg px-4 font-bold">
               Save Account
-            </Button>
+            </LoadingButton>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -328,9 +329,9 @@ export function EditUserDialog({
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="submit" className="rounded-lg px-4 font-bold">
+            <LoadingButton type="submit" loadingText="Updating..." className="rounded-lg px-4 font-bold">
               Update Account
-            </Button>
+            </LoadingButton>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -386,13 +387,14 @@ export function DeleteUserDialog({
                 Cancel
               </Button>
             </DialogClose>
-            <Button
+            <LoadingButton
               type="submit"
               variant="destructive"
+              loadingText="Deleting..."
               className="rounded-lg px-4 font-bold"
             >
               Delete
-            </Button>
+            </LoadingButton>
           </DialogFooter>
         </form>
       </DialogContent>

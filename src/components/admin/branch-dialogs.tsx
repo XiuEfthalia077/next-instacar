@@ -3,6 +3,7 @@
 import { PauseCircle, Pencil, PlayCircle, PlusCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/common/loading-button";
 import {
   Dialog,
   DialogClose,
@@ -124,9 +125,9 @@ export function NewBranchDialog() {
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="submit" className="rounded-lg px-4 font-bold">
+            <LoadingButton type="submit" loadingText="Saving..." className="rounded-lg px-4 font-bold">
               Save Branch
-            </Button>
+            </LoadingButton>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -174,9 +175,9 @@ export function EditBranchDialog({ branch }: { branch: BranchValues }) {
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="submit" className="rounded-lg px-4 font-bold">
+            <LoadingButton type="submit" loadingText="Saving..." className="rounded-lg px-4 font-bold">
               Save Changes
-            </Button>
+            </LoadingButton>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -240,9 +241,9 @@ export function BranchToggleDialog({
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="submit" className="rounded-lg px-4 font-bold">
+            <LoadingButton type="submit" loadingText="Updating..." className="rounded-lg px-4 font-bold">
               {deactivate ? "Deactivate" : "Activate"}
-            </Button>
+            </LoadingButton>
           </DialogFooter>
         </form>
       </DialogContent>

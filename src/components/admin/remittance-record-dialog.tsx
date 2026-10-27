@@ -5,6 +5,7 @@ import { Banknote, CircleCheck } from "lucide-react";
 
 import { peso } from "@/components/admin/finance-format";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/common/loading-button";
 import {
   Dialog,
   DialogClose,
@@ -175,13 +176,14 @@ function RecordForm({
             Cancel
           </Button>
         </DialogClose>
-        <Button
+        <LoadingButton
           type="submit"
+          loadingText="Saving Payment..."
           className="rounded-lg bg-[#ffd700] px-4 font-bold text-black hover:bg-[#e6c200]"
         >
           <CircleCheck className="size-4" />
           Save Payment
-        </Button>
+        </LoadingButton>
       </DialogFooter>
     </form>
   );

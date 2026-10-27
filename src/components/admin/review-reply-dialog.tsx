@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/common/loading-button";
 import {
   Dialog,
   DialogClose,
@@ -33,12 +34,10 @@ function starsFor(rating: number | null) {
 }
 
 function SaveReplyButton() {
-  const { pending } = useFormStatus();
-
   return (
-    <Button type="submit" disabled={pending}>
-      {pending ? "Saving changes..." : "Save Reply"}
-    </Button>
+    <LoadingButton type="submit" loadingText="Saving changes...">
+      Save Reply
+    </LoadingButton>
   );
 }
 

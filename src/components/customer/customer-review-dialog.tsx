@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/common/loading-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -148,13 +149,14 @@ export function CustomerReviewDialog({
                 Cancel
               </Button>
             </DialogClose>
-            <Button
+            <LoadingButton
               type="submit"
+              loadingText="Submitting Review..."
               className="rounded-xl bg-[#ffcc00] px-5 text-xs font-extrabold text-black transition hover:bg-[#ffd633]"
             >
               <MessageSquareHeart className="size-3.5 mr-1" />
               Submit Review
-            </Button>
+            </LoadingButton>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import { PasswordField } from "@/components/auth/password-field";
+import { LoadingButton } from "@/components/common/loading-button";
 import { resetPasswordAction } from "@/lib/actions/auth";
 import { IDLE_STATE } from "@/lib/action-state";
 
@@ -49,9 +50,14 @@ export function ResetPasswordForm() {
         </p>
       ) : null}
 
-      <button type="submit" className="btn-brand" disabled={isPending}>
-        {isPending ? "Updating..." : "Update Password"}
-      </button>
+      <LoadingButton
+        type="submit"
+        loading={isPending}
+        loadingText="Updating Password..."
+        className="btn-brand w-full h-auto py-3 font-bold"
+      >
+        Update Password
+      </LoadingButton>
     </form>
   );
 }

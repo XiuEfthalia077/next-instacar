@@ -15,6 +15,7 @@ import {
 import { sendContactMessageAction } from "@/lib/actions/contact";
 import { IDLE_STATE } from "@/lib/action-state";
 import { CONTACT_SUBJECTS } from "@/lib/constants";
+import { LoadingButton } from "@/components/common/loading-button";
 
 const CUSTOM_SUBJECT = "Other / Custom Subject";
 
@@ -201,14 +202,16 @@ export function ContactSection() {
                   </div>
 
                   <div className="sm:col-span-2 pt-1">
-                    <button
+                    <LoadingButton
                       type="submit"
+                      loading={isPending}
+                      loadingText="Sending Message..."
                       disabled={isPending}
-                      className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#ffcc00] py-3 text-xs sm:text-sm font-black text-black shadow-md transition-all hover:bg-[#ffd633] disabled:cursor-not-allowed disabled:opacity-70 active:scale-[0.99]"
+                      className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#ffcc00] py-3 text-xs sm:text-sm font-black text-black shadow-md transition-all hover:bg-[#ffd633]"
                     >
                       <Send className="size-4" />
-                      <span>{isPending ? "Sending Message..." : "Submit Inquiry"}</span>
-                    </button>
+                      <span>Submit Inquiry</span>
+                    </LoadingButton>
                   </div>
                 </div>
 

@@ -3,6 +3,7 @@
 import { RotateCcw, TriangleAlert } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/common/loading-button";
 import {
   Dialog,
   DialogClose,
@@ -70,10 +71,15 @@ export function ResetSettlementButton({
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="submit" variant="destructive" className="rounded-lg px-4 font-bold">
+            <LoadingButton
+              type="submit"
+              variant="destructive"
+              loadingText="Resetting..."
+              className="rounded-lg px-4 font-bold"
+            >
               <RotateCcw className="size-4" />
               Reset Settlement
-            </Button>
+            </LoadingButton>
           </DialogFooter>
         </form>
       </DialogContent>

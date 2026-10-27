@@ -11,6 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { LoadingButton } from "@/components/common/loading-button";
 import { setMainImageAction } from "@/lib/actions/cars";
 import { carImageUrl } from "@/lib/storage";
 
@@ -108,14 +109,15 @@ export function CarGalleryDialog({
                 <form action={setMainImageAction}>
                   <input type="hidden" name="car_id" value={carId} />
                   <input type="hidden" name="image_name" value={activeImage} />
-                  <button
+                  <LoadingButton
                     type="submit"
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#ffcc00] px-3.5 py-1.5 text-xs font-black text-black shadow-sm transition hover:bg-[#ffd633] active:scale-95"
+                    loadingText="Setting..."
+                    className="inline-flex h-8 items-center gap-1.5 rounded-xl bg-[#ffcc00] px-3.5 text-xs font-black text-black shadow-sm transition hover:bg-[#ffd633]"
                     title="Set this photo as the vehicle thumbnail"
                   >
                     <Star className="size-3.5 fill-black text-black" />
                     <span>Set as Main Photo</span>
-                  </button>
+                  </LoadingButton>
                 </form>
               ) : null}
             </div>

@@ -6,6 +6,7 @@ import { ClipboardList } from "lucide-react";
 import { DocumentPreviewButton, type BookingDocument } from "@/components/admin/document-preview";
 import { FileUploadDropzone } from "@/components/common/file-upload-dropzone";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/common/loading-button";
 import {
   Dialog,
   DialogClose,
@@ -443,9 +444,14 @@ export function EditManualBookingDialog({
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={!formValid} className="rounded-lg px-4 font-bold">
+            <LoadingButton
+              type="submit"
+              disabled={!formValid}
+              loadingText="Saving Changes..."
+              className="rounded-lg px-4 font-bold bg-[#ffcc00] text-black hover:bg-[#e6b800]"
+            >
               Save Changes
-            </Button>
+            </LoadingButton>
           </DialogFooter>
         </form>
       </DialogContent>

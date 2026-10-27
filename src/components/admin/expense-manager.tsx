@@ -15,6 +15,7 @@ import { Money } from "@/components/common/money";
 import { ConfirmSubmit } from "@/components/shared/confirm-submit";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/common/loading-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -143,13 +144,14 @@ export function ExpenseManager({ expenses, totalExpenses }: ExpenseManagerProps)
 
           {/* Submit Button */}
           <div className="sm:col-span-2 lg:col-span-12 flex justify-end pt-1">
-            <Button
+            <LoadingButton
               type="submit"
+              loadingText="Recording Expense..."
               className="h-10 gap-2 rounded-xl bg-[#ffcc00] px-5 text-xs font-extrabold text-black hover:bg-[#e6b800] transition"
             >
               <PlusCircle className="size-4" />
               <span>Record Expense</span>
-            </Button>
+            </LoadingButton>
           </div>
         </form>
       </div>

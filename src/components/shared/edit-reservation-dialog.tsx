@@ -6,6 +6,7 @@ import { ClipboardList, Trash2 } from "lucide-react";
 import { DeleteBookingDialog } from "@/components/admin/delete-booking-dialog";
 import { DocumentPreviewButton, type BookingDocument } from "@/components/admin/document-preview";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/common/loading-button";
 import {
   Dialog,
   DialogClose,
@@ -180,9 +181,13 @@ export function EditReservationDialog({
                   Cancel
                 </Button>
               </DialogClose>
-              <Button type="submit" className="rounded-lg px-4 font-bold bg-[#ffcc00] text-black hover:bg-[#e6b800]">
+              <LoadingButton
+                type="submit"
+                loadingText="Saving Changes..."
+                className="rounded-lg px-4 font-bold bg-[#ffcc00] text-black hover:bg-[#e6b800]"
+              >
                 Save Changes
-              </Button>
+              </LoadingButton>
             </div>
           </DialogFooter>
         </form>

@@ -5,6 +5,7 @@ import { CalendarClock, Info, Receipt } from "lucide-react";
 
 import { dateOnly, peso } from "@/components/admin/finance-format";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/common/loading-button";
 import {
   Dialog,
   DialogClose,
@@ -461,12 +462,13 @@ export function SettlementDialog({
                 Cancel
               </Button>
             </DialogClose>
-            <Button
+            <LoadingButton
               type="submit"
+              loadingText="Saving..."
               className="rounded-lg bg-[#ffd700] px-4 font-bold text-black hover:bg-[#e6c200]"
             >
               Confirm &amp; Save
-            </Button>
+            </LoadingButton>
           </DialogFooter>
         </form>
       </DialogContent>

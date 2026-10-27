@@ -6,6 +6,7 @@ import { Check, House, Loader2, X } from "lucide-react";
 
 import { GoogleButton } from "@/components/auth/google-button";
 import { PasswordField } from "@/components/auth/password-field";
+import { LoadingButton } from "@/components/common/loading-button";
 import { signUpAction } from "@/lib/actions/auth";
 import { IDLE_STATE } from "@/lib/action-state";
 
@@ -255,14 +256,16 @@ export function RegisterForm() {
         </p>
       ) : null}
 
-      <button
+      <LoadingButton
         type="submit"
         name="submit"
-        className="btn-register disabled:opacity-50 disabled:cursor-not-allowed"
-        disabled={!canSubmit}
+        loading={isPending}
+        loadingText="Creating Account..."
+        disabled={!canSubmit || isPending}
+        className="btn-register w-full h-auto py-3 font-bold disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {isPending ? "Creating Account..." : "Create Account"}
-      </button>
+        Create Account
+      </LoadingButton>
 
       <div className="divider">OR</div>
 

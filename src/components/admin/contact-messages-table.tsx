@@ -10,6 +10,7 @@ import {
 } from "@/components/common/data-table";
 import { EmptyState } from "@/components/common/empty-state";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/common/loading-button";
 import {
   Dialog,
   DialogClose,
@@ -314,9 +315,13 @@ export function ContactMessagesTable({
 
             <form action={deleteContactMessageAction}>
               <input type="hidden" name="id" value={deleting?.id ?? ""} />
-              <Button type="submit" variant="destructive">
+              <LoadingButton
+                type="submit"
+                variant="destructive"
+                loadingText="Deleting..."
+              >
                 Yes, Delete
-              </Button>
+              </LoadingButton>
             </form>
           </DialogFooter>
         </DialogContent>
