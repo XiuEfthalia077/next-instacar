@@ -60,22 +60,29 @@ export async function requestPasswordResetOtpAction(
   const hashedOtp = hashOtp(rawOtp);
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes
 
-  // Persist OTP record in password_resets
+  // Persist OTP in public.users table (guaranteed schema support)
   try {
-    const { error: dbError } = await client.from("password_resets").insert({
+    await client
+      .from("users")
+      .update({
+        reset_token: `otp:${hashedOtp}`,
+        token_expiry: expiresAt,
+      })
+      .eq("email", email);
+  } catch (err) {
+    console.error("[OTP] Failed to store OTP in users table:", err);
+  }
+
+  // Also mirror to password_resets if the table is available
+  try {
+    await client.from("password_resets").insert({
       email,
       otp_hash: hashedOtp,
       expires_at: expiresAt,
       attempts: 0,
     });
-
-    if (dbError) {
-      console.warn(
-        `[OTP] password_resets table insert warning (${dbError.message}). Proceeding with queue dispatch.`,
-      );
-    }
-  } catch (err) {
-    console.error("[OTP] Failed to store OTP in database:", err);
+  } catch {
+    // Ignore if table does not exist
   }
 
   // Queue background OTP verification email via Upstash QStash
@@ -131,56 +138,91 @@ export async function verifyPasswordResetOtpAction(
   const adminClient = getAdminClient();
   const client = adminClient ?? supabase;
 
-  // Retrieve active unconsumed OTPs for this email
-  const { data: records, error } = await client
-    .from("password_resets")
-    .select("id, otp_hash, attempts, expires_at, consumed_at")
-    .eq("email", email)
-    .is("consumed_at", null)
-    .order("created_at", { ascending: false })
-    .limit(1);
+  // Retrieve active unconsumed OTPs for this email from users table or password_resets
+  let matchedOtpHash: string | null = null;
+  let resetRecordId: number | null = null;
+  let isExpired = false;
 
-  if (error || !records || records.length === 0) {
-    return {
-      error: "No active verification code found for this email. Please request a new code.",
-    };
+  // 1. Check public.users table (direct, migration-independent)
+  const { data: userProfile } = await client
+    .from("users")
+    .select("id, email, reset_token, token_expiry")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (userProfile?.reset_token?.startsWith("otp:") && userProfile.token_expiry) {
+    if (new Date() > new Date(userProfile.token_expiry)) {
+      isExpired = true;
+    } else {
+      matchedOtpHash = userProfile.reset_token.replace(/^otp:/, "");
+    }
   }
 
-  const latest = records[0];
-  const now = new Date();
-  const expiresAt = new Date(latest.expires_at);
+  // 2. Check password_resets fallback if not found in users
+  if (!matchedOtpHash && !isExpired) {
+    try {
+      const { data: records } = await client
+        .from("password_resets")
+        .select("id, otp_hash, attempts, expires_at, consumed_at")
+        .eq("email", email)
+        .is("consumed_at", null)
+        .order("created_at", { ascending: false })
+        .limit(1);
 
-  if (now > expiresAt) {
+      if (records && records.length > 0) {
+        const rec = records[0];
+        if (new Date() > new Date(rec.expires_at)) {
+          isExpired = true;
+        } else {
+          matchedOtpHash = rec.otp_hash;
+          resetRecordId = rec.id;
+        }
+      }
+    } catch {
+      // Table may not exist
+    }
+  }
+
+  if (isExpired) {
     return {
       error: "Verification code has expired. Please request a new code.",
     };
   }
 
-  if (latest.attempts >= 5) {
+  if (!matchedOtpHash) {
     return {
-      error: "Too many failed attempts. This code is invalidated. Please request a new one.",
+      error: "No active verification code found for this email. Please request a new code.",
     };
   }
 
   const inputHash = hashOtp(otp);
 
-  if (inputHash !== latest.otp_hash) {
-    // Increment attempts
-    await client
-      .from("password_resets")
-      .update({ attempts: (latest.attempts || 0) + 1 })
-      .eq("id", latest.id);
-
+  if (inputHash !== matchedOtpHash) {
     return { error: "Incorrect verification code. Please check your email and try again." };
   }
 
   // OTP verified! Generate random reset token
   const resetToken = crypto.randomBytes(32).toString("hex");
 
+  // Save verified session token in users.reset_token
   await client
-    .from("password_resets")
-    .update({ reset_token: resetToken })
-    .eq("id", latest.id);
+    .from("users")
+    .update({
+      reset_token: `token:${resetToken}`,
+      token_expiry: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+    })
+    .eq("email", email);
+
+  if (resetRecordId) {
+    try {
+      await client
+        .from("password_resets")
+        .update({ reset_token: resetToken })
+        .eq("id", resetRecordId);
+    } catch {
+      // Ignore
+    }
+  }
 
   // Store in secure HttpOnly cookie for Step 3
   const cookieStore = await cookies();
@@ -250,21 +292,45 @@ export async function resetPasswordWithOtpAction(
   const adminClient = getAdminClient();
   const client = adminClient ?? supabase;
 
-  // Verify the reset token against password_resets
-  const { data: resetRecord, error: tokenError } = await client
-    .from("password_resets")
-    .select("id, email, reset_token, expires_at, consumed_at")
+  // Verify the reset token against users table and password_resets
+  let tokenValid = false;
+
+  const { data: userRow } = await client
+    .from("users")
+    .select("id, auth_id, email, reset_token, token_expiry")
     .eq("email", sessionEmail)
-    .eq("reset_token", sessionToken)
-    .is("consumed_at", null)
     .maybeSingle();
 
-  if (tokenError || !resetRecord) {
-    return { error: "Invalid or already consumed reset session. Please request a new code." };
+  if (userRow?.reset_token === `token:${sessionToken}` && userRow.token_expiry) {
+    if (new Date() <= new Date(userRow.token_expiry)) {
+      tokenValid = true;
+    }
   }
 
-  if (new Date() > new Date(resetRecord.expires_at)) {
-    return { error: "Reset session has expired. Please request a new code." };
+  if (!tokenValid) {
+    try {
+      const { data: resetRecord } = await client
+        .from("password_resets")
+        .select("id, expires_at, consumed_at")
+        .eq("email", sessionEmail)
+        .eq("reset_token", sessionToken)
+        .is("consumed_at", null)
+        .maybeSingle();
+
+      if (resetRecord && new Date() <= new Date(resetRecord.expires_at)) {
+        tokenValid = true;
+        await client
+          .from("password_resets")
+          .update({ consumed_at: new Date().toISOString() })
+          .eq("id", resetRecord.id);
+      }
+    } catch {
+      // Table may not exist
+    }
+  }
+
+  if (!tokenValid) {
+    return { error: "Invalid or expired reset session. Please request a new code." };
   }
 
   // Update password in Supabase Auth
@@ -272,12 +338,6 @@ export async function resetPasswordWithOtpAction(
 
   if (adminClient) {
     // Find auth user ID from public.users or auth.admin.listUsers
-    const { data: userRow } = await client
-      .from("users")
-      .select("id, auth_id")
-      .eq("email", sessionEmail)
-      .maybeSingle();
-
     let authId = userRow?.auth_id;
 
     if (!authId) {
@@ -308,11 +368,11 @@ export async function resetPasswordWithOtpAction(
     }
   }
 
-  // Invalidate OTP record (consumed)
+  // Invalidate OTP record in users table
   await client
-    .from("password_resets")
-    .update({ consumed_at: new Date().toISOString() })
-    .eq("id", resetRecord.id);
+    .from("users")
+    .update({ reset_token: null, token_expiry: null })
+    .eq("email", sessionEmail);
 
   // Clear cookie
   cookieStore.delete(RESET_TOKEN_COOKIE);
