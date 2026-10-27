@@ -64,20 +64,28 @@ export function RentCarFlowDialog({
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
 }: RentCarFlowDialogProps) {
-  const [internalOpen, setInternalOpen] = React.useState(false);
-  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
-  const setOpen = React.useCallback(
-    (value: boolean) => {
-      if (controlledOnOpenChange) {
-        controlledOnOpenChange(value);
-      }
-      setInternalOpen(value);
-    },
-    [controlledOnOpenChange],
-  );
+  type FlowStep = "idle" | "agreement" | "form";
+  const [flowStep, setFlowStep] = React.useState<FlowStep>("idle");
+  const [readingTermsInForm, setReadingTermsInForm] = React.useState(false);
   const [qrModalOpen, setQrModalOpen] = React.useState(false);
-  const [agreementModalOpen, setAgreementModalOpen] = React.useState(false);
   const [deliveryConfirmOpen, setDeliveryConfirmOpen] = React.useState(false);
+
+  // Sync with external trigger (e.g. from gallery modal "Book This Vehicle")
+  React.useEffect(() => {
+    if (controlledOpen) {
+      setFlowStep("agreement");
+      controlledOnOpenChange?.(false);
+    }
+  }, [controlledOpen, controlledOnOpenChange]);
+
+  const handleCloseAll = React.useCallback(() => {
+    setFlowStep("idle");
+    setReadingTermsInForm(false);
+  }, []);
+
+  const handleStartBooking = React.useCallback(() => {
+    setFlowStep("agreement");
+  }, []);
 
   // Form states
   const [quickDuration, setQuickDuration] = React.useState<"10h" | "24h" | "custom">("24h");
@@ -99,7 +107,7 @@ export function RentCarFlowDialog({
 
   // Initialize pickup & return times
   React.useEffect(() => {
-    if (open && !pickupDatetime) {
+    if ((flowStep === "agreement" || flowStep === "form") && !pickupDatetime) {
       const now = new Date();
       now.setHours(now.getHours() + 2);
       now.setMinutes(0);
@@ -114,7 +122,7 @@ export function RentCarFlowDialog({
       setQuickDuration("24h");
       setAgreedToTerms(false);
     }
-  }, [open, pickupDatetime]);
+  }, [flowStep, pickupDatetime]);
 
   // Handle Quick Duration Click
   const handleQuickDuration = (mode: "10h" | "24h" | "custom") => {
@@ -248,8 +256,8 @@ export function RentCarFlowDialog({
 
   return (
     <>
-      {/* Trigger: Click opens Car Rental Agreement Modal FIRST */}
-      <div onClick={() => setAgreementModalOpen(true)}>
+      {/* Trigger: Click starts Step 1 (Car Rental Agreement Modal) */}
+      <div onClick={handleStartBooking} className="cursor-pointer">
         {trigger || (
           <Button
             type="button"
@@ -261,7 +269,8 @@ export function RentCarFlowDialog({
         )}
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      {/* STEP 2: BOOKING FORM MODAL (Only opens after Agreement is accepted) */}
+      <Dialog open={flowStep === "form"} onOpenChange={(isOpen) => !isOpen && handleCloseAll()}>
         <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto border-border bg-[#0d0f12] p-6 text-foreground sm:p-8 sm:rounded-2xl">
           <DialogHeader className="border-b border-border/80 pb-4 pr-8">
             <DialogTitle className="text-lg font-black tracking-tight text-foreground">
@@ -717,7 +726,7 @@ export function RentCarFlowDialog({
                 </span>
                 <button
                   type="button"
-                  onClick={() => setAgreementModalOpen(true)}
+                  onClick={() => setReadingTermsInForm(true)}
                   className="text-xs font-bold text-[#ffcc00] hover:underline"
                 >
                   View Full Agreement
@@ -842,8 +851,11 @@ export function RentCarFlowDialog({
         </DialogContent>
       </Dialog>
 
-      {/* FULL RENTAL AGREEMENT MODAL (Appears FIRST before booking form) */}
-      <Dialog open={agreementModalOpen} onOpenChange={setAgreementModalOpen}>
+      {/* STEP 1: OFFICIAL CAR RENTAL AGREEMENT MODAL (Appears FIRST before booking form) */}
+      <Dialog
+        open={flowStep === "agreement"}
+        onOpenChange={(isOpen) => !isOpen && handleCloseAll()}
+      >
         <DialogContent className="flex flex-col max-h-[90vh] max-w-2xl sm:max-w-3xl overflow-hidden p-0 border-border bg-[#0d0f12] text-foreground sm:rounded-2xl shadow-2xl">
           <DialogHeader className="border-b border-border/80 px-6 py-5 bg-card shrink-0 pr-14 text-left">
             <DialogTitle className="flex items-center gap-2.5 text-base sm:text-lg font-extrabold text-foreground">
@@ -863,7 +875,7 @@ export function RentCarFlowDialog({
             <Button
               type="button"
               variant="ghost"
-              onClick={() => setAgreementModalOpen(false)}
+              onClick={handleCloseAll}
               className="text-xs font-bold text-muted-foreground hover:text-foreground transition-colors"
             >
               Decline &amp; Cancel
@@ -872,12 +884,40 @@ export function RentCarFlowDialog({
               type="button"
               onClick={() => {
                 setAgreedToTerms(true);
-                setAgreementModalOpen(false);
-                setOpen(true);
+                // Enforce strict sequence: Close agreement modal completely before opening booking form modal
+                setFlowStep("idle");
+                setTimeout(() => {
+                  setFlowStep("form");
+                }, 150);
               }}
               className="h-10 px-5 rounded-xl bg-[#ffcc00] font-black text-xs sm:text-sm text-black shadow-md hover:bg-[#ffd633] transition-all hover:scale-[1.01] active:scale-[0.99]"
             >
               I Accept Agreement &amp; Continue to Booking →
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Auxiliary Reader Dialog (only if user clicks 'View Full Agreement' while inside the booking form) */}
+      <Dialog open={readingTermsInForm} onOpenChange={setReadingTermsInForm}>
+        <DialogContent className="flex flex-col max-h-[85vh] max-w-2xl sm:max-w-3xl overflow-hidden p-0 border-border bg-[#0d0f12] text-foreground sm:rounded-2xl shadow-2xl">
+          <DialogHeader className="border-b border-border/80 px-6 py-4 bg-card shrink-0 pr-14 text-left">
+            <DialogTitle className="flex items-center gap-2 text-base font-extrabold text-foreground">
+              <FileCheck className="size-4 text-[#ffcc00]" />
+              Official Car Rental Agreement
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto p-6 m-4 rounded-xl border border-border/70 bg-muted/20 text-xs sm:text-[13px] leading-relaxed text-foreground/90 whitespace-pre-wrap font-sans">
+            {OFFICIAL_RENTAL_AGREEMENT}
+          </div>
+          <div className="border-t border-border/80 px-6 py-3 bg-card shrink-0 flex justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setReadingTermsInForm(false)}
+              className="rounded-xl text-xs font-semibold"
+            >
+              Back to Form
             </Button>
           </div>
         </DialogContent>

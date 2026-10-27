@@ -151,7 +151,6 @@ export function UserCarCard({
               trigger={
                 <button
                   type="button"
-                  onClick={() => setBookingOpen(true)}
                   className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-[#ffcc00] py-2.5 text-xs font-black text-black shadow-md transition-all hover:bg-[#ffd633] active:scale-[0.98]"
                 >
                   <CheckCircle2 className="size-4" />
