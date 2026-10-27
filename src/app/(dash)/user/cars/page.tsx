@@ -12,6 +12,7 @@ import { siteContent } from "@/lib/data/misc";
 import { readFlash, searchParam } from "@/lib/flash";
 
 export const instant = false;
+export const maxDuration = 60;
 
 export default async function UserCarsPage({
   searchParams,

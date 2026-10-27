@@ -149,6 +149,7 @@ const ACTION_ICONS = {
 } as const;
 
 export const instant = false;
+export const maxDuration = 60;
 
 export default async function StaffBookingsManualPage({
   searchParams,

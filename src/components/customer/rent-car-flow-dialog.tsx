@@ -78,7 +78,10 @@ export function RentCarFlowDialog({
     }
   }, [controlledOpen, controlledOnOpenChange]);
 
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
   const handleCloseAll = React.useCallback(() => {
+    setIsSubmitting(false);
     setFlowStep("idle");
     setReadingTermsInForm(false);
   }, []);
@@ -278,7 +281,17 @@ export function RentCarFlowDialog({
             </DialogTitle>
           </DialogHeader>
 
-          <form action={createBookingAction} className="space-y-5 pt-2">
+          <form
+            action={createBookingAction}
+            onSubmit={(e) => {
+              if (isSubmitting) {
+                e.preventDefault();
+                return;
+              }
+              setIsSubmitting(true);
+            }}
+            className="space-y-5 pt-2"
+          >
             <input type="hidden" name="car_id" value={car.id} />
             <input type="hidden" name="start_date" value={startDate} />
             <input type="hidden" name="end_date" value={endDate} />
@@ -762,10 +775,12 @@ export function RentCarFlowDialog({
 
             <LoadingButton
               type="submit"
-              disabled={!agreedToTerms || hours < 10 || hasDateOverlap}
+              disabled={!agreedToTerms || hours < 10 || hasDateOverlap || isSubmitting}
+              loading={isSubmitting}
+              loadingText="Confirming Booking..."
               className="w-full rounded-xl bg-[#ffcc00] py-3 text-sm font-black text-black hover:bg-[#ffd633] transition"
             >
-              Confirm Reservation
+              Confirm Booking
             </LoadingButton>
           </form>
         </DialogContent>

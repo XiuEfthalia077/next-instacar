@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { CircleCheck, CircleX, Flag, TriangleAlert } from "lucide-react";
 
+import { LoadingButton } from "@/components/common/loading-button";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -78,11 +80,17 @@ export function BookingStatusDialog({
   filter: string;
   source: "online" | "manual";
 }) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const copy = COPY[status];
   const Icon = copy.icon;
 
+  const handleOpenChange = (next: boolean) => {
+    if (!next) setIsSubmitting(false);
+    onOpenChange(next);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="rounded-2xl p-6 sm:p-8 sm:max-w-md">
         <DialogHeader className="border-b border-border/70 pb-3 pr-8">
           <DialogTitle className="flex items-center gap-2 text-lg font-bold">
@@ -99,7 +107,16 @@ export function BookingStatusDialog({
           </div>
         ) : null}
 
-        <form action={updateBookingStatusAction}>
+        <form
+          action={updateBookingStatusAction}
+          onSubmit={(e) => {
+            if (isSubmitting) {
+              e.preventDefault();
+              return;
+            }
+            setIsSubmitting(true);
+          }}
+        >
           <input type="hidden" name="id" value={bookingId} />
           <input type="hidden" name="status" value={status} />
           <input type="hidden" name="source" value={source} />
@@ -115,13 +132,16 @@ export function BookingStatusDialog({
                 Cancel
               </Button>
             </DialogClose>
-            <Button
+            <LoadingButton
               type="submit"
+              disabled={isSubmitting}
+              loading={isSubmitting}
+              loadingText="Processing..."
               variant={status === "Cancelled" ? "destructive" : "default"}
               className="rounded-lg px-4 font-bold"
             >
               {copy.confirmLabel}
-            </Button>
+            </LoadingButton>
           </DialogFooter>
         </form>
       </DialogContent>

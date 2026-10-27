@@ -19,6 +19,66 @@ interface FileUploadDropzoneProps {
   onFileSelect?: (file: File | null) => void;
 }
 
+/**
+ * Client-side image compressor.
+ * Downscales large smartphone camera images (often 4-10MB) to ~200-400KB
+ * with high fidelity before submitting via multipart/form-data.
+ * This completely prevents HTTP 413 (Content Too Large) errors on Vercel.
+ */
+async function compressImageFile(file: File, maxDimension = 1600, quality = 0.82): Promise<File> {
+  if (!file.type.startsWith("image/") || file.type.includes("svg")) return file;
+
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              resolve(file);
+              return;
+            }
+            const cleanName = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+            const compressed = new File([blob], cleanName, {
+              type: "image/jpeg",
+              lastModified: Date.now(),
+            });
+            resolve(compressed);
+          },
+          "image/jpeg",
+          quality,
+        );
+      };
+      img.onerror = () => resolve(file);
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+}
+
 export function FileUploadDropzone({
   name,
   label,
@@ -45,7 +105,7 @@ export function FileUploadDropzone({
     }
   }, [existingUrl, selectedFile]);
 
-  const handleFileChange = (file: File | null) => {
+  const handleFileChange = async (file: File | null) => {
     if (!file) {
       setSelectedFile(null);
       setPreviewUrl(existingUrl);
@@ -53,16 +113,37 @@ export function FileUploadDropzone({
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert("File size exceeds 5MB limit. Please upload a smaller file.");
+    // Auto-compress high-resolution images to prevent HTTP 413 Content Too Large
+    let processedFile = file;
+    if (file.type.startsWith("image/")) {
+      try {
+        processedFile = await compressImageFile(file);
+      } catch (err) {
+        console.warn("[FileUploadDropzone] Client compression fallback:", err);
+      }
+    }
+
+    if (processedFile.size > maxSizeMB * 1024 * 1024) {
+      alert(`File size exceeds ${maxSizeMB}MB limit. Please upload a smaller file.`);
       return;
     }
 
-    setSelectedFile(file);
-    onFileSelect?.(file);
+    setSelectedFile(processedFile);
+    onFileSelect?.(processedFile);
 
-    if (file.type.startsWith("image/")) {
-      const url = URL.createObjectURL(file);
+    // Sync processed file into the native input element
+    if (inputRef.current && typeof DataTransfer !== "undefined") {
+      try {
+        const dt = new DataTransfer();
+        dt.items.add(processedFile);
+        inputRef.current.files = dt.files;
+      } catch {
+        // Fallback if browser restricts DataTransfer manipulation
+      }
+    }
+
+    if (processedFile.type.startsWith("image/")) {
+      const url = URL.createObjectURL(processedFile);
       setPreviewUrl(url);
     } else {
       setPreviewUrl(null);

@@ -158,6 +158,7 @@ const ACTION_ICONS = {
  * member picker are therefore resolved with small read-only inline queries.
  */
 export const instant = false;
+export const maxDuration = 60;
 
 export default async function AdminBookingsManualPage({
   searchParams,

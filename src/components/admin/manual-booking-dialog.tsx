@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 
+import { LoadingButton } from "@/components/common/loading-button";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -127,6 +128,7 @@ export function ManualBookingDialog({
   // Searchable select state for registered members
   const [memberSearch, setMemberSearch] = useState("");
   const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const memberDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -162,6 +164,7 @@ export function ManualBookingDialog({
 
   /** Seed the schedule the first time the dialog opens (legacy defaults to now + 10h). */
   const handleOpenChange = (next: boolean) => {
+    setIsSubmitting(false);
     if (next) {
       const stamp = Date.now();
       setNow(stamp);
@@ -298,6 +301,13 @@ export function ManualBookingDialog({
 
         <form
           action={addManualBookingAction}
+          onSubmit={(e) => {
+            if (isSubmitting) {
+              e.preventDefault();
+              return;
+            }
+            setIsSubmitting(true);
+          }}
           className="space-y-4"
           encType="multipart/form-data"
         >
@@ -773,9 +783,15 @@ export function ManualBookingDialog({
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={!formValid} className="rounded-lg px-4 font-bold">
+            <LoadingButton
+              type="submit"
+              disabled={!formValid || isSubmitting}
+              loading={isSubmitting}
+              loadingText="Confirming Booking..."
+              className="rounded-lg px-5 font-bold bg-[#ffcc00] text-black hover:bg-[#e6b800] shadow-sm"
+            >
               Confirm Booking
-            </Button>
+            </LoadingButton>
           </DialogFooter>
         </form>
       </DialogContent>

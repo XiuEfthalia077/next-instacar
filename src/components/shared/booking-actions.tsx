@@ -4,6 +4,7 @@ import { useState } from "react";
 import { CalendarClock, CircleCheck, CircleX, Flag, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/common/loading-button";
 import { DeleteBookingDialog } from "@/components/admin/delete-booking-dialog";
 import {
   Dialog,
@@ -86,6 +87,7 @@ export function BookingActions({
   isAdmin?: boolean;
 }) {
   const [action, setAction] = useState<StatusAction | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const source = booking.booking_type === "manual" ? "manual" : "online";
 
@@ -158,7 +160,12 @@ export function BookingActions({
         </div>
       ) : null}
 
-      <Dialog open={action !== null} onOpenChange={(open) => !open && setAction(null)}>
+      <Dialog open={action !== null} onOpenChange={(open) => {
+        if (!open) {
+          setAction(null);
+          setIsSubmitting(false);
+        }
+      }}>
         <DialogContent className="rounded-2xl p-6 sm:p-8 sm:max-w-md">
           <DialogHeader className="border-b border-border/70 pb-3 pr-8">
             <DialogTitle className="flex items-center gap-2 text-lg font-bold">
@@ -175,24 +182,37 @@ export function BookingActions({
             </div>
           ) : null}
 
-          <form action={updateBookingStatusAction}>
+          <form
+            action={async (formData) => {
+              if (isSubmitting) return;
+              setIsSubmitting(true);
+              try {
+                await updateBookingStatusAction(formData);
+              } finally {
+                setIsSubmitting(false);
+              }
+            }}
+          >
             <input type="hidden" name="id" value={booking.id} />
             <input type="hidden" name="status" value={action ?? ""} />
             <input type="hidden" name="source" value={source} />
             <input type="hidden" name="filter" value={filter} />
             <DialogFooter className="gap-2">
               <DialogClose asChild>
-                <Button type="button" variant="outline" className="rounded-lg px-4 font-semibold">
+                <Button type="button" variant="outline" className="rounded-lg px-4 font-semibold" disabled={isSubmitting}>
                   Cancel
                 </Button>
               </DialogClose>
-              <Button
+              <LoadingButton
                 type="submit"
+                loading={isSubmitting}
+                loadingText="Updating..."
+                disabled={isSubmitting}
                 variant={action === "Cancelled" ? "destructive" : "default"}
                 className="rounded-lg px-4 font-bold"
               >
                 {copy?.confirmLabel}
-              </Button>
+              </LoadingButton>
             </DialogFooter>
           </form>
         </DialogContent>
