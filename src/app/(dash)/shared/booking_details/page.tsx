@@ -6,14 +6,11 @@ import {
   FileText,
   MapPin,
   StickyNote,
-  Trash2,
   Truck,
   UserCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-
-import { DeleteBookingDialog } from "@/components/admin/delete-booking-dialog";
 
 import {
   BookingDocumentButton,
@@ -208,21 +205,6 @@ export default async function SharedBookingDetailsPage({
                 Bookings
               </Button>
             </Link>
-            {session.role === "admin" ? (
-              <DeleteBookingDialog
-                bookingId={booking.id}
-                redirectTo={backHref}
-                trigger={
-                  <Button
-                    variant="destructive"
-                    className="gap-2 font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-sm"
-                  >
-                    <Trash2 className="size-4" />
-                    Delete Booking
-                  </Button>
-                }
-              />
-            ) : null}
           </>
         }
       />

@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarClock, CircleCheck, CircleX, Flag, Trash2 } from "lucide-react";
+import { CalendarClock, CircleCheck, CircleX, Flag } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/common/loading-button";
-import { DeleteBookingDialog } from "@/components/admin/delete-booking-dialog";
 import {
   Dialog,
   DialogClose,
@@ -139,25 +138,6 @@ export function BookingActions({
             </Button>
           }
         />
-      ) : null}
-
-      {isAdmin ? (
-        <div className="pt-2 border-t border-border">
-          <DeleteBookingDialog
-            bookingId={booking.id}
-            redirectTo={source === "manual" ? "/admin/bookings_manual" : "/admin/bookings_online"}
-            trigger={
-              <Button
-                type="button"
-                variant="destructive"
-                className="w-full gap-2 font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-sm"
-              >
-                <Trash2 className="size-4" />
-                Delete Booking
-              </Button>
-            }
-          />
-        </div>
       ) : null}
 
       <Dialog open={action !== null} onOpenChange={(open) => {
