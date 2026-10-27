@@ -141,12 +141,6 @@ export default async function UserMyBookingsPage({
               </div>
               <div className="flex items-center gap-2">
                 <StatusBadge status={activeTrip.status} />
-                <Link
-                  href={`/shared/booking_details?id=${activeTrip.id}`}
-                  className="rounded-xl border border-border bg-muted/60 px-3 py-1.5 text-xs font-bold text-foreground transition hover:border-[#ffcc00] hover:text-[#b38a00]"
-                >
-                  View Full Details
-                </Link>
               </div>
             </div>
 

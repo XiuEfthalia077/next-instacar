@@ -52,6 +52,8 @@ type RentCarFlowDialogProps = {
   agreementHtml?: string;
   trigger?: React.ReactNode;
   blockedRanges?: BlockedRange[];
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
 export function RentCarFlowDialog({
@@ -59,8 +61,20 @@ export function RentCarFlowDialog({
   agreementHtml,
   trigger,
   blockedRanges = [],
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
 }: RentCarFlowDialogProps) {
-  const [open, setOpen] = React.useState(false);
+  const [internalOpen, setInternalOpen] = React.useState(false);
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = React.useCallback(
+    (value: boolean) => {
+      if (controlledOnOpenChange) {
+        controlledOnOpenChange(value);
+      }
+      setInternalOpen(value);
+    },
+    [controlledOnOpenChange],
+  );
   const [qrModalOpen, setQrModalOpen] = React.useState(false);
   const [agreementModalOpen, setAgreementModalOpen] = React.useState(false);
   const [deliveryConfirmOpen, setDeliveryConfirmOpen] = React.useState(false);

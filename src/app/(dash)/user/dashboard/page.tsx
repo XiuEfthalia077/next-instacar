@@ -200,10 +200,10 @@ export default async function UserDashboardPage({
                       </td>
                       <td className="px-3 py-3 text-right">
                         <Link
-                          href={`/shared/booking_details?id=${booking.id}`}
+                          href="/user/mybookings"
                           className="inline-flex items-center rounded-lg border border-border px-3 py-1 text-xs font-semibold text-foreground transition hover:border-[#ffcc00] hover:text-[#b38a00]"
                         >
-                          Details
+                          View Trip
                         </Link>
                       </td>
                     </tr>

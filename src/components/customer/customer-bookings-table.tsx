@@ -16,6 +16,7 @@ import { EmptyState } from "@/components/common/empty-state";
 import { Money } from "@/components/common/money";
 import { StatusBadge } from "@/components/common/status-badge";
 import { TrackStageDialog } from "@/components/customer/track-stage-dialog";
+import { CustomerReviewDialog } from "@/components/customer/customer-review-dialog";
 import type { BookingRow } from "@/lib/data/bookings";
 import { formatDate, formatTime } from "@/lib/datetime";
 
@@ -30,6 +31,9 @@ export function CustomerBookingsTable({
     null,
   );
   const [modalOpen, setModalOpen] = React.useState(false);
+  const [reviewBooking, setReviewBooking] = React.useState<BookingRow | null>(
+    null,
+  );
 
   const handleTrackStage = (b: BookingRow) => {
     setSelectedBooking(b);
@@ -156,21 +160,26 @@ export function CustomerBookingsTable({
                   {/* 7. ACTION */}
                   <td className="px-3.5 py-3.5 text-right align-middle">
                     <div className="flex items-center justify-end gap-1.5">
-                      <Link
-                        href={`/shared/booking_details?id=${booking.id}`}
-                        className="inline-flex items-center rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-xs font-bold text-foreground transition hover:border-[#ffcc00] hover:text-[#b38a00]"
-                      >
-                        Details
-                      </Link>
                       {booking.status === "Completed" ? (
-                        <Link
-                          href={`/shared/booking_details?id=${booking.id}#reviews`}
-                          className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-xs font-bold text-amber-900 transition hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200"
+                        <button
+                          type="button"
+                          onClick={() => setReviewBooking(booking)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-[#ffcc00]/60 bg-[#ffcc00]/15 px-3 py-1.5 text-xs font-bold text-[#ffcc00] transition hover:bg-[#ffcc00] hover:text-black shadow-xs"
+                          title="Rate Your Experience"
                         >
-                          <Star className="size-3 fill-amber-400 text-amber-400" />
-                          Review
-                        </Link>
-                      ) : null}
+                          <Star className="size-3.5 fill-[#ffcc00]" />
+                          <span>Review</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleTrackStage(booking)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition hover:border-[#ffcc00] hover:text-foreground"
+                          title="View Trip Status"
+                        >
+                          <span>Track Trip</span>
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -185,6 +194,14 @@ export function CustomerBookingsTable({
         booking={selectedBooking}
         open={modalOpen}
         onOpenChange={setModalOpen}
+        onOpenReview={(b) => setReviewBooking(b)}
+      />
+
+      {/* Customer Review Modal */}
+      <CustomerReviewDialog
+        booking={reviewBooking}
+        open={Boolean(reviewBooking)}
+        onOpenChange={(open) => !open && setReviewBooking(null)}
       />
     </>
   );

@@ -79,8 +79,9 @@ export async function saveReviewAction(formData: FormData) {
   const title = str(formData, "review_title");
   const text = str(formData, "review_text");
   const stars = rating(formData);
+  const returnUrl = str(formData, "return_url");
 
-  const back = bookingId ? `/leave_review?booking_id=${bookingId}` : "/user/mybookings";
+  const back = returnUrl || (bookingId ? `/leave_review?booking_id=${bookingId}` : "/user/mybookings");
 
   if (!bookingId || !title || !text) {
     flashRedirect(back, "error", "Please fill in all required fields.");
@@ -162,7 +163,7 @@ export async function saveReviewAction(formData: FormData) {
   revalidatePath("/user/mybookings");
 
   flashRedirect(
-    "/user/mybookings",
+    returnUrl || "/user/mybookings",
     "success",
     "Review submitted! It will appear once approved by an admin.",
   );

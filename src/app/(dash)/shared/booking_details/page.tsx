@@ -7,7 +7,7 @@ import {
   UserCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import {
   BookingDocumentButton,
@@ -67,6 +67,9 @@ export default async function SharedBookingDetailsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const session = await requireSession();
+  if (session.role === "user") {
+    redirect("/user/mybookings");
+  }
   const params = await searchParams;
   const flash = readFlash(params);
   const bookingId = Number.parseInt(searchParam(params, "id") ?? "0", 10);
@@ -80,8 +83,7 @@ export default async function SharedBookingDetailsPage({
   const denied =
     !booking ||
     (session.role === "operator" && car?.user_id !== session.userId) ||
-    (session.role === "staff" && (!session.branchId || booking.branch_id !== session.branchId)) ||
-    (session.role === "user" && booking.user_id !== session.userId);
+    (session.role === "staff" && (!session.branchId || booking.branch_id !== session.branchId));
 
   if (denied) {
     return (
@@ -161,7 +163,7 @@ export default async function SharedBookingDetailsPage({
   const remainingBal = Number(booking.total_price ?? 0);
 
   const statusLabel = booking.status === "Confirmed" ? "Released" : booking.status;
-  const isUser = session.role === "user";
+  const isUser = false;
   const canWrite = session.role === "admin" || session.role === "staff" || session.role === "operator";
   const canStatus = session.role === "admin" || session.role === "staff";
 

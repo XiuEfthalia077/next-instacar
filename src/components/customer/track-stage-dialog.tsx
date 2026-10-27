@@ -11,6 +11,7 @@ import {
   KeyRound,
   MapPin,
   ShieldCheck,
+  Star,
   Truck,
   X,
 } from "lucide-react";
@@ -35,6 +36,7 @@ type TrackStageDialogProps = {
   booking: BookingRow | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onOpenReview?: (booking: BookingRow) => void;
 };
 
 const STAGES = [
@@ -76,6 +78,7 @@ export function TrackStageDialog({
   booking,
   open,
   onOpenChange,
+  onOpenReview,
 }: TrackStageDialogProps) {
   if (!booking) return null;
 
@@ -272,18 +275,24 @@ export function TrackStageDialog({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="rounded-xl text-xs"
+              className="rounded-xl text-xs font-semibold"
             >
               Close
             </Button>
 
-            <Link
-              href={`/shared/booking_details?id=${booking.id}`}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-[#ffcc00] px-4 py-2 text-xs font-bold text-black transition hover:bg-[#ffd633]"
-            >
-              <span>View Full Booking Details</span>
-              <ExternalLink className="size-3.5" />
-            </Link>
+            {booking.status === "Completed" && onOpenReview ? (
+              <Button
+                type="button"
+                onClick={() => {
+                  onOpenChange(false);
+                  onOpenReview(booking);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[#ffcc00] px-4 py-2 text-xs font-bold text-black transition hover:bg-[#ffd633]"
+              >
+                <Star className="size-3.5 fill-black" />
+                <span>Rate Experience</span>
+              </Button>
+            ) : null}
           </div>
         </div>
       </DialogContent>
