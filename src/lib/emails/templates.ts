@@ -1,11 +1,14 @@
 /**
  * HTML Email Templates for InstaCar.
  *
- * Professional, brand-aligned (Yellow #ffcc00 on Dark #121212 / #1e1e1e)
+ * Professional, brand-aligned (Yellow #ffcc00 on Dark #0d0d0d / #161616)
  * responsive transactional templates with plain-text versions.
+ *
+ * All emails share the same typography, layout shell, color scheme,
+ * table structures, button styles, and footer branding.
  */
 
-function emailWrapper({
+export function emailWrapper({
   heading,
   subheading,
   content,
@@ -16,52 +19,67 @@ function emailWrapper({
 }): string {
   const year = new Date().getFullYear();
 
-  return `
-<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${heading}</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #0d0d0d; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #ffffff;">
-  <div style="max-width: 620px; margin: 30px auto; background-color: #161616; border-radius: 18px; overflow: hidden; border: 1px solid #282828; box-shadow: 0 12px 35px rgba(0,0,0,0.6);">
-    <!-- Header -->
-    <div style="background: linear-gradient(135deg, #ffcc00 0%, #e6b800 100%); padding: 36px 30px; text-align: center;">
-      <p style="margin: 0 0 6px 0; font-size: 13px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; color: #1a1a1a;">
-        INSTACAR RENTAL SERVICE
-      </p>
-      <h1 style="margin: 0; font-size: 26px; font-weight: 900; color: #000000; text-transform: uppercase; letter-spacing: 1px;">
-        ${heading}
-      </h1>
-      ${
-        subheading
-          ? `<p style="margin: 8px 0 0 0; font-size: 14px; font-weight: 600; color: #333333;">${subheading}</p>`
-          : ""
-      }
-    </div>
-
-    <!-- Body Content -->
-    <div style="padding: 36px 32px; line-height: 1.6; color: #e5e5e5; font-size: 15px;">
-      ${content}
-
-      <div style="margin-top: 36px; padding-top: 24px; border-top: 1px solid #282828; text-align: center; font-size: 12px; color: #777777;">
-        <p style="margin: 0 0 6px 0;">Need immediate assistance? Contact our 24/7 hotline at <strong style="color: #ffcc00;">+63 (917) 000-0000</strong></p>
-        <p style="margin: 0; text-transform: uppercase; letter-spacing: 0.5px; font-size: 11px;">
-          &copy; ${year} InstaCar Philippines. All rights reserved.
+<body style="margin: 0; padding: 0; background-color: #0d0d0d; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #ffffff; -webkit-font-smoothing: antialiased;">
+  <div style="background-color: #0d0d0d; width: 100%; padding: 32px 12px; box-sizing: border-box;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: #161616; border-radius: 16px; overflow: hidden; border: 1px solid #282828; box-shadow: 0 12px 35px rgba(0,0,0,0.6);">
+      <!-- Brand Header -->
+      <div style="background: linear-gradient(135deg, #ffcc00 0%, #e6b800 100%); padding: 36px 24px; text-align: center;">
+        <p style="margin: 0 0 6px 0; font-size: 11px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; color: #1a1a1a;">
+          INSTACAR RENTAL SERVICE
         </p>
+        <h1 style="margin: 0; font-size: 24px; font-weight: 900; color: #000000; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.2;">
+          ${heading}
+        </h1>
+        ${
+          subheading
+            ? `<p style="margin: 8px 0 0 0; font-size: 13px; font-weight: 700; color: #222222;">${subheading}</p>`
+            : ""
+        }
+      </div>
+
+      <!-- Body Content -->
+      <div style="padding: 32px 28px; line-height: 1.65; color: #cccccc; font-size: 15px;">
+        ${content}
+
+        <!-- Unified Footer -->
+        <div style="margin-top: 36px; padding-top: 24px; border-top: 1px solid #282828; text-align: center; font-size: 12px; color: #777777; line-height: 1.6;">
+          <p style="margin: 0 0 8px 0;">
+            Need immediate assistance? Contact our 24/7 hotline at <strong style="color: #ffcc00;">+63 (917) 000-0000</strong>
+          </p>
+          <p style="margin: 0; text-transform: uppercase; letter-spacing: 0.5px; font-size: 11px; color: #555555;">
+            &copy; ${year} InstaCar Rental Service Philippines. All rights reserved.
+          </p>
+        </div>
       </div>
     </div>
   </div>
 </body>
-</html>
-`;
+</html>`;
 }
 
-function button({ href, label }: { href: string; label: string }): string {
+export function emailButton({
+  href,
+  label,
+  outline = false,
+}: {
+  href: string;
+  label: string;
+  outline?: boolean;
+}): string {
+  const style = outline
+    ? "display: inline-block; border: 2px solid #ffcc00; color: #ffcc00; background-color: transparent; font-weight: 800; font-size: 13px; padding: 13px 32px; border-radius: 12px; text-decoration: none; text-transform: uppercase; letter-spacing: 1px;"
+    : "display: inline-block; background-color: #ffcc00; color: #000000; font-weight: 800; font-size: 13px; padding: 14px 34px; border-radius: 12px; text-decoration: none; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 4px 15px rgba(255, 204, 0, 0.35);";
+
   return `
-  <div style="text-align: center; margin: 32px 0;">
-    <a href="${href}" style="display: inline-block; background-color: #ffcc00; color: #000000; font-weight: 800; font-size: 14px; padding: 14px 34px; border-radius: 12px; text-decoration: none; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 4px 15px rgba(255, 204, 0, 0.3);">
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="${href}" target="_blank" style="${style}">
       ${label}
     </a>
   </div>`;
@@ -81,28 +99,28 @@ export function buildWelcomeEmail({
   const safeName = name || "Valued Customer";
 
   const content = `
-    <p style="font-size: 18px; margin-top: 0;">Hello <strong style="color: #ffffff;">${safeName}</strong>,</p>
-    <p style="color: #cccccc;">
-      Welcome to <strong>InstaCar</strong>! We are thrilled to have you join our premier vehicle rental network. Whether you are traveling for business, planning a family getaway, or exploring the islands, we have the ideal ride ready for you.
+    <p style="font-size: 18px; margin: 0 0 14px 0; color: #ffffff;">Hello <strong style="color: #ffffff;">${safeName}</strong>,</p>
+    <p style="color: #cccccc; margin: 0 0 20px 0;">
+      Welcome to <strong>InstaCar</strong>! We are thrilled to have you join our premier vehicle rental network. Whether you are traveling for business, planning a weekend getaway, or exploring the islands, we have the ideal ride ready for you.
     </p>
 
-    <div style="background-color: #1f1f1f; border-left: 4px solid #ffcc00; border-radius: 8px; padding: 20px; margin: 26px 0;">
-      <h3 style="margin: 0 0 10px 0; font-size: 16px; color: #ffcc00; font-weight: 800; text-transform: uppercase;">
+    <div style="background-color: #1a1a1a; border-left: 4px solid #ffcc00; border-radius: 10px; padding: 20px 22px; margin: 24px 0;">
+      <h3 style="margin: 0 0 12px 0; font-size: 14px; color: #ffcc00; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">
         What you can do right now:
       </h3>
-      <ul style="margin: 0; padding-left: 20px; color: #dddddd; font-size: 14px;">
-        <li style="margin-bottom: 8px;"><strong>Browse Diverse Fleet:</strong> Sedans, SUVs, MPVs, and premium vans.</li>
-        <li style="margin-bottom: 8px;"><strong>Flexible Rentals:</strong> Hourly, daily, and long-term self-drive or with driver.</li>
-        <li style="margin-bottom: 8px;"><strong>Fast Bookings:</strong> Instant online checkout and reservation tracking.</li>
+      <ul style="margin: 0; padding-left: 20px; color: #dddddd; font-size: 14px; line-height: 1.8;">
+        <li><strong>Browse Diverse Fleet:</strong> Sedans, SUVs, MPVs, and premium vans.</li>
+        <li><strong>Flexible Rentals:</strong> Hourly, daily, and long-term self-drive or with driver.</li>
+        <li><strong>Fast Bookings:</strong> Instant online checkout and reservation tracking.</li>
         <li><strong>24/7 Road Support:</strong> Cleaned, inspected, and fully insured vehicles.</li>
       </ul>
     </div>
 
-    <p style="color: #cccccc;">
+    <p style="color: #cccccc; margin: 20px 0 0 0;">
       Click the button below to sign in to your dashboard, manage your profile, and rent your first vehicle.
     </p>
 
-    ${button({ href: loginUrl, label: "Explore Vehicles & Book" })}
+    ${emailButton({ href: loginUrl, label: "Explore Vehicles & Book" })}
   `;
 
   return {
@@ -153,59 +171,63 @@ export function buildBookingClientEmail({
   });
 
   const content = `
-    <p style="font-size: 18px; margin-top: 0;">Hello <strong style="color: #ffffff;">${safeName}</strong>,</p>
-    <p style="color: #cccccc;">
+    <p style="font-size: 18px; margin: 0 0 14px 0; color: #ffffff;">Hello <strong style="color: #ffffff;">${safeName}</strong>,</p>
+    <p style="color: #cccccc; margin: 0 0 20px 0;">
       Thank you for choosing InstaCar! We have successfully received your booking. Here are your reservation details:
     </p>
 
-    <div style="background-color: #1e1e1e; border: 1px solid #333333; border-radius: 12px; padding: 22px; margin: 24px 0;">
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #2e2e2e; padding-bottom: 12px; margin-bottom: 12px;">
-        <span style="color: #888888; font-size: 13px; text-transform: uppercase;">Booking Reference</span>
-        <span style="color: #ffcc00; font-weight: 800; font-size: 15px;">#${refCode}</span>
-      </div>
-
-      <div style="margin-bottom: 10px;">
-        <span style="color: #888888; font-size: 13px;">Selected Vehicle:</span>
-        <div style="font-size: 16px; font-weight: 800; color: #ffffff; margin-top: 2px;">${carName}</div>
-      </div>
-
-      <div style="margin-bottom: 10px;">
-        <span style="color: #888888; font-size: 13px;">Pickup Schedule:</span>
-        <div style="color: #ffffff; font-weight: 600; margin-top: 2px;">${startDate} &bull; ${pickupTime}</div>
-      </div>
-
-      <div style="margin-bottom: 10px;">
-        <span style="color: #888888; font-size: 13px;">Return Schedule:</span>
-        <div style="color: #ffffff; font-weight: 600; margin-top: 2px;">${endDate} &bull; ${returnTime}</div>
-      </div>
-
-      <div style="margin-bottom: 10px;">
-        <span style="color: #888888; font-size: 13px;">Fulfillment Type:</span>
-        <div style="color: #ffffff; font-weight: 600; margin-top: 2px;">${fulfillmentType || "Pickup"}</div>
-      </div>
-
-      ${
-        deliveryAddress
-          ? `
-      <div style="margin-bottom: 10px;">
-        <span style="color: #888888; font-size: 13px;">Delivery Location:</span>
-        <div style="color: #ffffff; font-weight: 600; margin-top: 2px;">${deliveryAddress}</div>
-      </div>
-      `
-          : ""
-      }
-
-      <div style="border-top: 1px solid #2e2e2e; padding-top: 14px; margin-top: 14px; display: flex; justify-content: space-between; align-items: center;">
-        <span style="color: #ffffff; font-size: 15px; font-weight: 700;">Total Amount:</span>
-        <span style="color: #ffcc00; font-size: 20px; font-weight: 900;">&#8369;${formattedTotal}</span>
-      </div>
+    <div style="background-color: #1a1a1a; border: 1px solid #282828; border-radius: 14px; padding: 22px 24px; margin: 24px 0;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="color: #888888; font-size: 12px; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; padding: 8px 0; border-bottom: 1px solid #262626;">
+            Booking Reference
+          </td>
+          <td style="color: #ffcc00; font-size: 15px; font-weight: 800; text-align: right; padding: 8px 0; border-bottom: 1px solid #262626;">
+            #${refCode}
+          </td>
+        </tr>
+        <tr>
+          <td style="color: #888888; font-size: 13px; padding: 10px 0 4px 0;">Selected Vehicle</td>
+          <td style="color: #ffffff; font-size: 15px; font-weight: 800; text-align: right; padding: 10px 0 4px 0;">${carName}</td>
+        </tr>
+        <tr>
+          <td style="color: #888888; font-size: 13px; padding: 6px 0;">Pickup Schedule</td>
+          <td style="color: #ffffff; font-size: 14px; font-weight: 600; text-align: right; padding: 6px 0;">${startDate} &bull; ${pickupTime}</td>
+        </tr>
+        <tr>
+          <td style="color: #888888; font-size: 13px; padding: 6px 0;">Return Schedule</td>
+          <td style="color: #ffffff; font-size: 14px; font-weight: 600; text-align: right; padding: 6px 0;">${endDate} &bull; ${returnTime}</td>
+        </tr>
+        <tr>
+          <td style="color: #888888; font-size: 13px; padding: 6px 0;">Fulfillment Type</td>
+          <td style="color: #ffffff; font-size: 14px; font-weight: 600; text-align: right; padding: 6px 0;">${fulfillmentType || "Pickup"}</td>
+        </tr>
+        ${
+          deliveryAddress
+            ? `
+        <tr>
+          <td style="color: #888888; font-size: 13px; padding: 6px 0;">Delivery Address</td>
+          <td style="color: #ffffff; font-size: 14px; font-weight: 600; text-align: right; padding: 6px 0;">${deliveryAddress}</td>
+        </tr>
+        `
+            : ""
+        }
+        <tr>
+          <td style="color: #ffffff; font-size: 15px; font-weight: 800; padding: 16px 0 0 0; border-top: 1px solid #262626;">
+            Total Price
+          </td>
+          <td style="color: #ffcc00; font-size: 22px; font-weight: 900; text-align: right; padding: 16px 0 0 0; border-top: 1px solid #262626;">
+            &#8369;${formattedTotal}
+          </td>
+        </tr>
+      </table>
     </div>
 
-    <p style="color: #cccccc; font-size: 14px;">
+    <p style="color: #cccccc; font-size: 14px; margin: 20px 0 0 0;">
       Our team is currently reviewing your documents and preparing the vehicle. You can monitor your booking status and upload any additional requirements from your portal.
     </p>
 
-    ${button({ href: dashboardUrl, label: "Track Booking Details" })}
+    ${emailButton({ href: dashboardUrl, label: "Track Booking Details" })}
   `;
 
   return {
@@ -249,22 +271,65 @@ export function buildBookingAdminEmail({
   });
 
   const content = `
-    <p style="font-size: 18px; margin-top: 0;">Admin Dispatch Notification</p>
-    <p style="color: #cccccc;">
+    <p style="font-size: 18px; margin: 0 0 14px 0; color: #ffffff;">Admin Dispatch Notification</p>
+    <p style="color: #cccccc; margin: 0 0 20px 0;">
       A new <strong>${bookingType.toUpperCase()}</strong> booking has been created in the InstaCar platform.
     </p>
 
-    <div style="background-color: #1e1e1e; border: 1px solid #333333; border-radius: 12px; padding: 20px; margin: 20px 0;">
-      <p style="margin: 0 0 8px 0;"><strong>Booking Ref:</strong> #${refCode}</p>
-      <p style="margin: 0 0 8px 0;"><strong>Customer Name:</strong> ${customerName}</p>
-      ${customerEmail ? `<p style="margin: 0 0 8px 0;"><strong>Email:</strong> ${customerEmail}</p>` : ""}
-      ${customerPhone ? `<p style="margin: 0 0 8px 0;"><strong>Phone:</strong> ${customerPhone}</p>` : ""}
-      <p style="margin: 0 0 8px 0;"><strong>Car:</strong> ${carName}</p>
-      <p style="margin: 0 0 8px 0;"><strong>Schedule:</strong> ${startDate} to ${endDate}</p>
-      <p style="margin: 0;"><strong>Total Price:</strong> &#8369;${formattedTotal}</p>
+    <div style="background-color: #1a1a1a; border: 1px solid #282828; border-radius: 14px; padding: 22px 24px; margin: 24px 0;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="color: #888888; font-size: 12px; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; padding: 8px 0; border-bottom: 1px solid #262626;">
+            Booking Reference
+          </td>
+          <td style="color: #ffcc00; font-size: 15px; font-weight: 800; text-align: right; padding: 8px 0; border-bottom: 1px solid #262626;">
+            #${refCode}
+          </td>
+        </tr>
+        <tr>
+          <td style="color: #888888; font-size: 13px; padding: 10px 0 4px 0;">Customer Name</td>
+          <td style="color: #ffffff; font-size: 14px; font-weight: 700; text-align: right; padding: 10px 0 4px 0;">${customerName}</td>
+        </tr>
+        ${
+          customerEmail
+            ? `
+        <tr>
+          <td style="color: #888888; font-size: 13px; padding: 6px 0;">Customer Email</td>
+          <td style="color: #ffffff; font-size: 14px; font-weight: 600; text-align: right; padding: 6px 0;">${customerEmail}</td>
+        </tr>
+        `
+            : ""
+        }
+        ${
+          customerPhone
+            ? `
+        <tr>
+          <td style="color: #888888; font-size: 13px; padding: 6px 0;">Customer Phone</td>
+          <td style="color: #ffffff; font-size: 14px; font-weight: 600; text-align: right; padding: 6px 0;">${customerPhone}</td>
+        </tr>
+        `
+            : ""
+        }
+        <tr>
+          <td style="color: #888888; font-size: 13px; padding: 6px 0;">Vehicle</td>
+          <td style="color: #ffffff; font-size: 14px; font-weight: 700; text-align: right; padding: 6px 0;">${carName}</td>
+        </tr>
+        <tr>
+          <td style="color: #888888; font-size: 13px; padding: 6px 0;">Schedule</td>
+          <td style="color: #ffffff; font-size: 14px; font-weight: 600; text-align: right; padding: 6px 0;">${startDate} to ${endDate}</td>
+        </tr>
+        <tr>
+          <td style="color: #ffffff; font-size: 15px; font-weight: 800; padding: 16px 0 0 0; border-top: 1px solid #262626;">
+            Total Price
+          </td>
+          <td style="color: #ffcc00; font-size: 22px; font-weight: 900; text-align: right; padding: 16px 0 0 0; border-top: 1px solid #262626;">
+            &#8369;${formattedTotal}
+          </td>
+        </tr>
+      </table>
     </div>
 
-    ${button({ href: adminUrl, label: "View in Admin Dashboard" })}
+    ${emailButton({ href: adminUrl, label: "View in Admin Dashboard" })}
   `;
 
   return {
@@ -291,28 +356,30 @@ export function buildOtpEmail({
   expiresInMinutes?: number;
   name?: string;
 }) {
-  const greeting = name ? `Hello <strong>${name}</strong>,` : "Hello,";
+  const greeting = name ? `Hello <strong style="color: #ffffff;">${name}</strong>,` : "Hello,";
 
   const content = `
-    <p style="font-size: 18px; margin-top: 0;">${greeting}</p>
-    <p style="color: #cccccc;">
+    <p style="font-size: 18px; margin: 0 0 14px 0; color: #ffffff;">${greeting}</p>
+    <p style="color: #cccccc; margin: 0 0 20px 0;">
       We received a request to reset your InstaCar account password. Use the 6-digit verification code below to complete the reset process:
     </p>
 
-    <div style="background-color: #0d0d0d; border: 2px dashed #ffcc00; border-radius: 14px; padding: 24px; margin: 30px 0; text-align: center;">
-      <span style="font-size: 13px; font-weight: 700; color: #888888; text-transform: uppercase; letter-spacing: 2px;">
-        Your One-Time Passcode (OTP)
+    <!-- OTP Display Box -->
+    <div style="background-color: #121212; border: 2px dashed #ffcc00; border-radius: 14px; padding: 26px 20px; margin: 26px 0; text-align: center;">
+      <span style="font-size: 12px; font-weight: 800; color: #888888; text-transform: uppercase; letter-spacing: 2px; display: block;">
+        YOUR ONE-TIME PASSCODE (OTP)
       </span>
-      <div style="font-size: 38px; font-weight: 900; letter-spacing: 10px; color: #ffcc00; margin: 12px 0; font-family: monospace;">
+      <div style="font-size: 38px; font-weight: 900; letter-spacing: 8px; color: #ffcc00; margin: 12px 0; font-family: 'Courier New', Courier, monospace;">
         ${otp}
       </div>
-      <span style="font-size: 12px; color: #aaaaaa;">
+      <span style="font-size: 12px; color: #999999;">
         Valid for <strong style="color: #ffffff;">${expiresInMinutes} minutes</strong>
       </span>
     </div>
 
-    <div style="background-color: #1a1a1a; border-left: 4px solid #ef4444; border-radius: 6px; padding: 14px 18px; margin: 24px 0;">
-      <p style="margin: 0; font-size: 13px; color: #fca5a5;">
+    <!-- Security Warning -->
+    <div style="background-color: #1a1a1a; border-left: 4px solid #ef4444; border-radius: 8px; padding: 14px 18px; margin: 24px 0;">
+      <p style="margin: 0; font-size: 13px; color: #fca5a5; line-height: 1.5;">
         <strong>Security Notice:</strong> Never share this OTP with anyone. InstaCar staff will never ask for your code. If you did not make this request, you can safely ignore this email.
       </p>
     </div>
@@ -345,20 +412,22 @@ export function buildInquiryUserEmail({
   const safeName = name || "Customer";
 
   const content = `
-    <p style="font-size: 18px; margin-top: 0;">Hello <strong style="color: #ffffff;">${safeName}</strong>,</p>
-    <p style="color: #cccccc;">
-      Thank you for reaching out to InstaCar Philippines! We have received your inquiry regarding <strong>"${subject}"</strong>.
+    <p style="font-size: 18px; margin: 0 0 14px 0; color: #ffffff;">Hello <strong style="color: #ffffff;">${safeName}</strong>,</p>
+    <p style="color: #cccccc; margin: 0 0 20px 0;">
+      Thank you for reaching out to InstaCar Philippines! We have received your inquiry regarding <strong>&ldquo;${subject}&rdquo;</strong>.
     </p>
 
-    <div style="background-color: #1e1e1e; border: 1px solid #333333; border-radius: 12px; padding: 20px; margin: 24px 0;">
-      <span style="color: #888888; font-size: 12px; text-transform: uppercase; font-weight: 700;">Summary of your message:</span>
-      <p style="color: #dddddd; font-style: italic; margin: 10px 0 0 0; line-height: 1.5; font-size: 14px;">
+    <div style="background-color: #1a1a1a; border-left: 4px solid #ffcc00; border-radius: 10px; padding: 20px 22px; margin: 24px 0;">
+      <span style="color: #ffcc00; font-size: 12px; text-transform: uppercase; font-weight: 800; letter-spacing: 1px; display: block; margin-bottom: 8px;">
+        Summary of your message:
+      </span>
+      <p style="color: #e5e5e5; font-style: italic; margin: 0; line-height: 1.6; font-size: 14px;">
         &ldquo;${message}&rdquo;
       </p>
     </div>
 
-    <p style="color: #cccccc; font-size: 14px;">
-      Our support team typically responds within <strong>2 to 4 business hours</strong> (8:00 AM – 8:00 PM PHT). For urgent dispatch requests, feel free to call our direct line at +63 (917) 000-0000.
+    <p style="color: #cccccc; font-size: 14px; margin: 20px 0 0 0;">
+      Our support team typically responds within <strong>2 to 4 business hours</strong> (8:00 AM – 8:00 PM PHT). For urgent dispatch requests, feel free to call our direct hotline at +63 (917) 000-0000.
     </p>
   `;
 
@@ -387,22 +456,44 @@ export function buildInquiryAdminEmail({
   createdAt?: string;
 }) {
   const content = `
-    <p style="font-size: 18px; margin-top: 0;">New Website Inquiry</p>
-    <p style="color: #cccccc;">
+    <p style="font-size: 18px; margin: 0 0 14px 0; color: #ffffff;">New Website Inquiry</p>
+    <p style="color: #cccccc; margin: 0 0 20px 0;">
       A customer has submitted a new inquiry through the landing page contact form.
     </p>
 
-    <div style="background-color: #1e1e1e; border: 1px solid #333333; border-radius: 12px; padding: 20px; margin: 24px 0;">
-      <p style="margin: 0 0 10px 0;"><strong>Sender Name:</strong> ${name}</p>
-      <p style="margin: 0 0 10px 0;"><strong>Sender Email:</strong> <a href="mailto:${email}" style="color: #ffcc00;">${email}</a></p>
-      <p style="margin: 0 0 10px 0;"><strong>Subject:</strong> ${subject}</p>
-      <p style="margin: 0 0 10px 0;"><strong>Received At:</strong> ${createdAt}</p>
-      <hr style="border: 0; border-top: 1px solid #333333; margin: 15px 0;">
-      <p style="margin: 0 0 6px 0; color: #888888; font-size: 12px; text-transform: uppercase; font-weight: 700;">Message Content:</p>
-      <div style="background-color: #121212; padding: 14px; border-radius: 8px; color: #ffffff; font-size: 14px; white-space: pre-wrap;">
-        ${message}
+    <div style="background-color: #1a1a1a; border: 1px solid #282828; border-radius: 14px; padding: 22px 24px; margin: 24px 0;">
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+        <tr>
+          <td style="color: #888888; font-size: 12px; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; padding: 6px 0;">Sender Name</td>
+          <td style="color: #ffffff; font-size: 14px; font-weight: 700; text-align: right; padding: 6px 0;">${name}</td>
+        </tr>
+        <tr>
+          <td style="color: #888888; font-size: 12px; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; padding: 6px 0;">Sender Email</td>
+          <td style="color: #ffcc00; font-size: 14px; font-weight: 600; text-align: right; padding: 6px 0;">
+            <a href="mailto:${email}" style="color: #ffcc00; text-decoration: none;">${email}</a>
+          </td>
+        </tr>
+        <tr>
+          <td style="color: #888888; font-size: 12px; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; padding: 6px 0;">Subject</td>
+          <td style="color: #ffffff; font-size: 14px; font-weight: 600; text-align: right; padding: 6px 0;">${subject}</td>
+        </tr>
+        <tr>
+          <td style="color: #888888; font-size: 12px; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; padding: 6px 0;">Received At</td>
+          <td style="color: #ffffff; font-size: 13px; font-weight: 500; text-align: right; padding: 6px 0;">${createdAt}</td>
+        </tr>
+      </table>
+
+      <div style="border-top: 1px solid #282828; padding-top: 14px;">
+        <span style="color: #888888; font-size: 12px; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; display: block; margin-bottom: 8px;">
+          Message Content:
+        </span>
+        <div style="background-color: #121212; border: 1px solid #222222; padding: 14px 16px; border-radius: 8px; color: #ffffff; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">
+          ${message}
+        </div>
       </div>
     </div>
+
+    ${emailButton({ href: `mailto:${email}?subject=Re: ${encodeURIComponent(subject)}`, label: "Reply via Email" })}
   `;
 
   return {

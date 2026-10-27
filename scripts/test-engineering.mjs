@@ -309,3 +309,60 @@ test("customer online booking RLS check permits user owned bookings and admins",
   // Can admin read it?
   assert.equal(canReadBooking(validBookingRow, adminSession), true);
 });
+
+// Test 13: All Email Templates Conform to the Unified Design System
+test("all email templates contain consistent brand header, footer, and styling", async () => {
+  const {
+    buildWelcomeEmail,
+    buildBookingClientEmail,
+    buildBookingAdminEmail,
+    buildOtpEmail,
+    buildInquiryUserEmail,
+    buildInquiryAdminEmail,
+    emailWrapper,
+    emailButton,
+  } = await import("../src/lib/emails/templates.ts");
+
+  const emails = [
+    buildWelcomeEmail({ name: "Jane Doe" }),
+    buildBookingClientEmail({
+      bookingId: 101,
+      name: "Jane Doe",
+      carName: "Toyota Fortuner",
+      startDate: "2026-11-01",
+      endDate: "2026-11-03",
+      pickupTime: "09:00:00",
+      returnTime: "09:00:00",
+      totalPrice: 6000,
+    }),
+    buildBookingAdminEmail({
+      bookingId: 101,
+      customerName: "Jane Doe",
+      carName: "Toyota Fortuner",
+      startDate: "2026-11-01",
+      endDate: "2026-11-03",
+      bookingType: "online",
+      totalPrice: 6000,
+    }),
+    buildOtpEmail({ otp: "123456" }),
+    buildInquiryUserEmail({ name: "Jane Doe", subject: "Rental Rates", message: "Hello!" }),
+    buildInquiryAdminEmail({ name: "Jane Doe", email: "jane@example.com", subject: "Inquiry", message: "Hi" }),
+    {
+      subject: "Custom Notification Test",
+      html: emailWrapper({
+        heading: "Status Notification",
+        subheading: "Update Notice",
+        content: "<p>Status details</p>" + emailButton({ href: "http://localhost:3000", label: "Check Status" }),
+      }),
+    },
+  ];
+
+  for (const email of emails) {
+    assert.ok(email.subject && email.subject.length > 5, "Subject must exist and be descriptive");
+    assert.ok(email.html.includes("INSTACAR RENTAL SERVICE"), "Every email must contain the official brand tag");
+    assert.ok(email.html.includes("#ffcc00"), "Every email must use the signature InstaCar yellow");
+    assert.ok(email.html.includes("#0d0d0d"), "Every email must use the consistent dark canvas background");
+    assert.ok(email.html.includes("+63 (917) 000-0000"), "Every email must provide the 24/7 hotline");
+    assert.ok(email.html.includes("InstaCar Rental Service Philippines"), "Every email must contain copyright");
+  }
+});
