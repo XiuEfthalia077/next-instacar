@@ -35,7 +35,8 @@ import {
 } from "@/lib/emails/booking";
 import { flashRedirect } from "@/lib/flash";
 import { manilaNowTimestamp, wallClockTimestamp } from "@/lib/datetime";
-import { sendMail } from "@/lib/mailer";
+import { sendMail, adminInbox } from "@/lib/mailer";
+import { queueEmail, resolveAppUrl } from "@/lib/queue";
 import { BUCKETS, buildFileName, uploadFile, removeFile } from "@/lib/storage";
 import { bookingPhotoKey } from "@/lib/storage";
 import { insertBranchId } from "@/lib/data/scope";
@@ -218,6 +219,9 @@ async function hasOverlap(options: {
 /** Car pricing columns used by the legacy calculator. */
 type CarPricing = {
   id: number;
+  brand: string | null;
+  model: string | null;
+  year: number | null;
   branch_id: number | null;
   price_10_hours: number | null;
   price_12_hours: number | null;
@@ -237,7 +241,7 @@ async function carPricing(carId: number): Promise<CarPricing | null> {
   const { data } = await supabase
     .from("cars")
     .select(
-      "id, branch_id, price_10_hours, price_12_hours, price_24_hours, ext_price_1_6, ext_price_7_10, ext_price_11_12, ext_price_13_24, operator_10_hours, operator_12_hours, operator_24_hours",
+      "id, brand, model, year, branch_id, price_10_hours, price_12_hours, price_24_hours, ext_price_1_6, ext_price_7_10, ext_price_11_12, ext_price_13_24, operator_10_hours, operator_12_hours, operator_24_hours",
     )
     .eq("id", carId)
     .maybeSingle();
@@ -650,6 +654,67 @@ export async function addManualBookingAction(formData: FormData) {
 
   const bookingId = (inserted as { id: number } | null)?.id ?? 0;
   if (bookingId) refreshBookingViews(bookingId);
+
+  // Feature B: Queue walk-in / manual booking confirmation to client & admin
+  try {
+    const carName = `${car.brand ?? ""} ${car.model ?? ""} (${car.year ?? ""})`.trim() || "Vehicle";
+    let recipientEmail = guestEmail;
+    let recipientName = guestName || "Customer";
+
+    if (!recipientEmail && userId) {
+      const { data: member } = await supabase
+        .from("users")
+        .select("name, email")
+        .eq("id", userId)
+        .maybeSingle();
+      if (member?.email) {
+        recipientEmail = member.email;
+        if (member.name) recipientName = member.name;
+      }
+    }
+
+    if (recipientEmail) {
+      await queueEmail({
+        type: "booking_client_confirmation",
+        email: recipientEmail,
+        data: {
+          bookingId,
+          name: recipientName,
+          carName,
+          startDate,
+          endDate,
+          pickupTime,
+          returnTime,
+          fulfillmentType,
+          deliveryAddress,
+          totalPrice,
+          dashboardUrl: `${resolveAppUrl()}/user/mybookings`,
+        },
+      });
+    }
+
+    const adminEmail = adminInbox();
+    if (adminEmail) {
+      await queueEmail({
+        type: "booking_admin_notification",
+        email: adminEmail,
+        data: {
+          bookingId,
+          customerName: recipientName,
+          customerEmail: recipientEmail || null,
+          customerPhone: guestPhone || null,
+          carName,
+          startDate,
+          endDate,
+          bookingType: "manual",
+          totalPrice,
+          adminUrl: `${resolveAppUrl()}/admin/bookings_manual`,
+        },
+      });
+    }
+  } catch (err) {
+    console.error("[addManualBookingAction] Failed to enqueue booking notifications:", err);
+  }
 
   flashRedirect(
     home,
@@ -1494,32 +1559,86 @@ export async function createBookingAction(formData: FormData) {
   const proofPayment = await upload("proof_of_payment", "payment");
 
   const fulfillment = fulfillmentValue(str(formData, "fulfillment_type", "pickup"));
+  const deliveryAddressVal =
+    fulfillment === "Delivery" ? str(formData, "delivery_address") || null : null;
 
-  const { error } = await supabase.from("bookings").insert({
-    user_id: session.userId,
-    created_by: session.userId,
-    car_id: carId,
-    branch_id: car.branch_id,
-    start_date: startDate,
-    end_date: endDate,
-    pickup_time: pickupTime,
-    return_time: returnTime,
-    total_price: totalPrice,
-    discount_price: 0,
-    down_payment: 0,
-    status: "Pending",
-    booking_type: "online",
-    fulfillment_type: fulfillment,
-    delivery_address:
-      fulfillment === "Delivery" ? str(formData, "delivery_address") || null : null,
-    return_delivery_address: str(formData, "return_delivery_address") || null,
-    primary_id_path: primaryId,
-    secondary_id_path: secondaryId || null,
-    proof_billing_path: proofBilling || null,
-    proof_payment_path: proofPayment || null,
-  });
+  const { data: insertedBooking, error } = await supabase
+    .from("bookings")
+    .insert({
+      user_id: session.userId,
+      created_by: session.userId,
+      car_id: carId,
+      branch_id: car.branch_id,
+      start_date: startDate,
+      end_date: endDate,
+      pickup_time: pickupTime,
+      return_time: returnTime,
+      total_price: totalPrice,
+      discount_price: 0,
+      down_payment: 0,
+      status: "Pending",
+      booking_type: "online",
+      fulfillment_type: fulfillment,
+      delivery_address: deliveryAddressVal,
+      return_delivery_address: str(formData, "return_delivery_address") || null,
+      primary_id_path: primaryId,
+      secondary_id_path: secondaryId || null,
+      proof_billing_path: proofBilling || null,
+      proof_payment_path: proofPayment || null,
+    })
+    .select("id")
+    .maybeSingle();
 
   if (error) flashRedirect(back, "error", `Database Error: ${error.message}`);
+
+  const bookingId = (insertedBooking as { id: number } | null)?.id ?? 0;
+
+  // Feature B: Queue online booking confirmation to client & notification to admin
+  try {
+    const carName = `${car.brand ?? ""} ${car.model ?? ""} (${car.year ?? ""})`.trim() || "Vehicle";
+
+    if (session.email) {
+      await queueEmail({
+        type: "booking_client_confirmation",
+        email: session.email,
+        data: {
+          bookingId,
+          name: session.name || "Customer",
+          carName,
+          startDate,
+          endDate,
+          pickupTime,
+          returnTime,
+          fulfillmentType: fulfillment,
+          deliveryAddress: deliveryAddressVal,
+          totalPrice,
+          dashboardUrl: `${resolveAppUrl()}/user/mybookings`,
+        },
+      });
+    }
+
+    const adminEmail = adminInbox();
+    if (adminEmail) {
+      await queueEmail({
+        type: "booking_admin_notification",
+        email: adminEmail,
+        data: {
+          bookingId,
+          customerName: session.name || "Customer",
+          customerEmail: session.email,
+          customerPhone: null,
+          carName,
+          startDate,
+          endDate,
+          bookingType: "online",
+          totalPrice,
+          adminUrl: `${resolveAppUrl()}/admin/bookings_online`,
+        },
+      });
+    }
+  } catch (err) {
+    console.error("[createBookingAction] Failed to enqueue booking notifications:", err);
+  }
 
   revalidatePath("/user/mybookings");
   revalidatePath("/user/dashboard");

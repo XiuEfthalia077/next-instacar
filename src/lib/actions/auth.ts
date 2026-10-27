@@ -9,6 +9,7 @@ import { ROLE_HOME } from "@/lib/constants";
 import type { UserRole } from "@/lib/types";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { signUpSchema } from "@/lib/validations";
+import { queueEmail, resolveAppUrl } from "@/lib/queue";
 
 /**
  * The messages below are the ones the legacy PHP app showed.
@@ -255,6 +256,21 @@ export async function signUpAction(
 
   if (profileError) {
     return { error: "Registration error occurred." };
+  }
+
+  // Feature A: Queue background welcome email via Upstash QStash
+  try {
+    await queueEmail({
+      type: "welcome",
+      email,
+      data: {
+        name,
+        loginUrl: `${resolveAppUrl()}/login`,
+      },
+    });
+  } catch (err) {
+    // Graceful error handling: user registration must never fail if email queuing fails
+    console.error("[signUpAction] Failed to enqueue welcome email:", err);
   }
 
   // When e-mail confirmation is disabled the session is returned right away.

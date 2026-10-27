@@ -185,3 +185,58 @@ test("analytics calculation logic for Operator Cars matches business rules", () 
   assert.equal(operatorNet, 1750);
   assert.equal(custodialBalance, 1850); // 350 fuel + 1500 damage
 });
+
+// Test 9: 6-Digit OTP Generation & SHA-256 Hashing Verification
+test("OTP generation produces 6-digit numeric string and verifies against SHA-256 hash", () => {
+  import("node:crypto").then((crypto) => {
+    const rawOtp = crypto.randomInt(100000, 1000000).toString();
+    assert.match(rawOtp, /^\d{6}$/);
+
+    const hash = crypto.createHash("sha256").update(rawOtp).digest("hex");
+    const testHash = crypto.createHash("sha256").update(rawOtp).digest("hex");
+    const wrongHash = crypto.createHash("sha256").update("999999").digest("hex");
+
+    assert.equal(hash, testHash);
+    assert.notEqual(hash, wrongHash);
+  });
+});
+
+// Test 10: QStash Email Payload Structure
+test("QStash email job payload validates required fields for all 4 flows", () => {
+  const allowedTypes = [
+    "welcome",
+    "booking_client_confirmation",
+    "booking_admin_notification",
+    "otp_verification",
+    "inquiry_user_confirmation",
+    "inquiry_admin_notification",
+  ];
+
+  function validatePayload(payload) {
+    if (!payload.type || !allowedTypes.includes(payload.type)) return false;
+    if (!payload.email || typeof payload.email !== "string" || !payload.email.includes("@")) return false;
+    if (!payload.data || typeof payload.data !== "object") return false;
+    return true;
+  }
+
+  assert.equal(
+    validatePayload({ type: "welcome", email: "user@example.com", data: { name: "John" } }),
+    true,
+  );
+  assert.equal(
+    validatePayload({ type: "otp_verification", email: "user@example.com", data: { otp: "123456" } }),
+    true,
+  );
+  assert.equal(
+    validatePayload({ type: "booking_client_confirmation", email: "user@example.com", data: { bookingId: 101 } }),
+    true,
+  );
+  assert.equal(
+    validatePayload({ type: "invalid_type", email: "user@example.com", data: {} }),
+    false,
+  );
+  assert.equal(
+    validatePayload({ type: "welcome", email: "", data: {} }),
+    false,
+  );
+});

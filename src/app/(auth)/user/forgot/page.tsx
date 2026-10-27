@@ -1,27 +1,26 @@
 import type { Metadata } from "next";
 
 import { AuthFrame } from "@/components/auth/auth-frame";
-import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
+import { OtpPasswordResetFlow } from "@/components/auth/otp-password-reset-flow";
 
 export const metadata: Metadata = {
-  title: "Forgot Password",
+  title: "Reset Password (OTP Verification) — InstaCar",
 };
 
 /**
- * Forgot-password page — port of `car-rental/pages/user/forgot.php`.
+ * Forgot-password page with 6-digit OTP email verification and secure reset flow.
  */
 export default function ForgotPasswordPage() {
   return (
     <AuthFrame variant="forgot">
       <div className="mb-4">
-        <h3 className="font-bold text-white">Reset Password</h3>
+        <h3 className="font-bold text-white text-base">Account Recovery</h3>
         <p className="text-muted text-xs">
-          Enter your email and we&apos;ll send you a link to get back into your
-          account.
+          Verify your identity with a 6-digit one-time passcode to safely set a new password.
         </p>
       </div>
 
-      <ForgotPasswordForm />
+      <OtpPasswordResetFlow />
     </AuthFrame>
   );
 }
