@@ -597,6 +597,11 @@ export async function addManualBookingAction(formData: FormData) {
     if (result.ok) uploads[key] = `${folder}/${fileName}`;
   }
 
+  const rawFulfillment = str(formData, "fulfillment_type");
+  const fulfillmentType: "Pickup" | "Delivery" =
+    rawFulfillment.toLowerCase() === "delivery" ? "Delivery" : "Pickup";
+  const deliveryAddress = str(formData, "delivery_address") || null;
+
   const { data: inserted, error } = await supabase
     .from("bookings")
     .insert({
@@ -622,6 +627,8 @@ export async function addManualBookingAction(formData: FormData) {
       down_payment: money(formData, "down_payment"),
       delivery_fee: money(formData, "delivery_fee"),
       pickup_fee: money(formData, "pickup_fee"),
+      fulfillment_type: fulfillmentType,
+      delivery_address: deliveryAddress,
       remarks: str(formData, "remarks") || null,
       status: "Confirmed",
       booking_type: "manual",

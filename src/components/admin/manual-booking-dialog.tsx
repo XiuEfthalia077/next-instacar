@@ -118,6 +118,12 @@ export function ManualBookingDialog({
   const [downPayment, setDownPayment] = useState("0");
   const [now, setNow] = useState(0);
 
+  // Fulfillment state
+  const [fulfillmentType, setFulfillmentType] = useState<
+    "Pickup" | "Delivery" | "Office Self-Pickup"
+  >("Pickup");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+
   // Searchable select state for registered members
   const [memberSearch, setMemberSearch] = useState("");
   const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
@@ -600,6 +606,47 @@ export function ManualBookingDialog({
               >
                 {durationText}
               </p>
+            </div>
+
+            <div>
+              <Label htmlFor="manual-fulfillment" className="mb-1 block text-xs font-bold">
+                Fulfillment Type
+              </Label>
+              <select
+                id="manual-fulfillment"
+                name="fulfillment_type"
+                value={fulfillmentType}
+                onChange={(event) =>
+                  setFulfillmentType(
+                    event.target.value as "Pickup" | "Delivery" | "Office Self-Pickup",
+                  )
+                }
+                className={filterControlClass}
+              >
+                <option value="Pickup">Pickup</option>
+                <option value="Delivery">Delivery</option>
+                <option value="Office Self-Pickup">Office Self-Pickup</option>
+              </select>
+            </div>
+
+            <div>
+              <Label htmlFor="manual-address" className="mb-1 block text-xs font-bold">
+                Pickup / Delivery Address {fulfillmentType === "Delivery" ? <span className="text-rose-600">*</span> : null}
+              </Label>
+              <Input
+                id="manual-address"
+                type="text"
+                name="delivery_address"
+                value={deliveryAddress}
+                onChange={(event) => setDeliveryAddress(event.target.value)}
+                placeholder={
+                  fulfillmentType === "Delivery"
+                    ? "Enter customer delivery & drop-off address"
+                    : "Pickup address or branch location (optional)"
+                }
+                required={fulfillmentType === "Delivery"}
+                className="rounded-lg"
+              />
             </div>
 
             <div>

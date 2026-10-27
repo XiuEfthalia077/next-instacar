@@ -4,8 +4,11 @@ import {
   ClipboardList,
   Clock,
   Inbox,
+  MapPin,
   Pencil,
   PlusCircle,
+  Store,
+  Truck,
 } from "lucide-react";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -37,7 +40,7 @@ import { StatCard } from "@/components/common/stat-card";
 import { StatusBadge } from "@/components/common/status-badge";
 import { getSupabase, requireRole } from "@/lib/auth";
 import { listBookings, type BookingRow } from "@/lib/data/bookings";
-import { listCars } from "@/lib/data/cars";
+import { listBranches, listCars } from "@/lib/data/cars";
 import { branchFilter, fetchRows, readPage, readPerPage } from "@/lib/data/scope";
 import { formatDate } from "@/lib/datetime";
 import { readFlash, searchParam } from "@/lib/flash";
@@ -192,7 +195,7 @@ export default async function StaffBookingsManualPage({
     carQuery = carQuery.eq("branch_id", scopedBranch);
   }
 
-  const [{ rows, count }, statusRows, customers, carRows] = await Promise.all([
+  const [{ rows, count }, branches, statusRows, customers, carRows] = await Promise.all([
     listBookings(session, {
       status,
       bookingType: "manual",
@@ -202,6 +205,7 @@ export default async function StaffBookingsManualPage({
       page,
       perPage,
     }),
+    listBranches(),
     fetchRows<{ status: string }>(counterQuery),
     fetchRows<{ id: number; name: string | null; email?: string | null }>(
       supabase.from("users").select("id, name, email").eq("role", "user").order("name", { ascending: true }),
@@ -322,6 +326,8 @@ export default async function StaffBookingsManualPage({
     return `/staff/bookings_manual${query ? `?${query}` : ""}`;
   };
 
+  const branchMap = new Map(branches.map((b) => [b.id, b]));
+
   const columns: DataTableColumn<BookingRow>[] = [
     {
       key: "customer",
@@ -436,6 +442,39 @@ export default async function StaffBookingsManualPage({
           </p>
         </div>
       ),
+    },
+    {
+      key: "fulfillment",
+      header: "Fulfillment",
+      cell: (booking) => {
+        const isDelivery = (booking.fulfillment_type ?? "Pickup").toLowerCase() === "delivery";
+        const branch =
+          branchMap.get(booking.branch_id ?? 0) ??
+          branchMap.get(booking.cars?.branch_id ?? 0);
+        const address = isDelivery
+          ? booking.delivery_address || "No address provided"
+          : (booking.delivery_address || `${branch?.name ?? "Main Branch"} - ${branch?.address ?? "Branch Location"}`);
+
+        return (
+          <div className="min-w-[190px]">
+            <Badge
+              variant="outline"
+              className={
+                isDelivery
+                  ? "gap-1 border-sky-200 bg-sky-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-sky-900 dark:border-sky-900 dark:bg-sky-950/50 dark:text-sky-200"
+                  : "gap-1 border-border bg-secondary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-secondary-foreground"
+              }
+            >
+              {isDelivery ? <Truck className="size-3" /> : <Store className="size-3" />}
+              {isDelivery ? "Delivery" : "Pickup"}
+            </Badge>
+            <p className="mt-1 flex items-start gap-1 text-[11px] text-muted-foreground">
+              <MapPin className="mt-0.5 size-3 shrink-0 text-rose-500" />
+              <span>{address}</span>
+            </p>
+          </div>
+        );
+      },
     },
     {
       key: "files",

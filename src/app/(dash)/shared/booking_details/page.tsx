@@ -4,6 +4,9 @@ import {
   CarFront,
   ClipboardList,
   FileText,
+  MapPin,
+  StickyNote,
+  Truck,
   UserCircle,
 } from "lucide-react";
 import Link from "next/link";
@@ -167,6 +170,10 @@ export default async function SharedBookingDetailsPage({
   const canWrite = session.role === "admin" || session.role === "staff" || session.role === "operator";
   const canStatus = session.role === "admin" || session.role === "staff";
 
+  const isDelivery = (booking.fulfillment_type ?? "Pickup").toLowerCase() === "delivery";
+  const isOperatorCar = Boolean(car?.user_id && car?.users && car.users.role === "operator");
+  const operatorDisplayName = isOperatorCar ? (car?.users?.name || `Operator #${car?.users?.id}`) : "Company Owned";
+
   const carImages = carImageUrls(car?.image_path);
   const firstCarImage = carImages[0]?.url ?? "";
 
@@ -276,6 +283,44 @@ export default async function SharedBookingDetailsPage({
                 </p>
               </div>
             ) : null}
+
+            {/* Fulfillment & Location Details */}
+            <div className="border-t border-border bg-card p-4 md:p-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-border/80 bg-muted/20 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="size-10 rounded-xl bg-[#ffcc00]/10 text-[#ffcc00] flex items-center justify-center shrink-0 mt-0.5">
+                    {isDelivery ? <Truck className="size-5" /> : <MapPin className="size-5" />}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                        Fulfillment Type
+                      </span>
+                      <span className="rounded-full bg-[#ffcc00]/20 px-2.5 py-0.5 text-[11px] font-extrabold text-[#b38a00] dark:text-[#ffd700] border border-[#ffcc00]/40">
+                        {isDelivery ? "🚚 Car Delivery" : "🏢 Office Self-Pickup"}
+                      </span>
+                    </div>
+                    <div className="mt-1.5">
+                      <p className="text-xs text-muted-foreground font-semibold">
+                        {isDelivery ? "Delivery & Drop-off Address:" : "Pickup / Office Location:"}
+                      </p>
+                      <p className="text-sm font-bold text-foreground mt-0.5">
+                        {booking.delivery_address ||
+                          (booking.branches?.name
+                            ? `${booking.branches.name} - Instacar Car Rental Services`
+                            : "Instacar Pavia, Iloilo Main Branch")}
+                      </p>
+                      {booking.return_delivery_address ? (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          <span className="font-semibold text-foreground">Return Location:</span>{" "}
+                          {booking.return_delivery_address}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </SectionCard>
 
           <SectionCard icon={UserCircle} title="Customer Information">
@@ -296,7 +341,7 @@ export default async function SharedBookingDetailsPage({
                 <div className="md:col-span-2">
                   <Label className="text-xs text-muted-foreground">Vehicle Operator (Owner)</Label>
                   <p className="font-semibold text-[#b38a00] dark:text-[#ffd700]">
-                    {car?.users?.name ?? "System"}
+                    {operatorDisplayName}
                   </p>
                 </div>
               ) : null}
@@ -360,8 +405,23 @@ export default async function SharedBookingDetailsPage({
             <div className="border-t border-border p-4 md:p-5">
               <h3 className="mb-3 text-sm font-bold">Customer Remarks & Notes History</h3>
 
-              {remarks.length > 0 ? (
+              {booking.remarks || remarks.length > 0 ? (
                 <div className="mb-3 space-y-2">
+                  {booking.remarks ? (
+                    <div className="rounded-lg border border-[#ffcc00]/40 bg-[#ffcc00]/5 px-4 py-3">
+                      <div className="mb-1 flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-1.5 text-xs font-bold text-[#b38a00] dark:text-[#ffd700]">
+                          <StickyNote className="size-3.5" />
+                          Initial Booking Notes / Remarks
+                        </span>
+                        <span className="text-[11px] text-muted-foreground">
+                          {booking.created_at ? formatDate(booking.created_at, "datetime") : "At booking creation"}
+                        </span>
+                      </div>
+                      <p className="whitespace-pre-wrap text-sm text-foreground">{booking.remarks}</p>
+                    </div>
+                  ) : null}
+
                   {[...remarks].reverse().map((remark) => (
                     <div key={remark.id} className="rounded-lg border border-border bg-muted/30 px-4 py-3">
                       <div className="mb-1 flex items-center justify-between gap-2">

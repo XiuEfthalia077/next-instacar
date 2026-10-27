@@ -245,8 +245,8 @@ export default async function SharedCarsPage({
                   const isOwnerOrAdmin =
                     canManage && (session.role === "admin" || car.user_id === session.userId);
 
-                  const isAssignedToOperator = Boolean(car.user_id);
-                  const ownerName = car.users?.name || (isAssignedToOperator ? "Operator" : "Company Owned");
+                  const isAssignedToOperator = Boolean(car.user_id && car.users?.role === "operator");
+                  const ownerName = isAssignedToOperator ? (car.users?.name || "Operator") : "Company";
 
                   return (
                     <tr

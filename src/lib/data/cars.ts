@@ -18,13 +18,13 @@ import { ACTIVE_CAR_STATUSES, carStatuses } from "@/lib/data/legacy-status";
 import type { AppSession, Car, CarStatus } from "@/lib/types";
 
 export type CarWithOwner = Car & {
-  users: { id: number; name: string | null; email: string | null } | null;
+  users: { id: number; name: string | null; email: string | null; role?: string | null } | null;
   branches: { id: number; name: string } | null;
 };
 
 const CAR_SELECT = `
   *,
-  users!cars_user_id_fkey ( id, name, email ),
+  users!cars_user_id_fkey ( id, name, email, role ),
   branches!cars_branch_id_fkey ( id, name )
 `;
 
