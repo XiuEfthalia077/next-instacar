@@ -119,7 +119,7 @@ export function Topbar({
 
               <DropdownMenuContent
                 align="end"
-                className="w-56 rounded-xl border border-border bg-[#18181b] p-1.5 shadow-2xl z-[200]"
+                className="w-56 rounded-xl border border-border bg-popover text-popover-foreground p-1.5 shadow-2xl z-[200]"
               >
                 <form action={switchBranchAction}>
                   <button
@@ -130,7 +130,7 @@ export function Topbar({
                       "flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold transition-colors",
                       session.viewBranch === "all"
                         ? "bg-[#ffcc00] text-black shadow-xs font-extrabold"
-                        : "text-foreground hover:bg-[#27272a] hover:text-white",
+                        : "text-foreground hover:bg-accent hover:text-accent-foreground",
                     )}
                   >
                     <span className="flex items-center gap-2">
@@ -152,7 +152,7 @@ export function Topbar({
                           "flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold transition-colors mt-0.5",
                           isSelected
                             ? "bg-[#ffcc00] text-black shadow-xs font-extrabold"
-                            : "text-foreground hover:bg-[#27272a] hover:text-white",
+                            : "text-foreground hover:bg-accent hover:text-accent-foreground",
                         )}
                       >
                         <span className="flex items-center gap-2 truncate">

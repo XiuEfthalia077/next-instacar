@@ -64,7 +64,7 @@ export function EditCarDialog({
         )}
       </DialogTrigger>
 
-      <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto border-border bg-[#0d0f12] text-foreground sm:rounded-2xl p-6 sm:p-8">
+      <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto border-border bg-card text-card-foreground sm:rounded-2xl p-6 sm:p-8">
         <DialogHeader className="border-b border-border/80 pb-4 pr-8">
           <DialogTitle className="text-xl font-extrabold text-foreground">
             Edit Vehicle — {carName}

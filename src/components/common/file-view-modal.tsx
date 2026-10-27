@@ -32,7 +32,7 @@ export function FileViewModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl p-0 overflow-hidden bg-[#0d0f12] border-border text-foreground sm:rounded-2xl shadow-2xl">
+      <DialogContent className="max-w-4xl p-0 overflow-hidden bg-card border-border text-card-foreground sm:rounded-2xl shadow-2xl">
         <DialogHeader className="px-6 py-4 border-b border-border/80 bg-card flex flex-row items-center justify-between pr-16">
           <DialogTitle className="text-base font-extrabold flex items-center gap-2 truncate">
             {isPdf ? <FileText className="size-4 text-rose-400 shrink-0" /> : null}

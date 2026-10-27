@@ -3,47 +3,43 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
+import { ThemeToggle } from "@/components/layout/topbar";
 
-/**
- * Marketing navbar — port of the `<nav class="navbar">` block of
- * `car-rental/index.php`.
- *
- * Legacy look: sticky, `rgba(10,10,10,.95)` with a 12px backdrop blur and a
- * 1px `rgba(255,204,0,.15)` bottom border. The brand uses the gradient text
- * fill (`#fff` -> `#ffcc00`), the links are `#ddd` and turn yellow on hover.
- */
 export function SiteNavbar() {
   const [open, setOpen] = useState(false);
 
   const links = [
-    { label: "How It Works", href: "#features" },
+    { label: "Services", href: "#features" },
     { label: "Our Fleet", href: "#fleet" },
     { label: "Contact Us", href: "#contact" },
   ];
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-[#ffcc00]/15 bg-[#0a0a0a]/95 backdrop-blur-[12px]">
-      <div className="mx-auto w-full max-w-[1320px] px-3 py-3">
+    <nav className="sticky top-0 z-50 border-b border-border/80 bg-background/90 text-foreground backdrop-blur-md transition-colors">
+      <div className="mx-auto w-full max-w-[1320px] px-4 py-3">
         <div className="flex items-center justify-between">
           <Link
             href="/"
-            className="brand-gradient-text text-[1.9rem] font-extrabold tracking-[-1px]"
+            className="brand-gradient-text text-[1.8rem] sm:text-[1.9rem] font-black tracking-[-1px]"
           >
             Insta<span className="text-[#ffcc00]">Car</span>
           </Link>
 
-          <button
-            type="button"
-            onClick={() => setOpen((value) => !value)}
-            aria-label="Toggle navigation"
-            aria-expanded={open}
-            className="border-0 bg-transparent p-1 text-white lg:hidden"
-          >
-            {open ? <X className="h-8 w-8" /> : <Menu className="h-8 w-8" />}
-          </button>
+          <div className="flex items-center gap-2 lg:hidden">
+            <ThemeToggle />
+            <button
+              type="button"
+              onClick={() => setOpen((value) => !value)}
+              aria-label="Toggle navigation"
+              aria-expanded={open}
+              className="rounded-lg border border-border p-2 text-foreground hover:bg-muted"
+            >
+              {open ? <X className="size-5" /> : <Menu className="size-5" />}
+            </button>
+          </div>
 
           <div
-            className={`${open ? "block" : "hidden"} absolute inset-x-0 top-full border-b border-[#ffcc00]/15 bg-[#0a0a0a]/98 px-3 pb-4 pt-2 lg:static lg:block lg:border-0 lg:bg-transparent lg:p-0`}
+            className={`${open ? "block" : "hidden"} absolute inset-x-0 top-full border-b border-border bg-background px-4 pb-4 pt-2 shadow-lg lg:static lg:block lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none`}
           >
             <ul className="flex flex-col items-start gap-2 lg:ms-auto lg:flex-row lg:items-center">
               {links.map((link) => (
@@ -51,16 +47,27 @@ export function SiteNavbar() {
                   <a
                     href={link.href}
                     onClick={() => setOpen(false)}
-                    className="block rounded px-2 py-1 font-medium text-[#dddddd] transition-colors hover:text-[#ffcc00]"
+                    className="block rounded-lg px-3 py-1.5 text-xs sm:text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground hover:bg-muted/50 lg:hover:bg-transparent"
                   >
                     {link.label}
                   </a>
                 </li>
               ))}
-              <li className="lg:ms-2">
+              <li className="hidden lg:block lg:ms-2">
+                <ThemeToggle />
+              </li>
+              <li className="mt-2 lg:mt-0 lg:ms-2 w-full lg:w-auto">
+                <Link
+                  href="/login"
+                  className="inline-flex w-full lg:w-auto items-center justify-center rounded-xl border border-border bg-card px-4 py-2 text-xs sm:text-sm font-bold text-foreground transition hover:border-[#ffcc00]"
+                >
+                  Sign In
+                </Link>
+              </li>
+              <li className="w-full lg:w-auto lg:ms-1.5">
                 <Link
                   href="/register"
-                  className="btn-primary-custom inline-block px-4 py-2 text-sm"
+                  className="inline-flex w-full lg:w-auto items-center justify-center rounded-xl bg-[#ffcc00] px-4 py-2 text-xs sm:text-sm font-extrabold text-black shadow-sm transition hover:bg-[#ffd633]"
                 >
                   Register →
                 </Link>

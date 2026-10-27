@@ -22,28 +22,32 @@ export function StatsStrip({ stats }: { stats: SiteStats }) {
   const rating = Number(stats.avg_rating ?? 5);
 
   return (
-    <section className="py-4">
-      <div className="mx-auto w-full max-w-[1320px] px-3">
-        <div className="grid items-center rounded-[2rem] border border-[#6c757d]/25 bg-black/50 p-5 md:grid-cols-3 md:p-12">
-          <div className="mb-3 text-center md:mb-0">
-            <h3 className="text-[calc(1.475rem+2.7vw)] font-bold leading-tight text-[#ffcc00] xl:text-[3.5rem]">
+    <section className="py-8">
+      <div className="mx-auto w-full max-w-[1320px] px-4">
+        <div className="grid items-center rounded-3xl border border-border bg-card p-6 shadow-sm md:grid-cols-3 md:p-10">
+          <div className="mb-4 text-center md:mb-0">
+            <h3 className="text-4xl font-black text-amber-600 dark:text-[#ffcc00] lg:text-5xl">
               {formatCount(satisfiedRenters)}+
             </h3>
-            <p className="mb-0 text-[#6c757d]">Satisfied Renters</p>
+            <p className="mt-1 text-xs sm:text-sm font-semibold text-muted-foreground">
+              Satisfied Drivers Served
+            </p>
           </div>
-          <div className="mb-3 text-center md:mb-0">
-            <h3 className="text-[calc(1.475rem+2.7vw)] font-bold leading-tight text-white xl:text-[3.5rem]">
+          <div className="mb-4 text-center md:mb-0 border-y md:border-y-0 md:border-x border-border/80 py-4 md:py-0">
+            <h3 className="text-4xl font-black text-foreground lg:text-5xl">
               {rating.toFixed(1)} ★
             </h3>
-            <p className="mb-0 text-[#6c757d]">
-              {formatCount(stats.total_reviews)} Reviews
+            <p className="mt-1 text-xs sm:text-sm font-semibold text-muted-foreground">
+              {formatCount(stats.total_reviews)} Verified Client Reviews
             </p>
           </div>
           <div className="text-center">
-            <h3 className="text-[calc(1.475rem+2.7vw)] font-bold leading-tight text-[#ffcc00] xl:text-[3.5rem]">
+            <h3 className="text-4xl font-black text-amber-600 dark:text-[#ffcc00] lg:text-5xl">
               {formatCount(stats.total_cars)}
             </h3>
-            <p className="mb-0 text-[#6c757d]">Available Vehicles</p>
+            <p className="mt-1 text-xs sm:text-sm font-semibold text-muted-foreground">
+              Pre-Inspected Fleet Vehicles
+            </p>
           </div>
         </div>
       </div>

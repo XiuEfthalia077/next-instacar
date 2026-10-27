@@ -58,7 +58,7 @@ export function CustomerReviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md border-border bg-[#0d0f12] text-foreground sm:rounded-2xl p-6 sm:p-7">
+      <DialogContent className="max-w-md border-border bg-card text-card-foreground sm:rounded-2xl p-6 sm:p-7">
         <DialogHeader className="border-b border-border/70 pb-3 pr-8">
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#ffcc00]">
             <Sparkles className="size-3.5" />
@@ -78,7 +78,7 @@ export function CustomerReviewDialog({
           <input type="hidden" name="return_url" value="/user/mybookings" />
 
           {/* Star Rating Selector */}
-          <div className="space-y-1.5 rounded-xl border border-border/80 bg-card p-4 text-center">
+          <div className="space-y-1.5 rounded-xl border border-border/80 bg-muted/40 p-4 text-center">
             <Label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider">
               Your Rating
             </Label>
@@ -104,7 +104,7 @@ export function CustomerReviewDialog({
                 </button>
               ))}
             </div>
-            <p className="text-xs font-bold text-[#ffcc00]">
+            <p className="text-xs font-bold text-amber-600 dark:text-[#ffcc00]">
               {RATING_LABELS[activeStars] || `${activeStars} Stars`}
             </p>
           </div>

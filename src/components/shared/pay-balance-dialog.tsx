@@ -55,7 +55,7 @@ export function PayBalanceDialog({
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto border-border bg-[#0d0f12] text-foreground sm:rounded-2xl p-6 sm:p-8">
+      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto border-border bg-card text-card-foreground sm:rounded-2xl p-6 sm:p-8">
         <DialogHeader className="border-b border-border/80 pb-4 pr-8">
           <DialogTitle className="flex items-center gap-2 text-lg font-bold text-foreground">
             <DollarSign className="size-5 text-emerald-500" />

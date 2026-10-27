@@ -77,7 +77,7 @@ export function CarGalleryDialog({
         )}
       </DialogTrigger>
 
-      <DialogContent className="max-w-3xl overflow-hidden border-border bg-[#0d0f12] p-0 text-foreground sm:rounded-2xl">
+      <DialogContent className="max-w-3xl overflow-hidden border-border bg-card p-0 text-card-foreground sm:rounded-2xl">
         <DialogHeader className="border-b border-border/80 px-6 py-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between pr-8">
             <div>

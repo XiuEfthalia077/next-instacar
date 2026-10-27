@@ -76,7 +76,7 @@ export function OperatorSelect({
         </PopoverTrigger>
 
         <PopoverContent
-          className="z-[200] w-[340px] rounded-xl border-border bg-[#0d0f12] p-2 text-foreground shadow-2xl"
+          className="z-[200] w-[340px] rounded-xl border-border bg-popover p-2 text-popover-foreground shadow-2xl"
           align="start"
         >
           {/* Search Input */}

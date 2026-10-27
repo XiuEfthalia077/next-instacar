@@ -110,7 +110,7 @@ export function TrackStageDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto border-border bg-[#0d0f12] p-6 text-foreground sm:p-8 sm:rounded-2xl">
+      <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto border-border bg-card p-6 text-card-foreground sm:p-7 sm:rounded-2xl">
         <DialogHeader className="border-b border-border/80 pb-4 pr-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -155,59 +155,62 @@ export function TrackStageDialog({
               </div>
 
               {/* Stepper Graphic */}
-              <div className="relative flex items-center justify-between py-1">
-                {/* Background Connecting Line */}
-                <div className="absolute left-6 right-6 top-1/2 h-0.5 -translate-y-1/2 bg-muted/60" />
-                {/* Active Progress Line */}
-                <div
-                  className="absolute left-6 top-1/2 h-0.5 -translate-y-1/2 bg-gradient-to-r from-[#ffcc00] to-emerald-500 transition-all duration-500"
-                  style={{
-                    width: `${(currentStageIdx / (STAGES.length - 1)) * 100}%`,
-                  }}
-                />
+              <div className="relative py-2">
+                {/* Connecting Line Track: strictly bounded between center of column 1 (12.5%) and center of column 4 (87.5%) */}
+                <div className="absolute left-[12.5%] right-[12.5%] top-7 h-1 -translate-y-1/2 rounded-full bg-muted/80 overflow-hidden">
+                  {/* Active Progress Fill */}
+                  <div
+                    className="h-full bg-gradient-to-r from-[#ffcc00] to-emerald-500 transition-all duration-500"
+                    style={{
+                      width: `${(currentStageIdx / (STAGES.length - 1)) * 100}%`,
+                    }}
+                  />
+                </div>
 
-                {STAGES.map((step, idx) => {
-                  const Icon = step.icon;
-                  const isDone = idx < currentStageIdx;
-                  const isCurrent = idx === currentStageIdx;
-                  const isFuture = idx > currentStageIdx;
+                {/* 4 Equal Columns */}
+                <div className="relative grid grid-cols-4">
+                  {STAGES.map((step, idx) => {
+                    const Icon = step.icon;
+                    const isDone = idx < currentStageIdx;
+                    const isCurrent = idx === currentStageIdx;
 
-                  return (
-                    <div
-                      key={step.key}
-                      className="relative z-10 flex flex-col items-center"
-                    >
+                    return (
                       <div
-                        className={cn(
-                          "flex size-10 items-center justify-center rounded-full border-2 transition-all",
-                          isDone
-                            ? "border-emerald-500 bg-emerald-500 text-black shadow-sm"
-                            : isCurrent
-                              ? "border-[#ffcc00] bg-[#ffcc00] text-black shadow-md ring-4 ring-[#ffcc00]/25"
-                              : "border-border bg-card text-muted-foreground",
-                        )}
+                        key={step.key}
+                        className="relative z-10 flex flex-col items-center text-center"
                       >
-                        <Icon className="size-4.5" />
+                        <div
+                          className={cn(
+                            "flex size-10 items-center justify-center rounded-full border-2 transition-all",
+                            isDone
+                              ? "border-emerald-500 bg-emerald-500 text-black shadow-sm"
+                              : isCurrent
+                                ? "border-[#ffcc00] bg-[#ffcc00] text-black shadow-md ring-4 ring-[#ffcc00]/25"
+                                : "border-border bg-card text-muted-foreground",
+                          )}
+                        >
+                          <Icon className="size-4.5" />
+                        </div>
+                        <span
+                          className={cn(
+                            "mt-2 text-[11px] font-bold tracking-tight text-center",
+                            isCurrent
+                              ? "text-amber-600 dark:text-[#ffcc00]"
+                              : isDone
+                                ? "text-emerald-600 dark:text-emerald-400"
+                                : "text-muted-foreground",
+                          )}
+                        >
+                          {step.short}
+                        </span>
                       </div>
-                      <span
-                        className={cn(
-                          "mt-1.5 text-[10px] font-bold tracking-tight text-center",
-                          isCurrent
-                            ? "text-[#ffcc00]"
-                            : isDone
-                              ? "text-emerald-400"
-                              : "text-muted-foreground",
-                        )}
-                      >
-                        {step.short}
-                      </span>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
 
               {/* CURRENT STAGE HIGHLIGHT CARD */}
-              <div className="rounded-xl border border-[#ffcc00]/40 bg-[#ffcc00]/10 p-3.5 space-y-2">
+              <div className="rounded-xl border border-[#ffcc00]/50 bg-[#ffcc00]/10 p-4 space-y-2.5">
                 <div className="flex items-center gap-2">
                   <span className="flex size-6 items-center justify-center rounded-full bg-[#ffcc00] text-black text-xs font-black">
                     {currentStageIdx + 1}
@@ -219,8 +222,8 @@ export function TrackStageDialog({
                 <p className="text-xs text-foreground/90 leading-relaxed">
                   {currentStageInfo.desc}
                 </p>
-                <div className="rounded-lg bg-black/40 border border-border/60 p-2.5 text-[11px] text-muted-foreground">
-                  <strong className="text-amber-300">Next Step: </strong>
+                <div className="rounded-lg bg-card/90 border border-border/80 p-2.5 text-[11px] text-muted-foreground">
+                  <strong className="text-amber-600 dark:text-amber-300">Next Step: </strong>
                   {currentStageInfo.nextStep}
                 </div>
               </div>

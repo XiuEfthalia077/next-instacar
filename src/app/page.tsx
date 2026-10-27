@@ -26,7 +26,7 @@ export default async function HomePage() {
   const stats = await getSiteStats();
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] font-display text-white">
+    <div className="min-h-screen bg-background font-sans text-foreground transition-colors selection:bg-[#ffcc00] selection:text-black">
       <SiteNavbar />
 
       <main>

@@ -80,7 +80,7 @@ export function CarGalleryModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl border-border bg-[#0d0f12] p-0 text-foreground sm:rounded-2xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col">
+      <DialogContent className="max-w-4xl border-border bg-card p-0 text-card-foreground sm:rounded-2xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col">
         {/* HEADER */}
         <DialogHeader className="border-b border-border/80 bg-card px-5 py-4 sm:px-6 flex flex-row items-center justify-between pr-14">
           <div className="min-w-0 flex-1">
@@ -198,7 +198,7 @@ export function CarGalleryModal({
             </span>
             <div className="text-xs">
               <span className="text-muted-foreground">24h Rate: </span>
-              <span className="text-sm font-black text-[#ffcc00]">
+              <span className="text-sm font-black text-amber-600 dark:text-[#ffcc00]">
                 <Money value={car.price_24_hours} />
               </span>
             </div>

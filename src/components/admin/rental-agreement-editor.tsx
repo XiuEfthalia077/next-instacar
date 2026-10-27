@@ -174,7 +174,7 @@ export function RentalAgreementEditor({
             }
           }}
           rows={11}
-          className="w-full rounded-xl border border-border bg-[#090b0e] p-4 font-mono text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#ffcc00]"
+          className="w-full rounded-xl border border-border bg-muted/40 p-4 font-mono text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#ffcc00]"
           placeholder="Paste or write raw HTML markup..."
         />
       ) : (
@@ -183,7 +183,7 @@ export function RentalAgreementEditor({
           contentEditable
           onInput={handleInput}
           onBlur={handleInput}
-          className="min-h-[240px] max-h-[420px] overflow-y-auto rounded-xl border border-border bg-[#090b0e] p-4 text-xs leading-relaxed text-foreground focus:outline-none focus:ring-1 focus:ring-[#ffcc00] prose prose-invert prose-xs max-w-none"
+          className="min-h-[240px] max-h-[420px] overflow-y-auto rounded-xl border border-border bg-muted/40 p-4 text-xs leading-relaxed text-foreground focus:outline-none focus:ring-1 focus:ring-[#ffcc00] prose dark:prose-invert prose-xs max-w-none"
         />
       )}
 

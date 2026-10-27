@@ -68,7 +68,7 @@ export function CustomerBookingsTable({
               <th className="px-3.5 py-3 text-left font-extrabold">Vehicle Details</th>
               <th className="px-3.5 py-3 text-left font-extrabold">Rental Window</th>
               <th className="px-3.5 py-3 text-left font-extrabold">Financial Details</th>
-              <th className="px-3.5 py-3 text-center font-extrabold">Fulfillment Tracking</th>
+              <th className="px-3.5 py-3 text-center font-extrabold">Fulfillment</th>
               <th className="px-3.5 py-3 text-center font-extrabold">Status</th>
               <th className="px-3.5 py-3 text-right font-extrabold">Action</th>
             </tr>
@@ -136,20 +136,20 @@ export function CustomerBookingsTable({
                     ) : null}
                   </td>
 
-                  {/* 5. FULFILLMENT TRACKING (Visible and clickable regardless of status) */}
+                  {/* 5. FULFILLMENT METHOD */}
                   <td className="px-3.5 py-3.5 text-center align-middle">
-                    <button
-                      type="button"
-                      onClick={() => handleTrackStage(booking)}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#ffcc00]/60 bg-[#ffcc00]/10 px-3 py-1.5 text-xs font-extrabold text-[#ffcc00] transition hover:bg-[#ffcc00] hover:text-black shadow-xs"
-                      title="Open Stage Tracker"
-                    >
-                      <Truck className="size-3.5" />
-                      <span>Track Stage</span>
-                    </button>
-                    <p className="mt-1 text-[10px] text-muted-foreground">
-                      {isDelivery ? "🚚 Car Delivery" : "🏢 Self Pickup"}
-                    </p>
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-2.5 py-1 text-xs font-semibold text-foreground">
+                      <Truck className="size-3.5 text-amber-600 dark:text-[#ffcc00]" />
+                      <span>{isDelivery ? "Car Delivery" : "Self Pickup"}</span>
+                    </span>
+                    {booking.delivery_address ? (
+                      <p
+                        className="mt-1 max-w-[170px] mx-auto truncate text-[11px] text-muted-foreground"
+                        title={booking.delivery_address}
+                      >
+                        {booking.delivery_address}
+                      </p>
+                    ) : null}
                   </td>
 
                   {/* 6. STATUS */}
@@ -157,26 +157,27 @@ export function CustomerBookingsTable({
                     <StatusBadge status={booking.status} />
                   </td>
 
-                  {/* 7. ACTION */}
+                  {/* 7. ACTION (Strictly ONE clear action button per row) */}
                   <td className="px-3.5 py-3.5 text-right align-middle">
-                    <div className="flex items-center justify-end gap-1.5">
+                    <div className="flex items-center justify-end">
                       {booking.status === "Completed" ? (
                         <button
                           type="button"
                           onClick={() => setReviewBooking(booking)}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-[#ffcc00]/60 bg-[#ffcc00]/15 px-3 py-1.5 text-xs font-bold text-[#ffcc00] transition hover:bg-[#ffcc00] hover:text-black shadow-xs"
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-[#ffcc00]/60 bg-[#ffcc00]/15 px-3 py-1.5 text-xs font-bold text-[#b38a00] dark:text-[#ffcc00] transition hover:bg-[#ffcc00] hover:text-black shadow-xs cursor-pointer"
                           title="Rate Your Experience"
                         >
-                          <Star className="size-3.5 fill-[#ffcc00]" />
+                          <Star className="size-3.5 fill-current" />
                           <span>Review</span>
                         </button>
                       ) : (
                         <button
                           type="button"
                           onClick={() => handleTrackStage(booking)}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition hover:border-[#ffcc00] hover:text-foreground"
-                          title="View Trip Status"
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-[#ffcc00]/60 bg-[#ffcc00]/10 px-3 py-1.5 text-xs font-bold text-[#b38a00] dark:text-[#ffcc00] transition hover:bg-[#ffcc00] hover:text-black shadow-xs cursor-pointer"
+                          title="View Trip Status & Fulfillment"
                         >
+                          <Truck className="size-3.5" />
                           <span>Track Trip</span>
                         </button>
                       )}

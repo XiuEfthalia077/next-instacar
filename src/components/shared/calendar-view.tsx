@@ -543,7 +543,7 @@ export function CalendarView({
         open={Boolean(selectedDate)}
         onOpenChange={(open) => !open && setSelectedDate(null)}
       >
-        <DialogContent className="max-h-[85vh] max-w-xl overflow-y-auto border-border bg-[#0d0f12] text-foreground sm:rounded-2xl p-6 sm:p-8">
+        <DialogContent className="max-h-[85vh] max-w-xl overflow-y-auto border-border bg-card text-card-foreground sm:rounded-2xl p-6 sm:p-8">
           <DialogHeader className="border-b border-border/80 pb-4 pr-8">
             <DialogTitle className="flex items-center gap-2 text-base font-extrabold text-foreground">
               <CalendarIcon className="size-4 text-[#ffcc00]" />

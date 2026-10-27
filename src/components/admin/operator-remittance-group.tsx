@@ -106,7 +106,7 @@ function OperatorBreakdownModal({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
 
-      <DialogContent className="w-[96vw] max-w-5xl h-[88vh] max-h-[88vh] overflow-hidden p-0 rounded-2xl border-border bg-[#0d0f12] text-foreground flex flex-col shadow-2xl">
+      <DialogContent className="w-[96vw] max-w-5xl h-[88vh] max-h-[88vh] overflow-hidden p-0 rounded-2xl border-border bg-card text-card-foreground flex flex-col shadow-2xl">
         {/* Modal Header */}
         <DialogHeader className="border-b border-border/80 p-5 sm:p-6 pr-14 sm:pr-16 bg-card shrink-0">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">

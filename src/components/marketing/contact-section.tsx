@@ -35,91 +35,87 @@ export function ContactSection() {
   const [subject, setSubject] = useState("");
   const showCustomSubject = subject === CUSTOM_SUBJECT;
 
+  const INPUT_CLASS =
+    "h-10 w-full rounded-xl border border-border bg-background px-3 text-xs text-foreground placeholder:text-muted-foreground focus:border-[#ffcc00] focus:ring-1 focus:ring-[#ffcc00] outline-none transition-all";
+
   return (
-    <section id="contact" className="py-5">
-      <div className="mx-auto w-full max-w-[1320px] px-3 py-4">
+    <section id="contact" className="py-12 md:py-16">
+      <div className="mx-auto w-full max-w-[1320px] px-4">
         <div className="grid items-center gap-10 lg:grid-cols-5">
-          <div className="lg:col-span-2">
-            <span className="text-sm font-semibold uppercase text-[#ffcc00]">
-              Get in Touch
-            </span>
-            <h2 className="mt-2 mb-4 text-4xl font-bold tracking-tight text-white md:text-5xl">
-              Have Questions?
-              <br />
-              We&apos;re Here to Help.
-            </h2>
-            <p className="mb-4 text-[#6c757d]">
-              Need help picking a vehicle or verifying your requirements? Reach
-              out to our local support team directly.
-            </p>
-
-            <div className="mb-3 flex items-center gap-3">
-              <div
-                className="icon-circle mb-0 !h-12 !w-12"
-                style={{ fontSize: 20 }}
-              >
-                <Phone className="h-5 w-5" aria-hidden />
-              </div>
-              <div>
-                <h6 className="mb-0 font-bold text-white">Phone Number Support</h6>
-                <span className="text-sm text-[#6c757d]">+63 (917) 000-0000</span>
-              </div>
+          <div className="lg:col-span-2 space-y-6">
+            <div>
+              <span className="text-xs font-black uppercase tracking-wider text-amber-700 dark:text-[#ffcc00]">
+                Direct Contact &amp; Support
+              </span>
+              <h2 className="mt-2 text-3xl font-black tracking-tight text-foreground md:text-5xl">
+                Have Questions?
+                <br />
+                We&apos;re Here to Help.
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                Need help picking the right vehicle for your group, or have questions about requirements or delivery rates? Reach out to our local team.
+              </p>
             </div>
 
-            <div className="mb-3 flex items-center gap-3">
-              <div
-                className="icon-circle mb-0 !h-12 !w-12"
-                style={{ fontSize: 20 }}
-              >
-                <MapPin className="h-5 w-5" aria-hidden />
+            <div className="space-y-4">
+              <div className="flex items-center gap-3.5">
+                <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#ffcc00]/15 text-[#ffcc00]">
+                  <Phone className="size-5 text-amber-600 dark:text-[#ffcc00]" />
+                </div>
+                <div>
+                  <h6 className="text-xs font-bold text-foreground">Phone &amp; WhatsApp Support</h6>
+                  <span className="text-sm font-semibold text-muted-foreground">+63 (917) 000-0000</span>
+                </div>
               </div>
-              <div>
-                <h6 className="mb-0 font-bold text-white">Main Pickup Hub</h6>
-                <span className="text-sm text-[#6c757d]">
-                  Pandac, Pavia, 5001 Iloilo
-                </span>
-              </div>
-            </div>
 
-            <div className="flex items-center gap-3">
-              <div
-                className="icon-circle mb-0 !h-12 !w-12"
-                style={{ fontSize: 20 }}
-              >
-                <Clock className="h-5 w-5" aria-hidden />
+              <div className="flex items-center gap-3.5">
+                <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#ffcc00]/15 text-[#ffcc00]">
+                  <MapPin className="size-5 text-amber-600 dark:text-[#ffcc00]" />
+                </div>
+                <div>
+                  <h6 className="text-xs font-bold text-foreground">Main Dispatch &amp; Pickup Hub</h6>
+                  <span className="text-sm font-semibold text-muted-foreground">
+                    Pandac, Pavia, 5001 Iloilo, Philippines
+                  </span>
+                </div>
               </div>
-              <div>
-                <h6 className="mb-0 font-bold text-white">Operating Hours</h6>
-                <span className="text-sm text-[#6c757d]">
-                  Mon - Sun: 8:00 AM - 8:00 PM
-                </span>
+
+              <div className="flex items-center gap-3.5">
+                <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#ffcc00]/15 text-[#ffcc00]">
+                  <Clock className="size-5 text-amber-600 dark:text-[#ffcc00]" />
+                </div>
+                <div>
+                  <h6 className="text-xs font-bold text-foreground">Operating Dispatch Hours</h6>
+                  <span className="text-sm font-semibold text-muted-foreground">
+                    Monday to Sunday: 8:00 AM – 8:00 PM
+                  </span>
+                </div>
               </div>
             </div>
           </div>
 
           <div className="lg:col-span-3">
-            <div className="rounded-[1rem] border border-[#6c757d]/25 bg-black p-4 text-white md:p-5">
-              <h4 className="mb-4 text-lg font-bold text-white">
-                <Mail className="me-2 inline-block h-5 w-5 text-[#ffc107]" aria-hidden />
-                Send Us a Message
+            <div className="rounded-2xl border border-border bg-card p-6 sm:p-8 text-card-foreground shadow-sm">
+              <h4 className="mb-5 text-base sm:text-lg font-black text-foreground flex items-center gap-2">
+                <Mail className="size-5 text-amber-600 dark:text-[#ffcc00]" />
+                Send Us a Direct Message
               </h4>
 
-              <form action={formAction}>
-                <div className="grid gap-3 md:grid-cols-2">
+              <form action={formAction} className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <label
                       htmlFor="contact-name"
-                      className="mb-1 block text-sm font-medium text-[#f8f9fa]"
+                      className="mb-1.5 block text-xs font-bold text-foreground"
                     >
-                      <UserRound className="me-1 inline-block h-4 w-4 text-[#ffc107]" aria-hidden />
-                      Your Name
+                      Your Name <span className="text-rose-500">*</span>
                     </label>
                     <input
                       id="contact-name"
                       name="name"
                       type="text"
-                      className="form-control-dark text-white"
-                      placeholder="John Doe"
+                      className={INPUT_CLASS}
+                      placeholder="e.g. Maria Santos"
                       required
                     />
                   </div>
@@ -127,33 +123,31 @@ export function ContactSection() {
                   <div>
                     <label
                       htmlFor="contact-email"
-                      className="mb-1 block text-sm font-medium text-[#f8f9fa]"
+                      className="mb-1.5 block text-xs font-bold text-foreground"
                     >
-                      <Mail className="me-1 inline-block h-4 w-4 text-[#ffc107]" aria-hidden />
-                      Email Address
+                      Email Address <span className="text-rose-500">*</span>
                     </label>
                     <input
                       id="contact-email"
                       name="email"
                       type="email"
-                      className="form-control-dark text-white"
-                      placeholder="john@example.com"
+                      className={INPUT_CLASS}
+                      placeholder="maria@example.com"
                       required
                     />
                   </div>
 
-                  <div className="md:col-span-2">
+                  <div className="sm:col-span-2">
                     <label
                       htmlFor="contact-subject"
-                      className="mb-1 block text-sm font-medium text-[#f8f9fa]"
+                      className="mb-1.5 block text-xs font-bold text-foreground"
                     >
-                      <MessageSquare className="me-1 inline-block h-4 w-4 text-[#ffc107]" aria-hidden />
-                      Subject / Topic
+                      Inquiry Topic <span className="text-rose-500">*</span>
                     </label>
                     <select
                       id="contact-subject"
                       name="subject"
-                      className="form-control-dark text-white"
+                      className={INPUT_CLASS}
                       required
                       value={subject}
                       onChange={(event) => setSubject(event.target.value)}
@@ -162,7 +156,7 @@ export function ContactSection() {
                         Select a topic...
                       </option>
                       {CONTACT_SUBJECTS.map((item) => (
-                        <option key={item} value={item}>
+                        <option key={item} value={item} className="bg-background text-foreground">
                           {item}
                         </option>
                       ))}
@@ -170,19 +164,18 @@ export function ContactSection() {
                   </div>
 
                   {showCustomSubject ? (
-                    <div className="md:col-span-2">
+                    <div className="sm:col-span-2">
                       <label
                         htmlFor="contact-custom-subject"
-                        className="mb-1 block text-sm font-medium text-[#f8f9fa]"
+                        className="mb-1.5 block text-xs font-bold text-foreground"
                       >
-                        <Pencil className="me-1 inline-block h-4 w-4 text-[#ffc107]" aria-hidden />
-                        Custom Subject
+                        Custom Subject <span className="text-rose-500">*</span>
                       </label>
                       <input
                         id="contact-custom-subject"
                         name="custom_subject"
                         type="text"
-                        className="form-control-dark text-white"
+                        className={INPUT_CLASS}
                         placeholder="Enter your specific subject here..."
                         required
                         autoFocus
@@ -190,32 +183,31 @@ export function ContactSection() {
                     </div>
                   ) : null}
 
-                  <div className="md:col-span-2">
+                  <div className="sm:col-span-2">
                     <label
                       htmlFor="contact-message"
-                      className="mb-1 block text-sm font-medium text-[#f8f9fa]"
+                      className="mb-1.5 block text-xs font-bold text-foreground"
                     >
-                      <Pencil className="me-1 inline-block h-4 w-4 text-[#ffc107]" aria-hidden />
-                      Message
+                      Message Details <span className="text-rose-500">*</span>
                     </label>
                     <textarea
                       id="contact-message"
                       name="message"
                       rows={4}
-                      className="form-control-dark text-white"
-                      placeholder="How can we assist your journey?"
+                      className="w-full rounded-xl border border-border bg-background p-3 text-xs text-foreground placeholder:text-muted-foreground focus:border-[#ffcc00] focus:ring-1 focus:ring-[#ffcc00] outline-none transition-all"
+                      placeholder="Please tell us about your planned travel dates, preferred vehicle, or questions..."
                       required
                     />
                   </div>
 
-                  <div className="mt-4 md:col-span-2">
+                  <div className="sm:col-span-2 pt-1">
                     <button
                       type="submit"
                       disabled={isPending}
-                      className="btn-primary-custom w-full py-3 font-bold disabled:cursor-not-allowed disabled:opacity-70"
+                      className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#ffcc00] py-3 text-xs sm:text-sm font-black text-black shadow-md transition-all hover:bg-[#ffd633] disabled:cursor-not-allowed disabled:opacity-70 active:scale-[0.99]"
                     >
-                      <Send className="me-2 inline-block h-4 w-4" aria-hidden />
-                      {isPending ? "Sending..." : "Send Message"}
+                      <Send className="size-4" />
+                      <span>{isPending ? "Sending Message..." : "Submit Inquiry"}</span>
                     </button>
                   </div>
                 </div>
@@ -223,7 +215,7 @@ export function ContactSection() {
                 {state.error ? (
                   <p
                     role="alert"
-                    className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300"
+                    className="mt-4 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-xs font-bold text-rose-500"
                   >
                     {state.error}
                   </p>
@@ -232,7 +224,7 @@ export function ContactSection() {
                 {state.success ? (
                   <p
                     role="status"
-                    className="mt-4 rounded-xl border border-[#ffcc00]/40 bg-[#ffcc00]/10 px-4 py-3 text-sm text-[#ffcc00]"
+                    className="mt-4 rounded-xl border border-[#ffcc00]/40 bg-[#ffcc00]/10 px-4 py-3 text-xs font-bold text-amber-600 dark:text-[#ffcc00]"
                   >
                     {state.success}
                   </p>

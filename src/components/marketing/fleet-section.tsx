@@ -22,36 +22,37 @@ function formatPrice(value: number | null | undefined) {
  */
 export function FleetSection({ cars }: { cars: PopularCar[] }) {
   return (
-    <section id="fleet" className="py-5">
-      <div className="mx-auto w-full max-w-[1320px] px-3 py-4">
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+    <section id="fleet" className="py-12 md:py-16">
+      <div className="mx-auto w-full max-w-[1320px] px-4">
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <span className="text-sm font-semibold text-[#ffcc00]">
-              Ready for Pickup
+            <span className="text-xs font-black uppercase tracking-wider text-amber-700 dark:text-[#ffcc00]">
+              Ready for Immediate Handoff
             </span>
-            <h2 className="text-4xl font-bold tracking-tight text-white md:text-5xl">
-              Our Popular <span className="text-[#ffcc00]">Rides</span>
+            <h2 className="mt-1 text-3xl font-black tracking-tight text-foreground md:text-5xl">
+              Our Featured <span className="text-amber-600 dark:text-[#ffcc00]">Vehicles</span>
             </h2>
           </div>
 
           <div className="hidden md:block">
             <Link
               href="/login"
-              className="font-semibold text-[#ffcc00] no-underline transition-colors hover:text-white"
+              className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-amber-700 hover:text-amber-600 dark:text-[#ffcc00] dark:hover:text-[#ffd633] transition-colors"
             >
-              View Full Fleet <ArrowRight className="inline h-4 w-4" aria-hidden />
+              <span>View Full Fleet (All Branches)</span>
+              <ArrowRight className="size-4" />
             </Link>
           </div>
         </div>
 
         {cars.length === 0 ? (
-          <div className="py-5 text-center">
-            <p className="text-[#6c757d]">
-              No vehicles are currently listed. Check back shortly!
+          <div className="py-12 text-center rounded-2xl border border-dashed border-border bg-card/50">
+            <p className="text-sm text-muted-foreground">
+              No vehicles are currently listed. Check back shortly or contact our dispatch team!
             </p>
           </div>
         ) : (
-          <div className="mobile-car-carousel -mx-3 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="mobile-car-carousel -mx-3 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
             {cars.map((car) => {
               const photo = car.image_path
                 ? car.image_path.split(",")[0].trim()
@@ -62,53 +63,62 @@ export function FleetSection({ cars }: { cars: PopularCar[] }) {
 
               return (
                 <div key={car.id} className="car-item-col">
-                  <article className="car-card-premium">
-                    <div className="car-img-wrapper">
+                  <article className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-xs transition-all duration-300 hover:-translate-y-1 hover:border-[#ffcc00]/60 hover:shadow-xl">
+                    <div className="relative aspect-[16/10] w-full overflow-hidden bg-muted/60 flex items-center justify-center">
                       <CarImage src={image} alt={`${brand} ${model}`} />
+                      <div className="absolute top-3 left-3">
+                        <span className="rounded-full bg-black/75 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur">
+                          {car.type || "Sedan"}
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="flex flex-1 flex-col p-4">
-                      <div className="mb-2 flex items-start justify-between gap-2">
+                    <div className="flex flex-1 flex-col p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
                         <div>
-                          <h3 className="mb-0 text-lg font-bold text-white">
+                          <h3 className="text-base font-extrabold text-foreground group-hover:text-amber-600 dark:group-hover:text-[#ffcc00] transition-colors">
                             {brand} {model}
                           </h3>
-                          <div className="mt-1 flex gap-2">
-                            <span className="flex items-center gap-1 text-sm text-[#6c757d]">
-                              <CalendarDays className="h-3.5 w-3.5" aria-hidden />
+                          <div className="mt-1 flex gap-2 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <CalendarDays className="size-3.5" />
                               2024
                             </span>
-                            <span className="flex items-center gap-1 text-sm text-[#6c757d]">
-                              <Fuel className="h-3.5 w-3.5" aria-hidden />
+                            <span>•</span>
+                            <span className="flex items-center gap-1">
+                              <Fuel className="size-3.5" />
                               {car.fuel_type || "Gasoline"}
                             </span>
                           </div>
                         </div>
 
-                        <div className="price-tag whitespace-nowrap">
-                          ₱{formatPrice(car.price_24_hours)}
-                          <span className="text-base font-normal text-[#6c757d]">
-                            /day
-                          </span>
+                        <div className="text-right">
+                          <p className="text-base font-black text-amber-600 dark:text-[#ffcc00]">
+                            ₱{formatPrice(car.price_24_hours)}
+                          </p>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                            per 24 hours
+                          </p>
                         </div>
                       </div>
 
-                      <div className="mt-2 mb-4 flex gap-3 border-t border-[#6c757d]/25 pt-3 text-sm text-white">
+                      <div className="flex items-center justify-between border-t border-border/80 pt-2.5 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
-                          <Gauge className="h-4 w-4" aria-hidden />
+                          <Gauge className="size-3.5 text-foreground" />
                           {car.transmission || "Automatic"}
                         </span>
                         <span className="flex items-center gap-1">
-                          <Users className="h-4 w-4" aria-hidden />
-                          {car.capacity ?? 5} seats
+                          <Users className="size-3.5 text-foreground" />
+                          {car.capacity ?? 5} Seats
                         </span>
                       </div>
 
                       <Link
                         href={`/login?car=${car.id}`}
-                        className="btn-yellow-outline mt-auto flex items-center justify-center"
+                        className="mt-auto flex items-center justify-center gap-1.5 rounded-xl bg-[#ffcc00] py-2.5 text-xs font-black text-black shadow-xs transition-all hover:bg-[#ffd633] active:scale-[0.98]"
                       >
-                        Reserve Vehicle <ChevronRight className="ms-1 h-4 w-4" aria-hidden />
+                        <span>Reserve Vehicle</span>
+                        <ChevronRight className="size-3.5" />
                       </Link>
                     </div>
                   </article>
@@ -118,9 +128,9 @@ export function FleetSection({ cars }: { cars: PopularCar[] }) {
           </div>
         )}
 
-        <div className="mt-3 text-center md:hidden">
-          <span className="text-sm text-[#6c757d]">
-            Swipe horizontally to see more cars
+        <div className="mt-4 text-center md:hidden">
+          <span className="text-xs text-muted-foreground">
+            Swipe horizontally to see more vehicles
           </span>
         </div>
       </div>

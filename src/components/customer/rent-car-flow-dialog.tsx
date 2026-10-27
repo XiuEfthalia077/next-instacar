@@ -271,7 +271,7 @@ export function RentCarFlowDialog({
 
       {/* STEP 2: BOOKING FORM MODAL (Only opens after Agreement is accepted) */}
       <Dialog open={flowStep === "form"} onOpenChange={(isOpen) => !isOpen && handleCloseAll()}>
-        <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto border-border bg-[#0d0f12] p-6 text-foreground sm:p-8 sm:rounded-2xl">
+        <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto border-border bg-card p-6 text-card-foreground sm:p-8 sm:rounded-2xl">
           <DialogHeader className="border-b border-border/80 pb-4 pr-8">
             <DialogTitle className="text-lg font-black tracking-tight text-foreground">
               Book {carName}
@@ -773,7 +773,7 @@ export function RentCarFlowDialog({
 
       {/* DELIVERY CONFIRMATION MODAL */}
       <Dialog open={deliveryConfirmOpen} onOpenChange={setDeliveryConfirmOpen}>
-        <DialogContent className="max-w-sm border-border bg-[#0d0f12] p-6 text-foreground sm:rounded-2xl">
+        <DialogContent className="max-w-sm border-border bg-card p-6 text-card-foreground sm:rounded-2xl">
           <div className="flex flex-col items-center text-center space-y-3">
             <div className="rounded-full bg-[#ffcc00]/15 p-3 text-[#ffcc00]">
               <Truck className="size-6" />
@@ -813,7 +813,7 @@ export function RentCarFlowDialog({
 
       {/* PAYMENT QR CODE MODAL (Image 4) */}
       <Dialog open={qrModalOpen} onOpenChange={setQrModalOpen}>
-        <DialogContent className="max-w-xs border-border bg-[#0d0f12] p-6 text-foreground sm:rounded-2xl text-center">
+        <DialogContent className="max-w-xs border-border bg-card p-6 text-card-foreground sm:rounded-2xl text-center">
           <div className="flex flex-col items-center space-y-4">
             <div className="rounded-xl bg-[#ffcc00] p-2 text-black flex items-center justify-center">
               <QrCode className="size-6" />
@@ -856,7 +856,7 @@ export function RentCarFlowDialog({
         open={flowStep === "agreement"}
         onOpenChange={(isOpen) => !isOpen && handleCloseAll()}
       >
-        <DialogContent className="flex flex-col max-h-[90vh] max-w-2xl sm:max-w-3xl overflow-hidden p-0 border-border bg-[#0d0f12] text-foreground sm:rounded-2xl shadow-2xl">
+        <DialogContent className="flex flex-col max-h-[90vh] max-w-2xl sm:max-w-3xl overflow-hidden p-0 border-border bg-card text-card-foreground sm:rounded-2xl shadow-2xl">
           <DialogHeader className="border-b border-border/80 px-6 py-5 bg-card shrink-0 pr-14 text-left">
             <DialogTitle className="flex items-center gap-2.5 text-base sm:text-lg font-extrabold text-foreground">
               <FileCheck className="size-5 text-[#ffcc00]" />
@@ -900,7 +900,7 @@ export function RentCarFlowDialog({
 
       {/* Auxiliary Reader Dialog (only if user clicks 'View Full Agreement' while inside the booking form) */}
       <Dialog open={readingTermsInForm} onOpenChange={setReadingTermsInForm}>
-        <DialogContent className="flex flex-col max-h-[85vh] max-w-2xl sm:max-w-3xl overflow-hidden p-0 border-border bg-[#0d0f12] text-foreground sm:rounded-2xl shadow-2xl">
+        <DialogContent className="flex flex-col max-h-[85vh] max-w-2xl sm:max-w-3xl overflow-hidden p-0 border-border bg-card text-card-foreground sm:rounded-2xl shadow-2xl">
           <DialogHeader className="border-b border-border/80 px-6 py-4 bg-card shrink-0 pr-14 text-left">
             <DialogTitle className="flex items-center gap-2 text-base font-extrabold text-foreground">
               <FileCheck className="size-4 text-[#ffcc00]" />

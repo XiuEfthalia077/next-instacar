@@ -39,7 +39,7 @@ export function UserCarCard({
 
   return (
     <>
-      <div className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-[#121417] text-foreground shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#ffcc00]/50 hover:shadow-xl">
+      <div className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#ffcc00]/50 hover:shadow-xl">
         {/* IMAGE HEADER - CLICKABLE TO OPEN GALLERY */}
         <div
           onClick={() => setGalleryOpen(true)}
@@ -70,11 +70,19 @@ export function UserCarCard({
               ) : null}
             </div>
 
-            {/* View Gallery Badge */}
-            <span className="inline-flex items-center gap-1 rounded-full bg-black/75 px-2.5 py-0.5 text-[10px] font-bold text-white/90 backdrop-blur border border-white/10 transition group-hover:bg-[#ffcc00] group-hover:text-black group-hover:border-transparent">
+            {/* View Gallery Badge (Clickable) */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setGalleryOpen(true);
+              }}
+              className="inline-flex items-center gap-1 rounded-full bg-black/75 px-2.5 py-0.5 text-[10px] font-bold text-white/90 backdrop-blur border border-white/10 transition hover:bg-[#ffcc00] hover:text-black group-hover:bg-[#ffcc00] group-hover:text-black group-hover:border-transparent cursor-pointer active:scale-95"
+              title={`View ${photos.length} photos`}
+            >
               <Camera className="size-3" />
               <span>{photos.length} Photo{photos.length > 1 ? "s" : ""}</span>
-            </span>
+            </button>
           </div>
 
           {/* Bottom Status Badge */}
@@ -97,7 +105,7 @@ export function UserCarCard({
         <div className="flex flex-1 flex-col p-4">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <h3 className="text-base font-extrabold text-foreground group-hover:text-[#ffcc00] transition-colors">
+              <h3 className="text-base font-extrabold text-foreground group-hover:text-amber-600 dark:group-hover:text-[#ffcc00] transition-colors">
                 {carName}
               </h3>
               <p className="text-xs text-muted-foreground">
@@ -105,7 +113,7 @@ export function UserCarCard({
               </p>
             </div>
             <div className="text-right">
-              <p className="text-lg font-black text-[#ffcc00]">
+              <p className="text-lg font-black text-amber-600 dark:text-[#ffcc00]">
                 <Money value={car.price_24_hours} />
               </p>
               <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -140,8 +148,18 @@ export function UserCarCard({
             </span>
           </div>
 
-          {/* Action Button: Book Now */}
-          <div className="mt-auto">
+          {/* Action Buttons: View Gallery & Book Now */}
+          <div className="mt-auto grid grid-cols-2 gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => setGalleryOpen(true)}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-secondary/80 py-2.5 text-xs font-bold text-foreground transition-all hover:bg-secondary hover:border-[#ffcc00]/50 active:scale-[0.98] cursor-pointer"
+              title="View all photos of this vehicle"
+            >
+              <Camera className="size-3.5 text-amber-600 dark:text-[#ffcc00]" />
+              <span>View Gallery</span>
+            </button>
+
             <RentCarFlowDialog
               car={car}
               agreementHtml={agreementHtml}
@@ -151,7 +169,7 @@ export function UserCarCard({
               trigger={
                 <button
                   type="button"
-                  className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-[#ffcc00] py-2.5 text-xs font-black text-black shadow-md transition-all hover:bg-[#ffd633] active:scale-[0.98]"
+                  className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-[#ffcc00] py-2.5 text-xs font-black text-black shadow-md transition-all hover:bg-[#ffd633] active:scale-[0.98] cursor-pointer"
                 >
                   <CheckCircle2 className="size-4" />
                   <span>Book Now</span>
