@@ -1,6 +1,6 @@
 import { getSupabase } from "@/lib/auth";
-import { getCarAmortizations } from "@/lib/data/amortization";
 import { listBranches } from "@/lib/data/cars";
+import { getTotalExpenses } from "@/lib/data/expenses";
 import type { AppSession, Car } from "@/lib/types";
 
 export type OwnershipFilter = "all" | "company" | "operator";
@@ -49,6 +49,8 @@ export interface AnalyticsSummary {
     totalGrossRevenue: number;
     totalCompanyNet: number;
     totalOperatorPayouts: number;
+    totalExpenses: number;
+    trueNetProfit: number;
     totalAmortizationDeductions: number;
     trueCompanyNet: number;
     totalCustodialFunds: number;
@@ -79,15 +81,18 @@ export async function getFleetAnalytics(
   const branches = await listBranches();
   const branchMap = new Map(branches.map((b) => [b.id, b.name]));
 
-  // 2. Fetch car amortizations
-  const amortizationMap = await getCarAmortizations();
+  // 2. Fetch recorded operating expenses
+  const totalExpenses = await getTotalExpenses({
+    startDate: filters.startDate,
+    endDate: filters.endDate,
+  });
 
   // 3. Query all vehicles with user (operator) info
   let carsQuery = supabase
     .from("cars")
     .select(`
       id, brand, model, type, plate_number, user_id, branch_id,
-      price_24_hours, operator_24_hours, ext_price_1_6, monthly_amortization,
+      price_24_hours, operator_24_hours, ext_price_1_6,
       users!cars_user_id_fkey ( id, name, role )
     `)
     .order("id", { ascending: false });
@@ -128,7 +133,6 @@ export async function getFleetAnalytics(
   for (const c of rawCars) {
     const rawUser = Array.isArray(c.users) ? c.users[0] : c.users;
     const isCompany = !c.user_id || rawUser?.role !== "operator";
-    const monthlyAmortization = num(c.monthly_amortization) || amortizationMap[c.id] || 0;
 
     // Filter by ownership if requested
     if (filters.ownership === "company" && !isCompany) continue;
@@ -166,8 +170,8 @@ export async function getFleetAnalytics(
       damageFees: 0,
       companyNet: 0,
       operatorNet: 0,
-      monthlyAmortization: isCompany ? monthlyAmortization : 0,
-      trueCompanyNet: isCompany ? -monthlyAmortization : 0,
+      monthlyAmortization: 0,
+      trueCompanyNet: 0,
       custodialBalance: 0,
     });
   }
@@ -264,13 +268,12 @@ export async function getFleetAnalytics(
 
     if (v.isCompany) {
       companyCarsCount += 1;
-      totalAmortizationDeductions += v.monthlyAmortization;
     } else {
       operatorCarsCount += 1;
     }
   }
 
-  const trueCompanyNet = totalCompanyNet - totalAmortizationDeductions;
+  const trueCompanyNet = totalCompanyNet - totalExpenses;
 
   return {
     filters,
@@ -278,7 +281,9 @@ export async function getFleetAnalytics(
       totalGrossRevenue: Math.round(totalGrossRevenue * 100) / 100,
       totalCompanyNet: Math.round(totalCompanyNet * 100) / 100,
       totalOperatorPayouts: Math.round(totalOperatorPayouts * 100) / 100,
-      totalAmortizationDeductions: Math.round(totalAmortizationDeductions * 100) / 100,
+      totalExpenses: Math.round(totalExpenses * 100) / 100,
+      trueNetProfit: Math.round(trueCompanyNet * 100) / 100,
+      totalAmortizationDeductions: Math.round(totalExpenses * 100) / 100,
       trueCompanyNet: Math.round(trueCompanyNet * 100) / 100,
       totalCustodialFunds: Math.round(totalCustodialFunds * 100) / 100,
       totalDriverFees: Math.round(totalDriverFees * 100) / 100,

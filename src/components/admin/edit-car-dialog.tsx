@@ -242,39 +242,11 @@ export function EditCarDialog({
               </Label>
               <OperatorSelect
                 operators={operators}
-                value={car.user_id}
+                value={operators.some((op) => op.id === car.user_id) ? car.user_id : null}
                 name="user_id"
               />
             </div>
           ) : null}
-
-          {/* Monthly Amortization (Specifically for Company-owned cars) */}
-          <div className="rounded-xl border border-border/80 bg-muted/20 p-3.5 space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label htmlFor={`amortization-${car.id}`} className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-                <span>💳 Monthly Amortization</span>
-              </Label>
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                Company Cars
-              </span>
-            </div>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">₱</span>
-              <Input
-                id={`amortization-${car.id}`}
-                name="monthly_amortization"
-                type="number"
-                step="0.01"
-                min="0"
-                defaultValue={car.monthly_amortization ?? 0}
-                placeholder="20,000"
-                className="pl-7 text-xs font-bold"
-              />
-            </div>
-            <p className="text-[11px] text-muted-foreground">
-              Required for Company-owned vehicles to calculate true company net profit in analytics.
-            </p>
-          </div>
 
           {/* Divider */}
           <div className="border-t border-border/80 pt-2" />

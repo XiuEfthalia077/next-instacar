@@ -126,8 +126,8 @@ test("isSafeFileUpload strictly rejects executable extensions and double extensi
 // Test 7: Analytics Backend - Company Cars Profit Sharing & True Net Logic
 test("analytics calculation logic for Company Cars matches business rules", () => {
   // Company Cars:
-  // Company Net: Daily Rent + Extension Fee + Delivery Fees - Driver Fees. (Operator Net is strictly ₱0).
-  // True Company Net: Company Net - Monthly Amortization.
+  // Company Net (Gross Profit): Daily Rent + Extension Fee + Delivery Fees - Driver Fees. (Operator Net is strictly ₱0).
+  // True Net Profit: Company Net - Total Recorded Expenses.
   const payment = {
     daily_rent: 2000,
     extension_fee: 400,
@@ -138,7 +138,7 @@ test("analytics calculation logic for Company Cars matches business rules", () =
     damage_fee: 0,
     total_gross: 3550,
   };
-  const carAmortization = 20000;
+  const recordedExpenses = 20000;
 
   const deliveryFees = payment.delivery_fee + payment.pickup_fee; // 450
   const companyNet = payment.daily_rent + payment.extension_fee + deliveryFees - payment.driver_fee;
@@ -146,8 +146,8 @@ test("analytics calculation logic for Company Cars matches business rules", () =
   const operatorNet = 0;
   assert.equal(operatorNet, 0);
 
-  const trueCompanyNet = companyNet - carAmortization;
-  assert.equal(trueCompanyNet, 2350 - 20000); // -17650
+  const trueNetProfit = companyNet - recordedExpenses;
+  assert.equal(trueNetProfit, 2350 - 20000); // -17650
 });
 
 // Test 8: Analytics Backend - Operator Cars Profit Sharing & Custodial Ledger

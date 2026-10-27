@@ -17,9 +17,9 @@
 import { revalidatePath } from "next/cache";
 
 import { getSupabase, requireRole } from "@/lib/auth";
-import { saveCarAmortization } from "@/lib/data/amortization";
 import { today } from "@/lib/data/scope";
 import { flashRedirect } from "@/lib/flash";
+import { getAdminClient } from "@/lib/supabase-admin";
 import {
   BUCKETS,
   DEFAULT_IMAGE,
@@ -201,7 +201,8 @@ export async function saveCarAction(formData: FormData) {
   if (session.role === "admin") {
     const picked = int(formData, "user_id");
     if (picked > 0) {
-      const { data: owner } = await supabase
+      const db = getAdminClient() ?? supabase;
+      const { data: owner } = await db
         .from("users")
         .select("id, name, role")
         .eq("id", picked)
@@ -209,11 +210,14 @@ export async function saveCarAction(formData: FormData) {
 
       const row = owner as { id: number; name: string; role: string } | null;
 
-      if (!row || row.role !== "operator") {
+      if (row && row.role === "operator") {
+        ownerId = row.id;
+      } else if (row && (row.role === "admin" || row.role === "staff")) {
+        // Legacy company cars were attached to admin/staff accounts; treat as company-owned
+        ownerId = null;
+      } else {
         flashRedirect(home, "error", "Invalid operator selected. Only users with the Operator role can be assigned.");
       }
-
-      ownerId = row.id;
     } else {
       // Unassigned = Company-owned (user_id is null)
       ownerId = null;
@@ -250,22 +254,21 @@ export async function saveCarAction(formData: FormData) {
     ext_price_13_24: num(formData, "ext_price_13_24"),
   };
 
-  const monthlyAmortization = num(formData, "monthly_amortization");
-
   if (carId) {
-    const { error } = await supabase
+    const db = getAdminClient() ?? supabase;
+    const { error } = await db
       .from("cars")
       .update(payload)
       .eq("id", carId);
 
     if (error) flashRedirect(home, "error", `Update failed: ${error.message}`);
 
-    await saveCarAmortization(carId, monthlyAmortization);
     revalidateFleet();
     flashRedirect(home, "success", "Vehicle updated successfully!");
   }
 
-  const { data: inserted, error } = await supabase
+  const db = getAdminClient() ?? supabase;
+  const { data: inserted, error } = await db
     .from("cars")
     .insert({
       ...payload,
@@ -276,14 +279,10 @@ export async function saveCarAction(formData: FormData) {
 
   if (error) flashRedirect(home, "error", `Insert failed: ${error.message}`);
 
-  if (inserted?.id) {
-    await saveCarAmortization(inserted.id, monthlyAmortization);
-  }
-
   let message = "Car added successfully!";
 
-  if (ownerId !== session.userId) {
-    const { data: owner } = await supabase
+  if (ownerId && ownerId !== session.userId) {
+    const { data: owner } = await db
       .from("users")
       .select("name")
       .eq("id", ownerId)

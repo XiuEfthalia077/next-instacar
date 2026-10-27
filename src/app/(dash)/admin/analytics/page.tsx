@@ -9,6 +9,7 @@ import {
   CircleDollarSign,
   Filter,
   Fuel,
+  Receipt,
   RotateCcw,
   Search,
   ShieldCheck,
@@ -19,6 +20,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { ExpenseManager } from "@/components/admin/expense-manager";
 import { EmptyState } from "@/components/common/empty-state";
 import { FilterBar, FilterField, filterControlClass } from "@/components/common/filter-bar";
 import { Flash } from "@/components/common/flash";
@@ -40,6 +42,7 @@ import { requireRole } from "@/lib/auth";
 import { formatPeso } from "@/lib/constants";
 import { getFleetAnalytics, type OwnershipFilter } from "@/lib/data/analytics";
 import { listBranches } from "@/lib/data/cars";
+import { listExpenses } from "@/lib/data/expenses";
 import { readFlash, searchParam } from "@/lib/flash";
 import { cn } from "@/lib/utils";
 
@@ -62,7 +65,7 @@ export default async function AdminAnalyticsDashboardPage({
   const ownership = (searchParam(params, "ownership") || "all") as OwnershipFilter;
   const search = searchParam(params, "q") || null;
 
-  const [branches, analytics] = await Promise.all([
+  const [branches, analytics, expenses] = await Promise.all([
     listBranches(),
     getFleetAnalytics(session, {
       startDate,
@@ -70,6 +73,10 @@ export default async function AdminAnalyticsDashboardPage({
       branchId,
       ownership,
       search,
+    }),
+    listExpenses({
+      startDate,
+      endDate,
     }),
   ]);
 
@@ -80,7 +87,7 @@ export default async function AdminAnalyticsDashboardPage({
       <PageHeader
         title="Admin Analytics Dashboard"
         subtitle="Profit Sharing & Revenue Intelligence"
-        description="Comprehensive profit-sharing splits, true company net calculations with vehicle amortization, and operator custodial ledgers."
+        description="Comprehensive profit-sharing splits, dynamic operating expense deductions, and operator custodial ledgers."
       />
 
       <Flash {...flash} />
@@ -105,11 +112,11 @@ export default async function AdminAnalyticsDashboardPage({
           </p>
         </div>
 
-        {/* Total Company Net */}
+        {/* Total Company Net (Gross Profit) */}
         <div className="rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:border-border/80">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
-              Total Company Net
+              Total Gross Profit
             </span>
             <div className="flex size-8 items-center justify-center rounded-xl bg-sky-500/15 text-sky-400">
               <Building2 className="size-4" />
@@ -119,7 +126,7 @@ export default async function AdminAnalyticsDashboardPage({
             <Money value={grandTotals.totalCompanyNet} />
           </p>
           <p className="mt-1 text-[11px] text-muted-foreground">
-            Co. rent + ext + delivery cuts
+            Company profit before expenses
           </p>
         </div>
 
@@ -141,39 +148,39 @@ export default async function AdminAnalyticsDashboardPage({
           </p>
         </div>
 
-        {/* Total Amortization Deductions */}
+        {/* Total Operating Expenses */}
         <div className="rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:border-border/80">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
-              Total Amortization
+              Total Expenses
             </span>
-            <div className="flex size-8 items-center justify-center rounded-xl bg-amber-500/15 text-amber-400">
-              <Banknote className="size-4" />
+            <div className="flex size-8 items-center justify-center rounded-xl bg-rose-500/15 text-rose-400">
+              <Receipt className="size-4" />
             </div>
           </div>
-          <p className="mt-2 text-xl font-black text-amber-400">
-            -<Money value={grandTotals.totalAmortizationDeductions} />
+          <p className="mt-2 text-xl font-black text-rose-400">
+            -<Money value={grandTotals.totalExpenses} />
           </p>
           <p className="mt-1 text-[11px] text-muted-foreground">
-            {grandTotals.companyCarsCount} company-owned unit{grandTotals.companyCarsCount === 1 ? "" : "s"} financing
+            Rent, utilities, loans &amp; ops
           </p>
         </div>
 
-        {/* True Company Net (Company Net - Amortization) */}
+        {/* True Net Profit (Company Net - Expenses) */}
         <div className="rounded-2xl border-2 border-[#ffcc00]/60 bg-[#ffcc00]/10 p-5 shadow-sm transition hover:border-[#ffcc00]">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black uppercase tracking-wider text-[#ffcc00]">
-              True Company Net
+              True Net Profit
             </span>
             <div className="flex size-8 items-center justify-center rounded-xl bg-[#ffcc00] text-black shadow-xs">
               <TrendingUp className="size-4" />
             </div>
           </div>
-          <p className={cn("mt-2 text-xl font-black", grandTotals.trueCompanyNet >= 0 ? "text-[#ffcc00]" : "text-rose-400")}>
-            <Money value={grandTotals.trueCompanyNet} />
+          <p className={cn("mt-2 text-xl font-black", grandTotals.trueNetProfit >= 0 ? "text-[#ffcc00]" : "text-rose-400")}>
+            <Money value={grandTotals.trueNetProfit} />
           </p>
           <p className="mt-1 text-[11px] font-bold text-muted-foreground">
-            Company Net − Amortization
+            Total Gross Profit − Recorded Expenses
           </p>
         </div>
 
@@ -268,11 +275,14 @@ export default async function AdminAnalyticsDashboardPage({
         </FilterField>
       </FilterBar>
 
-      {/* ── 3. Per-Car Breakdown Table ── */}
+      {/* ── 3. Operating Expenses Management (Input Form & History) ── */}
+      <ExpenseManager expenses={expenses} totalExpenses={grandTotals.totalExpenses} />
+
+      {/* ── 4. Per-Car Breakdown Table ── */}
       <SectionCard
         title={`Per-Car Revenue & Profit Split Breakdown (${vehicles.length} Vehicles)`}
         icon={BarChart3}
-        description="Detailed revenue items, company cut vs operator cut, monthly amortization deductions, and custodial balances per vehicle."
+        description="Detailed revenue items, company cut vs operator cut, and custodial balances per vehicle."
         className="overflow-hidden shadow-sm"
         bodyClassName="p-0"
       >
@@ -307,11 +317,8 @@ export default async function AdminAnalyticsDashboardPage({
                   <TableHead className="py-3.5 text-right font-extrabold text-[11px] uppercase tracking-wider text-emerald-400">
                     Operator Cut
                   </TableHead>
-                  <TableHead className="py-3.5 text-right font-extrabold text-[11px] uppercase tracking-wider text-amber-400">
-                    Amortization
-                  </TableHead>
                   <TableHead className="py-3.5 text-right font-extrabold text-[11px] uppercase tracking-wider text-[#ffcc00]">
-                    True Co. Net
+                    Vehicle Net Cut
                   </TableHead>
                   <TableHead className="py-3.5 pr-6 text-right font-extrabold text-[11px] uppercase tracking-wider text-purple-400">
                     Custodial Bal.
@@ -401,25 +408,10 @@ export default async function AdminAnalyticsDashboardPage({
                         )}
                       </TableCell>
 
-                      {/* Monthly Amortization */}
-                      <TableCell className="py-4 text-right font-bold text-amber-400">
-                        {v.isCompany && v.monthlyAmortization > 0 ? (
-                          <span>-<Money value={v.monthlyAmortization} /></span>
-                        ) : (
-                          <span className="text-muted-foreground font-normal">—</span>
-                        )}
-                      </TableCell>
-
-                      {/* True Company Net */}
+                      {/* Vehicle Net Cut */}
                       <TableCell className="py-4 text-right font-black">
-                        <span
-                          className={cn(
-                            v.trueCompanyNet >= 0
-                              ? "text-[#ffcc00]"
-                              : "text-rose-400 font-bold",
-                          )}
-                        >
-                          <Money value={v.trueCompanyNet} />
+                        <span className="text-[#ffcc00]">
+                          <Money value={v.companyNet} />
                         </span>
                       </TableCell>
 

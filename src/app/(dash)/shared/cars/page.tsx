@@ -41,6 +41,7 @@ import { carTypes, fleetCounters, listBranches, listCars } from "@/lib/data/cars
 import { fetchRows } from "@/lib/data/scope";
 import { readFlash, searchParam } from "@/lib/flash";
 import { carImageUrl } from "@/lib/storage";
+import { getAdminClient } from "@/lib/supabase-admin";
 
 export const instant = false;
 
@@ -75,15 +76,16 @@ export default async function SharedCarsPage({
       perPage: 100,
     }),
     session.role === "admin"
-      ? getSupabase().then((s) =>
-          fetchRows<{ id: number; name: string | null; email?: string | null }>(
-            s
+      ? (async () => {
+          const client = getAdminClient() ?? (await getSupabase());
+          return fetchRows<{ id: number; name: string | null; email?: string | null }>(
+            client
               .from("users")
               .select("id, name, email")
               .eq("role", "operator")
               .order("name", { ascending: true }),
-          ),
-        )
+          );
+        })()
       : Promise.resolve([]),
   ]);
 
