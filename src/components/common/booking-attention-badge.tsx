@@ -1,6 +1,6 @@
 import * as React from "react";
-import { AlertCircle, TriangleAlert } from "lucide-react";
-import { getBookingAttentionAlert } from "@/lib/data/bookings";
+import { AlertCircle } from "lucide-react";
+import { getBookingAttentionAlert } from "@/lib/alerts";
 import { cn } from "@/lib/utils";
 
 export function BookingAttentionBadge({
@@ -19,25 +19,19 @@ export function BookingAttentionBadge({
   const alert = getBookingAttentionAlert(booking);
   if (!alert) return null;
 
-  const isUrgent = alert.severity === "urgent";
+  const isRelease = alert.type === "release";
+  const label = isRelease ? "Release Today" : "Return Today";
 
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-black tracking-tight shadow-xs",
-        isUrgent
-          ? "border border-rose-500/40 bg-rose-500/15 text-rose-400 animate-pulse"
-          : "border border-amber-500/40 bg-amber-500/15 text-amber-400",
+        "inline-flex items-center gap-1.5 rounded-full border border-amber-500/80 bg-amber-950/80 px-3 py-0.5 text-xs font-black text-[#ffcc00] shadow-sm tracking-wide",
         className,
       )}
       title={alert.message}
     >
-      {isUrgent ? (
-        <TriangleAlert className="size-3 shrink-0 text-rose-500" />
-      ) : (
-        <AlertCircle className="size-3 shrink-0 text-amber-500" />
-      )}
-      <span>{alert.type === "release" ? (isUrgent ? "Overdue Release" : "Release Today") : (isUrgent ? "Overdue Return" : "Return Today")}</span>
+      <AlertCircle className="size-3.5 shrink-0 text-[#ffcc00]" />
+      <span>{label}</span>
     </span>
   );
 }

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { AlertCircle, Calendar as CalendarIcon } from "lucide-react";
+import { PastDateConfirmDialog } from "@/components/common/past-date-confirm-dialog";
 import { cn } from "@/lib/utils";
 
 export type BlockedRange = {
@@ -29,6 +30,10 @@ export function AvailabilityCalendar({
   allowPastDates = true,
   className,
 }: AvailabilityCalendarProps) {
+  // Past date confirmation state
+  const [pendingPastDay, setPendingPastDay] = React.useState<string | null>(null);
+  const [confirmModalOpen, setConfirmModalOpen] = React.useState(false);
+
   // Initialize view date based on startDate or current date
   const [calDate, setCalDate] = React.useState(() => {
     if (startDate) {
@@ -91,6 +96,31 @@ export function AvailabilityCalendar({
     return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
   }, []);
 
+  const handleClickDay = (dayStr: string) => {
+    if (dayStr < todayStr) {
+      // Past date clicked: immediately prompt for confirmation
+      setPendingPastDay(dayStr);
+      setConfirmModalOpen(true);
+    } else {
+      // Normal available / today date
+      onSelectDay(dayStr);
+    }
+  };
+
+  const handleConfirmPast = () => {
+    if (pendingPastDay) {
+      onSelectDay(pendingPastDay);
+    }
+    setPendingPastDay(null);
+    setConfirmModalOpen(false);
+  };
+
+  const handleCancelPast = () => {
+    // If user clicks "No" or closes the modal, selection reverts
+    setPendingPastDay(null);
+    setConfirmModalOpen(false);
+  };
+
   return (
     <div
       className={cn(
@@ -104,9 +134,12 @@ export function AvailabilityCalendar({
           <CalendarIcon className="size-4 text-[#ffcc00]" />
           <span>{title}</span>
         </div>
-        <div className="flex items-center gap-1.5 text-[10px] font-bold">
+        <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-bold">
           <span className="rounded-md bg-emerald-600 px-2.5 py-0.5 text-white shadow-xs">
             Available
+          </span>
+          <span className="rounded-md bg-slate-800 border border-slate-700 px-2.5 py-0.5 text-slate-300 shadow-xs">
+            Past
           </span>
           <span className="rounded-md bg-rose-600 px-2.5 py-0.5 text-white shadow-xs">
             Booked / Maint
@@ -176,14 +209,14 @@ export function AvailabilityCalendar({
               type="button"
               key={currentDayStr}
               disabled={isUnavailable}
-              onClick={() => !isUnavailable && onSelectDay(currentDayStr)}
+              onClick={() => !isUnavailable && handleClickDay(currentDayStr)}
               title={
                 blocked
                   ? blocked.reason === "Maintenance"
                     ? "Unavailable — Scheduled for Maintenance"
                     : "Unavailable — Booked"
                   : isPast
-                    ? "Past Date (Selectable with confirmation)"
+                    ? "Past Date (Click to confirm selection)"
                     : isToday
                       ? "Today — Available"
                       : "Available for Rent"
@@ -194,9 +227,11 @@ export function AvailabilityCalendar({
                   ? "border-2 border-[#ffcc00] bg-[#ffcc00]/25 text-[#ffcc00] font-black shadow-sm"
                   : isBlocked
                     ? "border border-rose-500/50 bg-rose-500/20 text-rose-400 cursor-not-allowed opacity-90"
-                    : isToday
-                      ? "border border-[#ffcc00]/80 bg-[#ffcc00]/15 text-foreground hover:bg-[#ffcc00]/25 cursor-pointer font-black"
-                      : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 hover:border-emerald-500 cursor-pointer",
+                    : isPast
+                      ? "border border-slate-700/60 bg-slate-800/50 text-slate-400 hover:bg-slate-700/60 hover:text-slate-200 hover:border-slate-500 cursor-pointer"
+                      : isToday
+                        ? "border border-[#ffcc00]/80 bg-[#ffcc00]/15 text-foreground hover:bg-[#ffcc00]/25 cursor-pointer font-black"
+                        : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 hover:border-emerald-500 cursor-pointer",
               )}
             >
               {d}
@@ -209,12 +244,23 @@ export function AvailabilityCalendar({
       <div className="flex flex-wrap items-center justify-between text-[11px] text-muted-foreground pt-1">
         <span className="flex items-center gap-1">
           <AlertCircle className="size-3 text-muted-foreground" />
-          Red dates are booked or scheduled for maintenance.
+          Red dates booked/maint &bull; Grey dates in the past
         </span>
         <span className="text-emerald-400 font-semibold">
           Green dates available
         </span>
       </div>
+
+      {/* Immediate Past Date Confirmation Modal */}
+      <PastDateConfirmDialog
+        open={confirmModalOpen}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) handleCancelPast();
+        }}
+        onConfirm={handleConfirmPast}
+        title="Past Date Selection"
+        message="You are selecting a date in the past. Are you sure you want to proceed with this booking?"
+      />
     </div>
   );
 }

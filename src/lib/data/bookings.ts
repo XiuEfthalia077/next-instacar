@@ -333,6 +333,31 @@ export async function todaySchedule(
   return fetchRows<BookingRow>(query);
 }
 
+/** Today's pickups + returns specifically for manual/walk-in bookings */
+export async function todayManualSchedule(
+  session: AppSession,
+  limit = 10,
+): Promise<BookingRow[]> {
+  const supabase = await import("@/lib/auth").then((m) => m.getSupabase());
+  const branch = branchFilter(session);
+  const day = today();
+
+  let query = supabase
+    .from("bookings")
+    .select(BOOKING_SELECT)
+    .eq("booking_type", "manual")
+    .neq("status", "Cancelled")
+    .or(`start_date.eq.${day},end_date.eq.${day}`)
+    .order("start_date", { ascending: true })
+    .limit(limit);
+
+  if (branch !== null) {
+    query = query.eq("branch_id", branch);
+  }
+
+  return fetchRows<BookingRow>(query);
+}
+
 /** The most recent bookings (legacy "Recent Bookings" block). */
 export async function recentBookings(
   session: AppSession,

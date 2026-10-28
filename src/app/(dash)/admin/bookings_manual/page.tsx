@@ -39,11 +39,12 @@ import { SectionCard } from "@/components/common/section-card";
 import { StatCard } from "@/components/common/stat-card";
 import { StatusBadge } from "@/components/common/status-badge";
 import { BookingAttentionBadge } from "@/components/common/booking-attention-badge";
+import { TodayScheduleCard } from "@/components/dashboard/today-schedule-card";
 import { getSupabase, requireRole } from "@/lib/auth";
-import { listBookings, type BookingRow } from "@/lib/data/bookings";
+import { listBookings, todayManualSchedule, type BookingRow } from "@/lib/data/bookings";
 import { listBranches } from "@/lib/data/cars";
 import { branchFilter, fetchRows, readPage, readPerPage } from "@/lib/data/scope";
-import { formatDate } from "@/lib/datetime";
+import { formatDate, manilaToday } from "@/lib/datetime";
 import { readFlash, searchParam } from "@/lib/flash";
 import { BUCKETS, signedFileUrls } from "@/lib/storage";
 import { cn } from "@/lib/utils";
@@ -200,7 +201,7 @@ export default async function AdminBookingsManualPage({
 
   if (scopedBranch !== null) carQuery = carQuery.eq("branch_id", scopedBranch);
 
-  const [{ rows, count }, branches, statusRows, customers, carRows] = await Promise.all([
+  const [{ rows, count }, branches, statusRows, customers, carRows, todayScheduleItems] = await Promise.all([
     listBookings(session, {
       status,
       bookingType: "manual",
@@ -231,7 +232,10 @@ export default async function AdminBookingsManualPage({
       ext_price_11_12: number | null;
       ext_price_13_24: number | null;
     }>(carQuery),
+    todayManualSchedule(session, 10),
   ]);
+
+  const todayStr = manilaToday();
 
   const carIds = carRows.map((car) => car.id);
 
@@ -584,6 +588,15 @@ export default async function AdminBookingsManualPage({
           tone="danger"
         />
       </div>
+
+      {/* Mini Today's Schedule notification widget (Screenshot 2) */}
+      <TodayScheduleCard
+        title="Today's Walk-in Schedule"
+        emptyMessage="No walk-in pickups or returns scheduled for today."
+        schedule={todayScheduleItems}
+        day={todayStr}
+        compact
+      />
 
       <PillTabs
         className="mb-4"

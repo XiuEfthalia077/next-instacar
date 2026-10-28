@@ -12,6 +12,7 @@ import { Money } from "@/components/common/money";
 import { requireRole } from "@/lib/auth";
 import { bookingCounters, bookingsNeedingAttention, recentBookings, todaySchedule } from "@/lib/data/bookings";
 import { NeedsAttentionPanel } from "@/components/dashboard/needs-attention-panel";
+import { TodayScheduleCard } from "@/components/dashboard/today-schedule-card";
 import { formatDate, manilaLongToday, manilaToday } from "@/lib/datetime";
 import { readFlash } from "@/lib/flash";
 
@@ -90,68 +91,7 @@ export default async function StaffDashboardPage({
       </div>
 
       {/* Today's schedule */}
-      <SectionCard
-        title="Today's Schedule"
-        icon={Clock}
-        className="mb-4"
-        actions={
-          <span className="rounded-full bg-[#ffcc00]/15 px-3 py-1 text-xs font-bold text-[#b38a00]">
-            {schedule.length} item{schedule.length === 1 ? "" : "s"}
-          </span>
-        }
-        bodyClassName="p-3"
-      >
-        {schedule.length === 0 ? (
-          <EmptyState
-            icon={CalendarDays}
-            title="No pickups or returns scheduled for today."
-            className="py-10"
-          />
-        ) : (
-          <div className="space-y-2">
-            {schedule.map((item) => {
-              const start = item.start_date ?? "";
-              const end = item.end_date ?? "";
-              const isPickup = start === day;
-              const isReturn = end === day && !isPickup;
-              const customer = item.users?.name ?? item.guest_name ?? "Guest";
-              const phone = item.users?.phone ?? item.phone_number;
-
-              return (
-                <div
-                  key={item.id}
-                  className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card px-3 py-2.5"
-                >
-                  <span
-                    className={
-                      isReturn
-                        ? "shrink-0 rounded-md bg-sky-100 px-2 py-1 text-[10px] font-extrabold uppercase tracking-wider text-sky-700 dark:bg-sky-950 dark:text-sky-300"
-                        : "shrink-0 rounded-md bg-amber-100 px-2 py-1 text-[10px] font-extrabold uppercase tracking-wider text-amber-700 dark:bg-amber-950 dark:text-amber-300"
-                    }
-                  >
-                    {isPickup ? "Pickup" : isReturn ? "Return" : "Today"}
-                  </span>
-
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold text-foreground">
-                      {[item.cars?.brand, item.cars?.model].filter(Boolean).join(" ") || "Vehicle"}
-                      <span className="ml-1 text-xs font-normal text-muted-foreground">
-                        • {item.cars?.plate_number ?? "—"}
-                      </span>
-                    </p>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                      {customer}
-                      {phone ? <span className="ml-3">☎ {phone}</span> : null}
-                    </p>
-                  </div>
-
-                  <StatusBadge status={item.status} />
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </SectionCard>
+      <TodayScheduleCard schedule={schedule} day={day} />
 
       {/* Recent bookings */}
       <div className="mb-2 flex items-center justify-between px-1">

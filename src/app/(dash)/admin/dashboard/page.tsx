@@ -24,10 +24,11 @@ import { StatCard } from "@/components/common/stat-card";
 import { StatusBadge } from "@/components/common/status-badge";
 import { requireRole } from "@/lib/auth";
 import { listBranches, listCars } from "@/lib/data/cars";
-import { bookingsNeedingAttention, recentBookings } from "@/lib/data/bookings";
+import { bookingsNeedingAttention, recentBookings, todaySchedule } from "@/lib/data/bookings";
 import { NeedsAttentionPanel } from "@/components/dashboard/needs-attention-panel";
+import { TodayScheduleCard } from "@/components/dashboard/today-schedule-card";
 import { adminDashboardStats } from "@/lib/data/misc";
-import { formatDate, formatTime, manilaLongToday } from "@/lib/datetime";
+import { formatDate, formatTime, manilaLongToday, manilaToday } from "@/lib/datetime";
 import { readFlash } from "@/lib/flash";
 
 /** Legacy `formatNumberShort()` — 1.2M / 18.4k / 950. */
@@ -56,13 +57,16 @@ export default async function AdminDashboardPage({
   const params = await searchParams;
   const flash = readFlash(params);
 
-  const [stats, recent, fleet, branches, attentionItems] = await Promise.all([
+  const [stats, recent, fleet, branches, attentionItems, schedule] = await Promise.all([
     adminDashboardStats(session),
     recentBookings(session, 5),
     listCars(session, { perPage: 5 }),
     listBranches(),
     bookingsNeedingAttention(session, 20),
+    todaySchedule(session, 10),
   ]);
+
+  const day = manilaToday();
 
   const branchName =
     session.viewBranch === "all"
@@ -182,6 +186,9 @@ export default async function AdminDashboardPage({
           tone="purple"
         />
       </div>
+
+      {/* Today's schedule (Screenshot 3) */}
+      <TodayScheduleCard schedule={schedule} day={day} />
 
       <div className="grid gap-4 lg:grid-cols-12">
         {/* Recent bookings */}
