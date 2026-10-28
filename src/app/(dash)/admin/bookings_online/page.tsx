@@ -38,8 +38,9 @@ import { SectionCard } from "@/components/common/section-card";
 import { StatCard } from "@/components/common/stat-card";
 import { StatusBadge } from "@/components/common/status-badge";
 import { BookingAttentionBadge } from "@/components/common/booking-attention-badge";
+import { ActionCheckCard } from "@/components/dashboard/action-check-card";
 import { requireRole, getSupabase } from "@/lib/auth";
-import { autoCancelStaleBookings, listBookings, type BookingRow } from "@/lib/data/bookings";
+import { autoCancelStaleBookings, listBookings, actionCheckOnlineList, type BookingRow } from "@/lib/data/bookings";
 import { listBranches } from "@/lib/data/cars";
 import { branchFilter, fetchRows, readPage, readPerPage } from "@/lib/data/scope";
 import { formatDate } from "@/lib/datetime";
@@ -141,7 +142,7 @@ export default async function AdminBookingsOnlinePage({
   if (scopedBranch !== null) counterQuery = counterQuery.eq("branch_id", scopedBranch);
   if (branchId) counterQuery = counterQuery.eq("branch_id", branchId);
 
-  const [{ rows, count }, branches, statusRows] = await Promise.all([
+  const [{ rows, count }, branches, statusRows, actionItems] = await Promise.all([
     listBookings(session, {
       status,
       bookingType: "online",
@@ -154,6 +155,7 @@ export default async function AdminBookingsOnlinePage({
     }),
     listBranches(),
     fetchRows<{ status: string }>(counterQuery),
+    actionCheckOnlineList(session, 50),
   ]);
 
   const counts = new Map<string, number>();
@@ -383,6 +385,14 @@ export default async function AdminBookingsOnlinePage({
           tone="danger"
         />
       </div>
+
+      {/* Online Action Check: Urgent today & warning tomorrow */}
+      <ActionCheckCard
+        title="Online Action Check"
+        description="Urgent online reservation actions requiring attention today and upcoming warnings for tomorrow."
+        items={actionItems}
+        compact
+      />
 
       <PillTabs
         className="mb-4"

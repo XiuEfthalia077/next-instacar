@@ -477,6 +477,14 @@ export async function actionCheckManualList(
   return actionCheckList(session, "manual", limit);
 }
 
+/** Action Check list specifically for online bookings */
+export async function actionCheckOnlineList(
+  session: AppSession,
+  limit = 50,
+): Promise<ActionCheckItem[]> {
+  return actionCheckList(session, "online", limit);
+}
+
 /** The most recent bookings (legacy "Recent Bookings" block). */
 export async function recentBookings(
   session: AppSession,
