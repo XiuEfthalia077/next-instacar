@@ -36,8 +36,9 @@ export function ActionCheckCard({
   const urgentItems = items.filter((i) => i.urgency === "urgent");
   const tomorrowItems = items.filter((i) => i.urgency === "warning");
 
-  const visible = items.slice(0, 3);
-  const hasMore = items.length > 3;
+  const urgentVisible = urgentItems.slice(0, 3);
+  const tomorrowVisible = tomorrowItems.slice(0, 3);
+  const hasMore = urgentItems.length > 3 || tomorrowItems.length > 3;
 
   const renderItem = (item: ActionCheckItem) => (
     <div
@@ -159,8 +160,46 @@ export function ActionCheckCard({
             className={compact ? "py-6" : "py-10"}
           />
         ) : (
-          <div className="space-y-2">
-            {visible.map((item) => renderItem(item))}
+          <div className="space-y-3">
+            {/* Urgent Items (Today & Overdue) */}
+            {urgentItems.length > 0 ? (
+              <div className="space-y-2">
+                {tomorrowItems.length > 0 ? (
+                  <div className="flex items-center justify-between px-1 text-[11px] font-bold text-rose-400">
+                    <span className="flex items-center gap-1.5 uppercase tracking-wider">
+                      <TriangleAlert className="size-3.5" />
+                      Urgent Actions ({urgentItems.length})
+                    </span>
+                    {urgentItems.length > 3 ? (
+                      <span className="text-[10px] font-medium text-muted-foreground">
+                        Showing 3 of {urgentItems.length}
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
+                {urgentVisible.map((item) => renderItem(item))}
+              </div>
+            ) : null}
+
+            {/* Tomorrow Items (Upcoming Warnings) */}
+            {tomorrowItems.length > 0 ? (
+              <div className="space-y-2">
+                {urgentItems.length > 0 ? (
+                  <div className="flex items-center justify-between px-1 pt-1 text-[11px] font-bold text-sky-400">
+                    <span className="flex items-center gap-1.5 uppercase tracking-wider">
+                      <Clock className="size-3.5" />
+                      Upcoming for Tomorrow ({tomorrowItems.length})
+                    </span>
+                    {tomorrowItems.length > 3 ? (
+                      <span className="text-[10px] font-medium text-muted-foreground">
+                        Showing 3 of {tomorrowItems.length}
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
+                {tomorrowVisible.map((item) => renderItem(item))}
+              </div>
+            ) : null}
 
             {hasMore ? (
               <div className="pt-2 text-center border-t border-border/50">
@@ -196,8 +235,30 @@ export function ActionCheckCard({
             </div>
           </DialogHeader>
 
-          <div className="mt-3 max-h-[55vh] overflow-y-auto space-y-2 pr-1">
-            {items.map((item) => renderItem(item))}
+          <div className="mt-3 max-h-[55vh] overflow-y-auto space-y-3 pr-1">
+            {urgentItems.length > 0 ? (
+              <div className="space-y-2">
+                {tomorrowItems.length > 0 ? (
+                  <p className="px-1 text-[11px] font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+                    <TriangleAlert className="size-3.5" />
+                    Urgent Actions ({urgentItems.length})
+                  </p>
+                ) : null}
+                {urgentItems.map((item) => renderItem(item))}
+              </div>
+            ) : null}
+
+            {tomorrowItems.length > 0 ? (
+              <div className="space-y-2">
+                {urgentItems.length > 0 ? (
+                  <p className="px-1 pt-1 text-[11px] font-bold uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
+                    <Clock className="size-3.5" />
+                    Upcoming for Tomorrow ({tomorrowItems.length})
+                  </p>
+                ) : null}
+                {tomorrowItems.map((item) => renderItem(item))}
+              </div>
+            ) : null}
           </div>
 
           <DialogFooter className="mt-4 sm:justify-end">
