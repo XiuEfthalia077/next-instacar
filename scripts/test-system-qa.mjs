@@ -382,11 +382,10 @@ async function runQA() {
       return "Action Check widget loaded cleanly on Admin Dashboard with urgent/tomorrow badges, 3-item limit, and View All dialog";
     });
 
-    await step("Table Cleanliness: Verify status column is uncluttered without inline badges", async () => {
+    await step("Manual Bookings Table: Warning Badges (Release Today / Return Today / Late)", async () => {
       await page.goto(`${BASE_URL}/admin/bookings_manual`, { waitUntil: "domcontentloaded" });
-      // Verify table cells in status column only contain single status badge
-      const statusPills = await page.$$('td:has-text("CONFIRMED"), td:has-text("RELEASED")');
-      return `Found ${statusPills.length} status cells rendered cleanly without notification badges`;
+      const warningPills = await page.$$('span:has-text("Release Today"), span:has-text("Return Today"), span:has-text("Late")');
+      return `Found ${warningPills.length} status warning badge(s) matching Action Check logic`;
     });
 
   } finally {

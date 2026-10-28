@@ -70,26 +70,46 @@ export function ActionCheckCard({
         <span>{item.badgeLabel}</span>
       </span>
 
-      {/* Vehicle Info */}
+      {/* Booking, Customer & Vehicle Info */}
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-bold text-foreground">
-          {item.car_name}
-          <span className="ml-1 text-xs font-normal text-muted-foreground">
-            • {item.plate_number}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-mono text-xs font-black text-foreground">
+            #BK-{item.id}
           </span>
-        </p>
+          <span className="text-muted-foreground/60">&bull;</span>
+          <p className="font-bold text-foreground truncate text-sm">
+            {item.customer_name}
+          </p>
+          <span className="text-xs text-muted-foreground">
+            &bull; {item.car_name} ({item.plate_number})
+          </span>
+        </div>
         <p className="mt-0.5 truncate text-xs text-muted-foreground">
-          {item.customer_name}
+          {item.message ? (
+            <span
+              className={cn(
+                "font-semibold",
+                item.badgeTone === "danger"
+                  ? "text-rose-400 dark:text-rose-300"
+                  : item.badgeTone === "urgent"
+                    ? "text-amber-400 dark:text-amber-300"
+                    : "text-sky-400 dark:text-sky-300",
+              )}
+            >
+              {item.message}
+            </span>
+          ) : (
+            <span>
+              {item.actionType === "release"
+                ? `Pickup: ${formatDate(item.start_date)}`
+                : `Return: ${formatDate(item.end_date)}`}
+            </span>
+          )}
           {item.phone_number ? (
             <span className="ml-3 font-medium text-foreground/80">
               ☎ {item.phone_number}
             </span>
           ) : null}
-          <span className="ml-3 text-[11px] text-muted-foreground">
-            {item.actionType === "release"
-              ? `Pickup: ${formatDate(item.start_date)}`
-              : `Return: ${formatDate(item.end_date)}`}
-          </span>
         </p>
       </div>
 

@@ -38,6 +38,7 @@ import { PillTabs } from "@/components/common/pill-tabs";
 import { SectionCard } from "@/components/common/section-card";
 import { StatCard } from "@/components/common/stat-card";
 import { StatusBadge } from "@/components/common/status-badge";
+import { BookingAttentionBadge } from "@/components/common/booking-attention-badge";
 import { ActionCheckCard } from "@/components/dashboard/action-check-card";
 import { getSupabase, requireRole } from "@/lib/auth";
 import { listBookings, actionCheckManualList, type BookingRow } from "@/lib/data/bookings";
@@ -528,8 +529,9 @@ export default async function StaffBookingsManualPage({
       header: "Status",
       className: "text-center",
       cell: (booking) => (
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center justify-center gap-1.5">
           <StatusBadge status={booking.status} />
+          <BookingAttentionBadge booking={booking} />
         </div>
       ),
     },

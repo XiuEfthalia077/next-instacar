@@ -18,6 +18,7 @@ import {
 } from "@/lib/data/scope";
 import { bookingStatuses, OPEN_BOOKING_STATUSES } from "@/lib/data/legacy-status";
 import { addDays, manilaToday } from "@/lib/datetime";
+import { getBookingAttentionAlert, type BookingAttentionAlert } from "@/lib/alerts";
 import type { AppSession, Booking, BookingStatus } from "@/lib/types";
 
 export type BookingCar = {
@@ -374,6 +375,8 @@ export type ActionCheckItem = {
   urgency: "urgent" | "warning"; // "urgent" = Today or Overdue; "warning" = Tomorrow
   timing: "overdue" | "today" | "tomorrow";
   actionType: "release" | "return";
+  actionLabel: string;
+  message: string;
   daysDiff: number; // negative for overdue, 0 for today, 1 for tomorrow
   badgeLabel: string;
   badgeTone: "danger" | "urgent" | "warning";
@@ -393,7 +396,7 @@ export async function actionCheckList(
   let query = supabase
     .from("bookings")
     .select(BOOKING_SELECT)
-    .in("status", ["Pending", "Confirmed", "Released", "Active"])
+    .in("status", ["Pending", "Confirmed", "Released"])
     .or(`start_date.lte.${tomorrowStr},end_date.lte.${tomorrowStr}`)
     .order("start_date", { ascending: true })
     .limit(limit);
@@ -410,147 +413,49 @@ export async function actionCheckList(
   const items: ActionCheckItem[] = [];
 
   for (const row of rows) {
-    const status = (row.status ?? "").toLowerCase();
+    const alert = getBookingAttentionAlert(row);
+    if (!alert) continue;
+
     const customer = row.users?.name ?? row.guest_name ?? "Valued Customer";
     const phone = row.users?.phone ?? row.phone_number;
     const carName = [row.cars?.brand, row.cars?.model].filter(Boolean).join(" ") || "Vehicle";
     const plate = row.cars?.plate_number ?? "—";
-    const start = row.start_date ?? "";
-    const end = row.end_date ?? "";
 
-    // 1. Check Release Action (Confirmed or Pending)
-    if (status === "confirmed" || status === "pending") {
-      if (start && start < todayStr) {
-        const diffMs = Date.parse(todayStr) - Date.parse(start);
-        const days = Math.max(1, Math.round(diffMs / 86400000));
-        items.push({
-          id: row.id,
-          booking_type: row.booking_type ?? "online",
-          customer_name: customer,
-          phone_number: phone,
-          car_name: carName,
-          plate_number: plate,
-          status: row.status ?? "Confirmed",
-          start_date: row.start_date,
-          end_date: row.end_date,
-          pickup_time: row.pickup_time,
-          return_time: row.return_time,
-          urgency: "urgent",
-          timing: "overdue",
-          actionType: "release",
-          daysDiff: -days,
-          badgeLabel: days === 1 ? "Overdue Release (1d)" : `Overdue Release (${days}d)`,
-          badgeTone: "danger",
-        });
-      } else if (start === todayStr) {
-        items.push({
-          id: row.id,
-          booking_type: row.booking_type ?? "online",
-          customer_name: customer,
-          phone_number: phone,
-          car_name: carName,
-          plate_number: plate,
-          status: row.status ?? "Confirmed",
-          start_date: row.start_date,
-          end_date: row.end_date,
-          pickup_time: row.pickup_time,
-          return_time: row.return_time,
-          urgency: "urgent",
-          timing: "today",
-          actionType: "release",
-          daysDiff: 0,
-          badgeLabel: "Release Today",
-          badgeTone: "urgent",
-        });
-      } else if (start === tomorrowStr) {
-        items.push({
-          id: row.id,
-          booking_type: row.booking_type ?? "online",
-          customer_name: customer,
-          phone_number: phone,
-          car_name: carName,
-          plate_number: plate,
-          status: row.status ?? "Confirmed",
-          start_date: row.start_date,
-          end_date: row.end_date,
-          pickup_time: row.pickup_time,
-          return_time: row.return_time,
-          urgency: "warning",
-          timing: "tomorrow",
-          actionType: "release",
-          daysDiff: 1,
-          badgeLabel: "Release Tomorrow",
-          badgeTone: "warning",
-        });
-      }
-    }
+    const badgeTone: "danger" | "urgent" | "warning" =
+      alert.timing === "overdue"
+        ? "danger"
+        : alert.timing === "today"
+          ? "urgent"
+          : "warning";
 
-    // 2. Check Return Action (Released or Active)
-    if (status === "released" || status === "active") {
-      if (end && end < todayStr) {
-        const diffMs = Date.parse(todayStr) - Date.parse(end);
-        const days = Math.max(1, Math.round(diffMs / 86400000));
-        items.push({
-          id: row.id,
-          booking_type: row.booking_type ?? "online",
-          customer_name: customer,
-          phone_number: phone,
-          car_name: carName,
-          plate_number: plate,
-          status: row.status ?? "Released",
-          start_date: row.start_date,
-          end_date: row.end_date,
-          pickup_time: row.pickup_time,
-          return_time: row.return_time,
-          urgency: "urgent",
-          timing: "overdue",
-          actionType: "return",
-          daysDiff: -days,
-          badgeLabel: days === 1 ? "Overdue Return (1d)" : `Overdue Return (${days}d)`,
-          badgeTone: "danger",
-        });
-      } else if (end === todayStr) {
-        items.push({
-          id: row.id,
-          booking_type: row.booking_type ?? "online",
-          customer_name: customer,
-          phone_number: phone,
-          car_name: carName,
-          plate_number: plate,
-          status: row.status ?? "Released",
-          start_date: row.start_date,
-          end_date: row.end_date,
-          pickup_time: row.pickup_time,
-          return_time: row.return_time,
-          urgency: "urgent",
-          timing: "today",
-          actionType: "return",
-          daysDiff: 0,
-          badgeLabel: "Return Today",
-          badgeTone: "urgent",
-        });
-      } else if (end === tomorrowStr) {
-        items.push({
-          id: row.id,
-          booking_type: row.booking_type ?? "online",
-          customer_name: customer,
-          phone_number: phone,
-          car_name: carName,
-          plate_number: plate,
-          status: row.status ?? "Released",
-          start_date: row.start_date,
-          end_date: row.end_date,
-          pickup_time: row.pickup_time,
-          return_time: row.return_time,
-          urgency: "warning",
-          timing: "tomorrow",
-          actionType: "return",
-          daysDiff: 1,
-          badgeLabel: "Return Tomorrow",
-          badgeTone: "warning",
-        });
-      }
-    }
+    const badgeLabel =
+      alert.timing === "overdue"
+        ? alert.daysDiff === -1
+          ? `${alert.label} (1d)`
+          : `${alert.label} (${Math.abs(alert.daysDiff)}d)`
+        : alert.label;
+
+    items.push({
+      id: row.id,
+      booking_type: row.booking_type ?? "online",
+      customer_name: customer,
+      phone_number: phone,
+      car_name: carName,
+      plate_number: plate,
+      status: row.status ?? "Confirmed",
+      start_date: row.start_date,
+      end_date: row.end_date,
+      pickup_time: row.pickup_time,
+      return_time: row.return_time,
+      urgency: alert.severity,
+      timing: alert.timing,
+      actionType: alert.type,
+      actionLabel: alert.label,
+      message: alert.message,
+      daysDiff: alert.daysDiff,
+      badgeLabel,
+      badgeTone,
+    });
   }
 
   // Sort: Overdue (-X) first, then Today (0), then Tomorrow (1)
@@ -777,7 +682,6 @@ export async function statusBreakdown(session: AppSession) {
   return counts;
 }
 
-import { getBookingAttentionAlert, type BookingAttentionAlert } from "@/lib/alerts";
 export { getBookingAttentionAlert, type BookingAttentionAlert };
 
 export type BookingAttentionItem = {

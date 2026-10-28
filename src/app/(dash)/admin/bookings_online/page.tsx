@@ -37,6 +37,7 @@ import { PillTabs } from "@/components/common/pill-tabs";
 import { SectionCard } from "@/components/common/section-card";
 import { StatCard } from "@/components/common/stat-card";
 import { StatusBadge } from "@/components/common/status-badge";
+import { BookingAttentionBadge } from "@/components/common/booking-attention-badge";
 import { requireRole, getSupabase } from "@/lib/auth";
 import { autoCancelStaleBookings, listBookings, type BookingRow } from "@/lib/data/bookings";
 import { listBranches } from "@/lib/data/cars";
@@ -331,8 +332,9 @@ export default async function AdminBookingsOnlinePage({
       key: "status",
       header: "Status",
       cell: (booking) => (
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center justify-center gap-1.5">
           <StatusBadge status={booking.status} />
+          <BookingAttentionBadge booking={booking} />
         </div>
       ),
     },
