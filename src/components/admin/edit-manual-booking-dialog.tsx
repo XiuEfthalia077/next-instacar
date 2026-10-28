@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ClipboardList } from "lucide-react";
 
 import { DocumentPreviewButton, type BookingDocument } from "@/components/admin/document-preview";
 import { FileUploadDropzone } from "@/components/common/file-upload-dropzone";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/common/loading-button";
+import { AvailabilityCalendar } from "@/components/common/availability-calendar";
+import { PastDateConfirmDialog } from "@/components/common/past-date-confirm-dialog";
 import {
   Dialog,
   DialogClose,
@@ -59,6 +61,7 @@ export type ManualEditCar = {
   ext_price_7_10: number | null;
   ext_price_11_12: number | null;
   ext_price_13_24: number | null;
+  busySlots?: { start: string; end: string }[];
 };
 
 function combineDateTime(date: string | null, time: string | null) {
@@ -130,6 +133,9 @@ export function EditManualBookingDialog({
   const [discount, setDiscount] = useState<string>(String(booking.discount_price ?? 0));
   const [downPayment, setDownPayment] = useState<string>(String(booking.down_payment ?? 0));
   const [remarks, setRemarks] = useState<string>(booking.remarks ?? "");
+  const [pastConfirmOpen, setPastConfirmOpen] = useState(false);
+  const [pastConfirmed, setPastConfirmed] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const selectedCar = useMemo(() => cars.find((car) => String(car.id) === carId) ?? null, [cars, carId]);
 
@@ -182,7 +188,21 @@ export function EditManualBookingDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form action={updateBookingAction} className="space-y-4" encType="multipart/form-data">
+        <form
+          ref={formRef}
+          action={updateBookingAction}
+          onSubmit={(e) => {
+            const todayIso = new Date().toISOString().slice(0, 10);
+            const isPast = !!startDate && startDate < todayIso;
+            if (isPast && !pastConfirmed) {
+              e.preventDefault();
+              setPastConfirmOpen(true);
+              return;
+            }
+          }}
+          className="space-y-4"
+          encType="multipart/form-data"
+        >
           <input type="hidden" name="booking_id" value={booking.id} />
           <input type="hidden" name="source" value="manual" />
           <input type="hidden" name="filter" value={filter} />
@@ -293,6 +313,37 @@ export function EditManualBookingDialog({
                 name="proof_of_billing"
                 label="Proof of Billing"
                 document={documents.find((document) => document.key === "billing")}
+              />
+            </div>
+
+            {/* Availability Calendar (Screenshot 1 & 2) */}
+            <div className="sm:col-span-2">
+              <AvailabilityCalendar
+                startDate={startDate}
+                endDate={endDate}
+                blockedRanges={
+                  selectedCar?.busySlots
+                    ? selectedCar.busySlots
+                        .filter((s: { start: string; end: string }) => !s.start.startsWith(booking.start_date || "___"))
+                        .map((s: { start: string; end: string }) => ({
+                          start: s.start.slice(0, 10),
+                          end: s.end.slice(0, 10),
+                          reason: "Booked",
+                        }))
+                    : []
+                }
+                allowPastDates={true}
+                onSelectDay={(dayStr) => {
+                  const pTime = pickupTime || "10:00";
+                  const newPickup = `${dayStr}T${pTime}`;
+                  setPickupDatetime(newPickup);
+                  const nextDate = new Date(`${dayStr}T12:00:00`);
+                  nextDate.setDate(nextDate.getDate() + 1);
+                  const pad = (n: number) => String(n).padStart(2, "0");
+                  const nextDayStr = `${nextDate.getFullYear()}-${pad(nextDate.getMonth() + 1)}-${pad(nextDate.getDate())}`;
+                  const rTime = returnTime || "10:00";
+                  setReturnDatetime(`${nextDayStr}T${rTime}`);
+                }}
               />
             </div>
 
@@ -455,6 +506,17 @@ export function EditManualBookingDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+
+      <PastDateConfirmDialog
+        open={pastConfirmOpen}
+        onOpenChange={setPastConfirmOpen}
+        onConfirm={() => {
+          setPastConfirmed(true);
+          setTimeout(() => {
+            formRef.current?.requestSubmit();
+          }, 0);
+        }}
+      />
     </Dialog>
   );
 }

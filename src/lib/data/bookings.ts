@@ -537,3 +537,70 @@ export async function statusBreakdown(session: AppSession) {
 
   return counts;
 }
+
+import { getBookingAttentionAlert, type BookingAttentionAlert } from "@/lib/alerts";
+export { getBookingAttentionAlert, type BookingAttentionAlert };
+
+export type BookingAttentionItem = {
+  id: number;
+  booking_type: string | null;
+  customer_name: string;
+  car_name: string;
+  plate_number: string;
+  status: string;
+  start_date: string | null;
+  end_date: string | null;
+  pickup_time: string | null;
+  return_time: string | null;
+  alert: BookingAttentionAlert;
+};
+
+/** Fetches active bookings that require immediate staff / admin action (overdue release or return). */
+export async function bookingsNeedingAttention(
+  session: AppSession,
+  limit = 20,
+): Promise<BookingAttentionItem[]> {
+  const supabase = await import("@/lib/auth").then((m) => m.getSupabase());
+  const branch = branchFilter(session);
+
+  let query = supabase
+    .from("bookings")
+    .select(BOOKING_SELECT)
+    .in("status", ["Pending", "Confirmed", "Released", "Active"])
+    .order("start_date", { ascending: true })
+    .limit(limit);
+
+  if (branch !== null) {
+    query = query.eq("branch_id", branch);
+  }
+
+  const rows = await fetchRows<BookingRow>(query);
+
+  const attentionItems: BookingAttentionItem[] = [];
+  for (const row of rows) {
+    const alert = getBookingAttentionAlert(row);
+    if (!alert) continue;
+
+    const customerName =
+      row.users?.name || row.guest_name || "Valued Customer";
+    const carName =
+      [row.cars?.brand, row.cars?.model].filter(Boolean).join(" ") || "Vehicle";
+    const plateNumber = row.cars?.plate_number || "No plate";
+
+    attentionItems.push({
+      id: row.id,
+      booking_type: row.booking_type ?? "online",
+      customer_name: customerName,
+      car_name: carName,
+      plate_number: plateNumber,
+      status: row.status ?? "Confirmed",
+      start_date: row.start_date,
+      end_date: row.end_date,
+      pickup_time: row.pickup_time,
+      return_time: row.return_time,
+      alert,
+    });
+  }
+
+  return attentionItems;
+}

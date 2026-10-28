@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ClipboardList, Trash2 } from "lucide-react";
 
 import { DeleteBookingDialog } from "@/components/admin/delete-booking-dialog";
 import { DocumentPreviewButton, type BookingDocument } from "@/components/admin/document-preview";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/common/loading-button";
+import { AvailabilityCalendar } from "@/components/common/availability-calendar";
+import { PastDateConfirmDialog } from "@/components/common/past-date-confirm-dialog";
 import {
   Dialog,
   DialogClose,
@@ -57,6 +59,13 @@ export function EditReservationDialog({
   const [fulfillment, setFulfillment] = useState(
     booking.fulfillment_type?.toLowerCase() === "delivery" ? "delivery" : "pickup",
   );
+  const [startDate, setStartDate] = useState(booking.start_date ?? "");
+  const [endDate, setEndDate] = useState(booking.end_date ?? "");
+  const [pickupTime, setPickupTime] = useState(timeValue(booking.pickup_time));
+  const [returnTime, setReturnTime] = useState(timeValue(booking.return_time));
+  const [pastConfirmOpen, setPastConfirmOpen] = useState(false);
+  const [pastConfirmed, setPastConfirmed] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const isDelivery = fulfillment === "delivery";
 
@@ -74,10 +83,39 @@ export function EditReservationDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form action={updateReservationAction} className="space-y-4" encType="multipart/form-data">
+        <form
+          ref={formRef}
+          action={updateReservationAction}
+          onSubmit={(e) => {
+            const todayIso = new Date().toISOString().slice(0, 10);
+            const isPast = !!startDate && startDate < todayIso;
+            if (isPast && !pastConfirmed) {
+              e.preventDefault();
+              setPastConfirmOpen(true);
+              return;
+            }
+          }}
+          className="space-y-4"
+          encType="multipart/form-data"
+        >
           <input type="hidden" name="booking_id" value={booking.id} />
           <input type="hidden" name="source" value="online" />
           <input type="hidden" name="filter" value={filter} />
+
+          {/* Interactive Availability Calendar (Screenshot 1 & 2) */}
+          <AvailabilityCalendar
+            startDate={startDate}
+            endDate={endDate}
+            allowPastDates={true}
+            onSelectDay={(dayStr) => {
+              setStartDate(dayStr);
+              const nextDate = new Date(`${dayStr}T12:00:00`);
+              nextDate.setDate(nextDate.getDate() + 1);
+              const pad = (n: number) => String(n).padStart(2, "0");
+              const nextDayStr = `${nextDate.getFullYear()}-${pad(nextDate.getMonth() + 1)}-${pad(nextDate.getDate())}`;
+              setEndDate(nextDayStr);
+            }}
+          />
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
@@ -120,7 +158,8 @@ export function EditReservationDialog({
                 id={`reservation-start-${booking.id}`}
                 type="date"
                 name="start_date"
-                defaultValue={booking.start_date ?? ""}
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
                 required
                 className="rounded-lg"
               />
@@ -134,7 +173,8 @@ export function EditReservationDialog({
                 id={`reservation-end-${booking.id}`}
                 type="date"
                 name="end_date"
-                defaultValue={booking.end_date ?? ""}
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
                 required
                 className="rounded-lg"
               />
@@ -148,7 +188,8 @@ export function EditReservationDialog({
                 id={`reservation-pickup-${booking.id}`}
                 type="time"
                 name="pickup_time"
-                defaultValue={timeValue(booking.pickup_time)}
+                value={pickupTime}
+                onChange={(e) => setPickupTime(e.target.value)}
                 step={60}
                 required
                 className="rounded-lg"
@@ -163,7 +204,8 @@ export function EditReservationDialog({
                 id={`reservation-return-${booking.id}`}
                 type="time"
                 name="return_time"
-                defaultValue={timeValue(booking.return_time)}
+                value={returnTime}
+                onChange={(e) => setReturnTime(e.target.value)}
                 step={60}
                 required
                 className="rounded-lg"
@@ -272,6 +314,17 @@ export function EditReservationDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+
+      <PastDateConfirmDialog
+        open={pastConfirmOpen}
+        onOpenChange={setPastConfirmOpen}
+        onConfirm={() => {
+          setPastConfirmed(true);
+          setTimeout(() => {
+            formRef.current?.requestSubmit();
+          }, 0);
+        }}
+      />
     </Dialog>
   );
 }

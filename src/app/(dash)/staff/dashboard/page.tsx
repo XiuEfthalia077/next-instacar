@@ -10,7 +10,8 @@ import { StatusBadge } from "@/components/common/status-badge";
 import { EmptyState } from "@/components/common/empty-state";
 import { Money } from "@/components/common/money";
 import { requireRole } from "@/lib/auth";
-import { bookingCounters, recentBookings, todaySchedule } from "@/lib/data/bookings";
+import { bookingCounters, bookingsNeedingAttention, recentBookings, todaySchedule } from "@/lib/data/bookings";
+import { NeedsAttentionPanel } from "@/components/dashboard/needs-attention-panel";
 import { formatDate, manilaLongToday, manilaToday } from "@/lib/datetime";
 import { readFlash } from "@/lib/flash";
 
@@ -32,10 +33,11 @@ export default async function StaffDashboardPage({
   const params = await searchParams;
   const flash = readFlash(params);
 
-  const [counters, schedule, recent] = await Promise.all([
+  const [counters, schedule, recent, attentionItems] = await Promise.all([
     bookingCounters(session),
     todaySchedule(session, 10),
     recentBookings(session, 5),
+    bookingsNeedingAttention(session, 20),
   ]);
 
   const day = manilaToday();
@@ -75,6 +77,9 @@ export default async function StaffDashboardPage({
           <ClipboardCheck className="hidden size-32 shrink-0 text-white/15 md:block" />
         </div>
       </section>
+
+      {/* Needs Attention Alert Panel for Overdue Releases / Returns */}
+      <NeedsAttentionPanel initialItems={attentionItems} />
 
       {/* Stat cards */}
       <div className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4">

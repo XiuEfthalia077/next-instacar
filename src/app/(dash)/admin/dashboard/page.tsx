@@ -24,7 +24,8 @@ import { StatCard } from "@/components/common/stat-card";
 import { StatusBadge } from "@/components/common/status-badge";
 import { requireRole } from "@/lib/auth";
 import { listBranches, listCars } from "@/lib/data/cars";
-import { recentBookings } from "@/lib/data/bookings";
+import { bookingsNeedingAttention, recentBookings } from "@/lib/data/bookings";
+import { NeedsAttentionPanel } from "@/components/dashboard/needs-attention-panel";
 import { adminDashboardStats } from "@/lib/data/misc";
 import { formatDate, formatTime, manilaLongToday } from "@/lib/datetime";
 import { readFlash } from "@/lib/flash";
@@ -55,11 +56,12 @@ export default async function AdminDashboardPage({
   const params = await searchParams;
   const flash = readFlash(params);
 
-  const [stats, recent, fleet, branches] = await Promise.all([
+  const [stats, recent, fleet, branches, attentionItems] = await Promise.all([
     adminDashboardStats(session),
     recentBookings(session, 5),
     listCars(session, { perPage: 5 }),
     listBranches(),
+    bookingsNeedingAttention(session, 20),
   ]);
 
   const branchName =
@@ -117,6 +119,9 @@ export default async function AdminDashboardPage({
           <ShieldLock className="hidden size-32 shrink-0 text-white/15 md:block" />
         </div>
       </section>
+
+      {/* Needs Attention Alert Panel for Overdue Releases / Returns */}
+      <NeedsAttentionPanel initialItems={attentionItems} />
 
       {/* KPI grid */}
       <div className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4">

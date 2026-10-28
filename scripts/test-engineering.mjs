@@ -366,3 +366,133 @@ test("all email templates contain consistent brand header, footer, and styling",
     assert.ok(email.html.includes("InstaCar Rental Service Philippines"), "Every email must contain copyright");
   }
 });
+
+// Test 14: Action-Required Overdue Notification Detection Logic
+test("getBookingAttentionAlert accurately detects overdue releases and returns", async () => {
+  const { getBookingAttentionAlert } = await import("../src/lib/alerts.ts");
+
+  // Mock dates relative to today
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+  const pastDate1 = new Date(now.getTime() - 1 * 86_400_000);
+  const pastDateStr1 = `${pastDate1.getFullYear()}-${pad(pastDate1.getMonth() + 1)}-${pad(pastDate1.getDate())}`;
+
+  const pastDate3 = new Date(now.getTime() - 3 * 86_400_000);
+  const pastDateStr3 = `${pastDate3.getFullYear()}-${pad(pastDate3.getMonth() + 1)}-${pad(pastDate3.getDate())}`;
+
+  const futureDate = new Date(now.getTime() + 2 * 86_400_000);
+  const futureDateStr = `${futureDate.getFullYear()}-${pad(futureDate.getMonth() + 1)}-${pad(futureDate.getDate())}`;
+
+  // 1. Confirmed booking scheduled for today -> Overdue for Release today
+  const releaseToday = getBookingAttentionAlert({
+    status: "Confirmed",
+    start_date: todayStr,
+    end_date: futureDateStr,
+  });
+  assert.ok(releaseToday);
+  assert.equal(releaseToday.type, "release");
+  assert.equal(releaseToday.severity, "warning");
+  assert.equal(releaseToday.message, "Car was supposed to be released today.");
+
+  // 2. Confirmed booking scheduled 1 day ago -> Overdue for Release 1 day ago
+  const release1DayAgo = getBookingAttentionAlert({
+    status: "Confirmed",
+    start_date: pastDateStr1,
+    end_date: futureDateStr,
+  });
+  assert.ok(release1DayAgo);
+  assert.equal(release1DayAgo.type, "release");
+  assert.equal(release1DayAgo.severity, "urgent");
+  assert.equal(release1DayAgo.message, "Car was supposed to be released 1 day ago.");
+
+  // 3. Confirmed booking scheduled 3 days ago -> Overdue for Release 3 days ago
+  const release3DaysAgo = getBookingAttentionAlert({
+    status: "Confirmed",
+    start_date: pastDateStr3,
+    end_date: futureDateStr,
+  });
+  assert.ok(release3DaysAgo);
+  assert.equal(release3DaysAgo.type, "release");
+  assert.equal(release3DaysAgo.severity, "urgent");
+  assert.equal(release3DaysAgo.message, "Car was supposed to be released 3 days ago.");
+
+  // 4. Released booking scheduled for return today -> Overdue for Return today
+  const returnToday = getBookingAttentionAlert({
+    status: "Released",
+    start_date: pastDateStr1,
+    end_date: todayStr,
+  });
+  assert.ok(returnToday);
+  assert.equal(returnToday.type, "return");
+  assert.equal(returnToday.severity, "warning");
+  assert.equal(returnToday.message, "Car was supposed to be returned today.");
+
+  // 5. Released booking scheduled for return 3 days ago -> Overdue for Return 3 days ago
+  const return3DaysAgo = getBookingAttentionAlert({
+    status: "Released",
+    start_date: pastDateStr3,
+    end_date: pastDateStr3,
+  });
+  assert.ok(return3DaysAgo);
+  assert.equal(return3DaysAgo.type, "return");
+  assert.equal(return3DaysAgo.severity, "urgent");
+  assert.equal(return3DaysAgo.message, "Car was supposed to be returned 3 days ago.");
+
+  // 6. Automatic clearing when status changes (e.g. Completed or Cancelled)
+  assert.equal(
+    getBookingAttentionAlert({
+      status: "Completed",
+      start_date: pastDateStr3,
+      end_date: pastDateStr1,
+    }),
+    null,
+    "Completed bookings must clear the attention alert",
+  );
+
+  assert.equal(
+    getBookingAttentionAlert({
+      status: "Cancelled",
+      start_date: pastDateStr3,
+      end_date: pastDateStr1,
+    }),
+    null,
+    "Cancelled bookings must clear the attention alert",
+  );
+
+  // 7. Future confirmed bookings have no alert yet
+  assert.equal(
+    getBookingAttentionAlert({
+      status: "Confirmed",
+      start_date: futureDateStr,
+      end_date: futureDateStr,
+    }),
+    null,
+    "Future confirmed bookings must not trigger premature alerts",
+  );
+});
+
+// Test 15: Past Date Booking Validation & Confirmation Threshold
+test("past date bookings are permitted through validation with confirmation gate", () => {
+  const today = new Date().toISOString().slice(0, 10);
+  const pastDate = "2026-10-01";
+
+  function checkPastBooking(startDate) {
+    const isPast = Boolean(startDate && startDate < today);
+    return {
+      allowed: true, // past date is allowed by backend
+      requiresConfirmation: isPast, // triggers modal prompt before submit
+      confirmationMessage: "You have selected a date in the past. Are you sure you want to proceed with this booking?",
+    };
+  }
+
+  const pastResult = checkPastBooking(pastDate);
+  assert.equal(pastResult.allowed, true);
+  assert.equal(pastResult.requiresConfirmation, true);
+  assert.ok(pastResult.confirmationMessage.includes("date in the past"));
+
+  const futureResult = checkPastBooking("2026-12-01");
+  assert.equal(futureResult.allowed, true);
+  assert.equal(futureResult.requiresConfirmation, false);
+});

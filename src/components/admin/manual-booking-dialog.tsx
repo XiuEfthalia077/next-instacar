@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 
 import { LoadingButton } from "@/components/common/loading-button";
+import { AvailabilityCalendar } from "@/components/common/availability-calendar";
+import { PastDateConfirmDialog } from "@/components/common/past-date-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -129,6 +131,9 @@ export function ManualBookingDialog({
   const [memberSearch, setMemberSearch] = useState("");
   const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pastConfirmOpen, setPastConfirmOpen] = useState(false);
+  const [pastConfirmed, setPastConfirmed] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
   const memberDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -249,22 +254,19 @@ export function ManualBookingDialog({
 
   const durationText = invalidRange
     ? "Return must be after pickup time!"
-    : pickupInPast
-      ? "Pickup time cannot be in the past!"
-      : tooShort
-        ? `${hours.toFixed(1)} hrs (Min 10h)`
-        : isCarConflicted
-          ? "Selected car is unavailable for these dates. Please choose another."
-          : hours > 0
-            ? `${Math.ceil(hours)} Hours`
-            : "0 Hours";
+    : tooShort
+      ? `${hours.toFixed(1)} hrs (Min 10h)`
+      : isCarConflicted
+        ? "Selected car is unavailable for these dates. Please choose another."
+        : hours > 0
+          ? `${Math.ceil(hours)} Hours`
+          : "0 Hours";
 
   const formValid =
     !!pickup &&
     !!returnAt &&
     !!selectedCar &&
     !isCarConflicted &&
-    !pickupInPast &&
     !invalidRange &&
     !tooShort &&
     hours >= 9.99;
@@ -304,10 +306,16 @@ export function ManualBookingDialog({
         </DialogHeader>
 
         <form
+          ref={formRef}
           action={addManualBookingAction}
           onSubmit={(e) => {
             if (isSubmitting) {
               e.preventDefault();
+              return;
+            }
+            if (pickupInPast && !pastConfirmed) {
+              e.preventDefault();
+              setPastConfirmOpen(true);
               return;
             }
             setIsSubmitting(true);
@@ -509,6 +517,40 @@ export function ManualBookingDialog({
                 required
                 accept="image/*,.pdf"
                 helperText="Utility bill, statement, etc. (Max 5MB)"
+              />
+            </div>
+
+            {/* Interactive Availability Calendar (Screenshot 1 & 2) */}
+            <div className="sm:col-span-2">
+              <AvailabilityCalendar
+                startDate={pickup ? pickup.slice(0, 10) : undefined}
+                endDate={returnAt ? returnAt.slice(0, 10) : undefined}
+                blockedRanges={
+                  selectedCar
+                    ? selectedCar.busySlots.map((s) => ({
+                        start: s.start.slice(0, 10),
+                        end: s.end.slice(0, 10),
+                        reason: "Booked",
+                      }))
+                    : []
+                }
+                allowPastDates={true}
+                onSelectDay={(dayStr) => {
+                  const time = pickup && pickup.length >= 16 ? pickup.slice(11, 16) : "10:00";
+                  const newPickup = `${dayStr}T${time}`;
+                  changePickup(newPickup);
+                  if (durationMode === 10) {
+                    setReturnAt(addHours(newPickup, 10));
+                  } else if (durationMode === 24) {
+                    setReturnAt(addHours(newPickup, 24));
+                  } else {
+                    const nextDate = new Date(`${dayStr}T12:00:00`);
+                    nextDate.setDate(nextDate.getDate() + 1);
+                    const pad = (n: number) => String(n).padStart(2, "0");
+                    const nextDayStr = `${nextDate.getFullYear()}-${pad(nextDate.getMonth() + 1)}-${pad(nextDate.getDate())}`;
+                    setReturnAt(`${nextDayStr}T${time}`);
+                  }
+                }}
               />
             </div>
 
@@ -800,6 +842,18 @@ export function ManualBookingDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+
+      <PastDateConfirmDialog
+        open={pastConfirmOpen}
+        onOpenChange={setPastConfirmOpen}
+        onConfirm={() => {
+          setPastConfirmed(true);
+          setIsSubmitting(true);
+          setTimeout(() => {
+            formRef.current?.requestSubmit();
+          }, 0);
+        }}
+      />
     </Dialog>
   );
 }

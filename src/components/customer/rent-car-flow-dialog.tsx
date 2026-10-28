@@ -2,10 +2,7 @@
 
 import {
   AlertCircle,
-  Calendar as CalendarIcon,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   Clock,
   ExternalLink,
   Eye,
@@ -21,6 +18,8 @@ import * as React from "react";
 
 import { FileUploadDropzone } from "@/components/common/file-upload-dropzone";
 import { LoadingButton } from "@/components/common/loading-button";
+import { AvailabilityCalendar } from "@/components/common/availability-calendar";
+import { PastDateConfirmDialog } from "@/components/common/past-date-confirm-dialog";
 import { Money } from "@/components/common/money";
 import { Button } from "@/components/ui/button";
 import {
@@ -98,9 +97,9 @@ export function RentCarFlowDialog({
   const [fulfillmentType, setFulfillmentType] = React.useState<"pickup" | "Delivery">("pickup");
   const [deliveryAddress, setDeliveryAddress] = React.useState("");
   const [returnAddress, setReturnAddress] = React.useState("");
-
-  // Month navigation for embedded availability calendar
-  const [calDate, setCalDate] = React.useState(() => new Date());
+  const [pastConfirmOpen, setPastConfirmOpen] = React.useState(false);
+  const [pastConfirmed, setPastConfirmed] = React.useState(false);
+  const formRef = React.useRef<HTMLFormElement>(null);
 
   const carName = [car.brand, car.model].filter(Boolean).join(" ") || "Vehicle";
   const branchName = car.branches?.name || "Instacar Main Branch";
@@ -209,53 +208,11 @@ export function RentCarFlowDialog({
     };
   }, [pickupDatetime, returnDatetime, car]);
 
-  // Calendar rendering helper for Availability preview
-  const calendarDays = React.useMemo(() => {
-    const year = calDate.getFullYear();
-    const month = calDate.getMonth();
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-    const days = [];
-    for (let i = 0; i < firstDay; i++) {
-      days.push(null);
-    }
-    for (let d = 1; d <= daysInMonth; d++) {
-      days.push(d);
-    }
-    return days;
-  }, [calDate]);
-
-  const monthYearLabel = calDate.toLocaleString("en-US", { month: "short", year: "numeric" });
-
-  const nextMonth = () => {
-    setCalDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
-  };
-  const prevMonth = () => {
-    setCalDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
-  };
-
+  // Calendar overlap check
   const hasDateOverlap = React.useMemo(() => {
     if (!startDate || !endDate) return false;
     return blockedRanges.some((r) => r.start <= endDate && r.end >= startDate);
   }, [startDate, endDate, blockedRanges]);
-
-  const handleSelectDay = (day: number | null) => {
-    if (!day) return;
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const y = calDate.getFullYear();
-    const m = calDate.getMonth() + 1;
-    const dateStr = `${y}-${pad(m)}-${pad(day)}`;
-
-    const pTime = pickupDatetime ? pickupDatetime.slice(11, 16) : "09:00";
-    const newPickup = `${dateStr}T${pTime}`;
-    setPickupDatetime(newPickup);
-
-    // Default return next day
-    const nextD = new Date(calDate.getFullYear(), calDate.getMonth(), day + 1);
-    const endStr = `${nextD.getFullYear()}-${pad(nextD.getMonth() + 1)}-${pad(nextD.getDate())}T${pTime}`;
-    setReturnDatetime(endStr);
-  };
 
   return (
     <>
@@ -282,10 +239,18 @@ export function RentCarFlowDialog({
           </DialogHeader>
 
           <form
+            ref={formRef}
             action={createBookingAction}
             onSubmit={(e) => {
               if (isSubmitting) {
                 e.preventDefault();
+                return;
+              }
+              const todayIso = new Date().toISOString().slice(0, 10);
+              const isPast = !!startDate && startDate < todayIso;
+              if (isPast && !pastConfirmed) {
+                e.preventDefault();
+                setPastConfirmOpen(true);
                 return;
               }
               setIsSubmitting(true);
@@ -300,110 +265,38 @@ export function RentCarFlowDialog({
             <input type="hidden" name="fulfillment_type" value={fulfillmentType} />
 
             {/* 1. AVAILABILITY CALENDAR (Image 1) */}
-            <div className="rounded-xl border border-border bg-card p-3.5 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-                  <CalendarIcon className="size-4 text-[#ffcc00]" />
-                  <span>Availability Calendar</span>
-                </div>
-                <div className="flex items-center gap-1 text-[10px] font-bold">
-                  <span className="rounded bg-emerald-600 px-2 py-0.5 text-white">Available</span>
-                  <span className="rounded bg-rose-600 px-2 py-0.5 text-white">Booked / Maint</span>
-                  <span className="rounded bg-[#ffcc00] px-2 py-0.5 text-black">Selected</span>
-                </div>
-              </div>
+            <AvailabilityCalendar
+              startDate={startDate}
+              endDate={endDate}
+              blockedRanges={blockedRanges}
+              allowPastDates={true}
+              onSelectDay={(dayStr) => {
+                const pTime = pickupDatetime ? pickupDatetime.slice(11, 16) : "09:00";
+                const newPickup = `${dayStr}T${pTime}`;
+                setPickupDatetime(newPickup);
 
-              {/* Month Navigation */}
-              <div className="flex items-center justify-between border-y border-border/60 py-1.5 text-xs">
-                <button
-                  type="button"
-                  onClick={prevMonth}
-                  className="rounded-lg border border-border bg-muted/40 px-2.5 py-1 font-bold text-foreground hover:bg-[#ffcc00] hover:text-black transition"
-                >
-                  &lt; Prev
-                </button>
-                <span className="font-extrabold text-foreground">{monthYearLabel}</span>
-                <button
-                  type="button"
-                  onClick={nextMonth}
-                  className="rounded-lg border border-border bg-muted/40 px-2.5 py-1 font-bold text-foreground hover:bg-[#ffcc00] hover:text-black transition"
-                >
-                  Next &gt;
-                </button>
-              </div>
-
-              {/* Day Names Grid */}
-              <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-extrabold uppercase text-muted-foreground">
-                <span>Sun</span>
-                <span>Mon</span>
-                <span>Tue</span>
-                <span>Wed</span>
-                <span>Thu</span>
-                <span>Fri</span>
-                <span>Sat</span>
-              </div>
-
-              {/* Calendar Days */}
-              <div className="grid grid-cols-7 gap-1 text-center text-xs">
-                {calendarDays.map((d, index) => {
-                  if (d === null) {
-                    return <div key={`empty-${index}`} className="h-8" />;
-                  }
-
+                if (quickDuration === "10h") {
+                  const end = new Date(Date.parse(newPickup) + 10 * 3_600_000);
                   const pad = (n: number) => String(n).padStart(2, "0");
-                  const currentDayStr = `${calDate.getFullYear()}-${pad(calDate.getMonth() + 1)}-${pad(d)}`;
-                  const todayStr = new Date().toISOString().slice(0, 10);
-                  const blocked = blockedRanges.find(
-                    (r) => r.start <= currentDayStr && r.end >= currentDayStr,
+                  setReturnDatetime(
+                    `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`,
                   );
-                  const isPast = currentDayStr < todayStr;
-                  const isUnavailable = Boolean(blocked) || isPast;
-                  const isSelected =
-                    startDate && endDate && currentDayStr >= startDate && currentDayStr <= endDate;
-                  const isToday = todayStr === currentDayStr;
-
-                  return (
-                    <button
-                      type="button"
-                      key={currentDayStr}
-                      disabled={isUnavailable}
-                      onClick={() => !isUnavailable && handleSelectDay(d)}
-                      title={
-                        blocked
-                          ? blocked.reason === "Maintenance"
-                            ? "Unavailable — Scheduled for Maintenance"
-                            : "Unavailable — Booked"
-                          : isPast
-                            ? "Past date"
-                            : "Available for Rent"
-                      }
-                      className={cn(
-                        "flex h-8 items-center justify-center rounded-md font-bold transition text-xs",
-                        isSelected
-                          ? "border-2 border-[#ffcc00] bg-[#ffcc00]/25 text-[#ffcc00] font-black shadow-sm"
-                          : blocked
-                            ? "border border-rose-500/50 bg-rose-500/20 text-rose-400 cursor-not-allowed opacity-90"
-                            : isPast
-                              ? "bg-muted/10 text-muted-foreground/30 cursor-not-allowed"
-                              : isToday
-                                ? "border border-[#ffcc00]/80 bg-[#ffcc00]/10 text-foreground"
-                                : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 hover:border-emerald-500",
-                      )}
-                    >
-                      {d}
-                    </button>
+                } else if (quickDuration === "24h") {
+                  const end = new Date(Date.parse(newPickup) + 24 * 3_600_000);
+                  const pad = (n: number) => String(n).padStart(2, "0");
+                  setReturnDatetime(
+                    `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`,
                   );
-                })}
-              </div>
-
-              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <AlertCircle className="size-3 text-muted-foreground" />
-                  Red dates are booked or scheduled for maintenance.
-                </span>
-                <span className="text-emerald-400 font-semibold">Green dates available</span>
-              </div>
-            </div>
+                } else {
+                  const nextD = new Date(`${dayStr}T12:00:00`);
+                  nextD.setDate(nextD.getDate() + 1);
+                  const pad = (n: number) => String(n).padStart(2, "0");
+                  setReturnDatetime(
+                    `${nextD.getFullYear()}-${pad(nextD.getMonth() + 1)}-${pad(nextD.getDate())}T${pTime}`,
+                  );
+                }
+              }}
+            />
 
             {/* 2. QUICK DURATION TABS (Image 1) */}
             <div className="space-y-1.5">
@@ -937,6 +830,19 @@ export function RentCarFlowDialog({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* PAST DATE CONFIRMATION MODAL */}
+      <PastDateConfirmDialog
+        open={pastConfirmOpen}
+        onOpenChange={setPastConfirmOpen}
+        onConfirm={() => {
+          setPastConfirmed(true);
+          setIsSubmitting(true);
+          setTimeout(() => {
+            formRef.current?.requestSubmit();
+          }, 0);
+        }}
+      />
     </>
   );
 }
