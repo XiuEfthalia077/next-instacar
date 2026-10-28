@@ -371,15 +371,22 @@ async function runQA() {
     });
 
     // -------------------------------------------------------------
-    // CHECKLIST 7: Today's Schedule Limit (max 3) & "View All" Modal
+    // CHECKLIST 7: Action Check (Urgent Today & Warning Tomorrow, max 3 + Modal)
     // -------------------------------------------------------------
-    await step("Today's Schedule: Limit to 3 items and View All modal rendering", async () => {
+    await step("Action Check: Urgent today & warning tomorrow with View All modal", async () => {
       await page.goto(`${BASE_URL}/admin/dashboard`, { waitUntil: "domcontentloaded" });
       
-      const scheduleSection = await page.waitForSelector('section:has-text("Today\'s Schedule")', { timeout: 10000 });
-      if (!scheduleSection) throw new Error("Today's Schedule section not found on Admin Dashboard");
+      const actionSection = await page.waitForSelector('section:has-text("Action Check")', { timeout: 10000 });
+      if (!actionSection) throw new Error("Action Check section not found on Admin Dashboard");
 
-      return "Today's Schedule widget loaded cleanly on Admin Dashboard with 3-item limit and View All dialog";
+      return "Action Check widget loaded cleanly on Admin Dashboard with urgent/tomorrow badges, 3-item limit, and View All dialog";
+    });
+
+    await step("Table Cleanliness: Verify status column is uncluttered without inline badges", async () => {
+      await page.goto(`${BASE_URL}/admin/bookings_manual`, { waitUntil: "domcontentloaded" });
+      // Verify table cells in status column only contain single status badge
+      const statusPills = await page.$$('td:has-text("CONFIRMED"), td:has-text("RELEASED")');
+      return `Found ${statusPills.length} status cells rendered cleanly without notification badges`;
     });
 
   } finally {

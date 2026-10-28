@@ -10,9 +10,9 @@ import { StatusBadge } from "@/components/common/status-badge";
 import { EmptyState } from "@/components/common/empty-state";
 import { Money } from "@/components/common/money";
 import { requireRole } from "@/lib/auth";
-import { bookingCounters, bookingsNeedingAttention, recentBookings, todaySchedule } from "@/lib/data/bookings";
+import { bookingCounters, bookingsNeedingAttention, recentBookings, actionCheckList } from "@/lib/data/bookings";
 import { NeedsAttentionPanel } from "@/components/dashboard/needs-attention-panel";
-import { TodayScheduleCard } from "@/components/dashboard/today-schedule-card";
+import { ActionCheckCard } from "@/components/dashboard/action-check-card";
 import { formatDate, manilaLongToday, manilaToday } from "@/lib/datetime";
 import { readFlash } from "@/lib/flash";
 
@@ -34,9 +34,9 @@ export default async function StaffDashboardPage({
   const params = await searchParams;
   const flash = readFlash(params);
 
-  const [counters, schedule, recent, attentionItems] = await Promise.all([
+  const [counters, actionItems, recent, attentionItems] = await Promise.all([
     bookingCounters(session),
-    todaySchedule(session, 50),
+    actionCheckList(session, "all", 50),
     recentBookings(session, 5),
     bookingsNeedingAttention(session, 20),
   ]);
@@ -90,8 +90,8 @@ export default async function StaffDashboardPage({
         <StatCard label="Active Rentals" value={counters.activeRentals} hint="On the road" icon={KeyRound} />
       </div>
 
-      {/* Today's schedule */}
-      <TodayScheduleCard schedule={schedule} day={day} />
+      {/* Action Check: Urgent today & warning tomorrow */}
+      <ActionCheckCard items={actionItems} />
 
       {/* Recent bookings */}
       <div className="mb-2 flex items-center justify-between px-1">

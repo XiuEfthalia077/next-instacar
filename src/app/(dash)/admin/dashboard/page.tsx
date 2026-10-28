@@ -24,9 +24,9 @@ import { StatCard } from "@/components/common/stat-card";
 import { StatusBadge } from "@/components/common/status-badge";
 import { requireRole } from "@/lib/auth";
 import { listBranches, listCars } from "@/lib/data/cars";
-import { bookingsNeedingAttention, recentBookings, todaySchedule } from "@/lib/data/bookings";
+import { bookingsNeedingAttention, recentBookings, actionCheckList } from "@/lib/data/bookings";
 import { NeedsAttentionPanel } from "@/components/dashboard/needs-attention-panel";
-import { TodayScheduleCard } from "@/components/dashboard/today-schedule-card";
+import { ActionCheckCard } from "@/components/dashboard/action-check-card";
 import { adminDashboardStats } from "@/lib/data/misc";
 import { formatDate, formatTime, manilaLongToday, manilaToday } from "@/lib/datetime";
 import { readFlash } from "@/lib/flash";
@@ -57,13 +57,13 @@ export default async function AdminDashboardPage({
   const params = await searchParams;
   const flash = readFlash(params);
 
-  const [stats, recent, fleet, branches, attentionItems, schedule] = await Promise.all([
+  const [stats, recent, fleet, branches, attentionItems, actionItems] = await Promise.all([
     adminDashboardStats(session),
     recentBookings(session, 5),
     listCars(session, { perPage: 5 }),
     listBranches(),
     bookingsNeedingAttention(session, 20),
-    todaySchedule(session, 50),
+    actionCheckList(session, "all", 50),
   ]);
 
   const day = manilaToday();
@@ -187,8 +187,8 @@ export default async function AdminDashboardPage({
         />
       </div>
 
-      {/* Today's schedule (Screenshot 3) */}
-      <TodayScheduleCard schedule={schedule} day={day} />
+      {/* Action Check: Urgent actions today & warnings tomorrow */}
+      <ActionCheckCard items={actionItems} />
 
       <div className="grid gap-4 lg:grid-cols-12">
         {/* Recent bookings */}

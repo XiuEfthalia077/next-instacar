@@ -38,10 +38,9 @@ import { PillTabs } from "@/components/common/pill-tabs";
 import { SectionCard } from "@/components/common/section-card";
 import { StatCard } from "@/components/common/stat-card";
 import { StatusBadge } from "@/components/common/status-badge";
-import { BookingAttentionBadge } from "@/components/common/booking-attention-badge";
-import { TodayScheduleCard } from "@/components/dashboard/today-schedule-card";
+import { ActionCheckCard } from "@/components/dashboard/action-check-card";
 import { getSupabase, requireRole } from "@/lib/auth";
-import { listBookings, todayManualSchedule, type BookingRow } from "@/lib/data/bookings";
+import { listBookings, actionCheckManualList, type BookingRow } from "@/lib/data/bookings";
 import { listBranches, listCars } from "@/lib/data/cars";
 import { branchFilter, fetchRows, readPage, readPerPage } from "@/lib/data/scope";
 import { formatDate, manilaToday } from "@/lib/datetime";
@@ -198,7 +197,7 @@ export default async function StaffBookingsManualPage({
     carQuery = carQuery.eq("branch_id", scopedBranch);
   }
 
-  const [{ rows, count }, branches, statusRows, customers, carRows, todayScheduleItems] = await Promise.all([
+  const [{ rows, count }, branches, statusRows, customers, carRows, actionItems] = await Promise.all([
     listBookings(session, {
       status,
       bookingType: "manual",
@@ -228,7 +227,7 @@ export default async function StaffBookingsManualPage({
       ext_price_11_12: number | null;
       ext_price_13_24: number | null;
     }>(carQuery),
-    todayManualSchedule(session, 50),
+    actionCheckManualList(session, 50),
   ]);
 
   const todayStr = manilaToday();
@@ -529,9 +528,8 @@ export default async function StaffBookingsManualPage({
       header: "Status",
       className: "text-center",
       cell: (booking) => (
-        <div className="flex flex-col items-center gap-1">
+        <div className="flex justify-center">
           <StatusBadge status={booking.status} />
-          <BookingAttentionBadge booking={booking} />
         </div>
       ),
     },
@@ -592,12 +590,11 @@ export default async function StaffBookingsManualPage({
         />
       </div>
 
-      {/* Mini Today's Schedule notification widget (Screenshot 2) */}
-      <TodayScheduleCard
-        title="Today's Walk-in Schedule"
-        emptyMessage="No walk-in pickups or returns scheduled for today."
-        schedule={todayScheduleItems}
-        day={todayStr}
+      {/* Walk-in Action Check: Urgent today & warning tomorrow */}
+      <ActionCheckCard
+        title="Walk-In Action Check"
+        description="Urgent walk-in actions requiring attention today and upcoming warnings for tomorrow."
+        items={actionItems}
         compact
       />
 

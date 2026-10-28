@@ -17,6 +17,7 @@ import {
   today,
 } from "@/lib/data/scope";
 import { bookingStatuses, OPEN_BOOKING_STATUSES } from "@/lib/data/legacy-status";
+import { addDays, manilaToday } from "@/lib/datetime";
 import type { AppSession, Booking, BookingStatus } from "@/lib/types";
 
 export type BookingCar = {
@@ -356,6 +357,219 @@ export async function todayManualSchedule(
   }
 
   return fetchRows<BookingRow>(query);
+}
+
+export type ActionCheckItem = {
+  id: number;
+  booking_type: string | null;
+  customer_name: string;
+  phone_number?: string | null;
+  car_name: string;
+  plate_number: string;
+  status: string;
+  start_date: string | null;
+  end_date: string | null;
+  pickup_time: string | null;
+  return_time: string | null;
+  urgency: "urgent" | "warning"; // "urgent" = Today or Overdue; "warning" = Tomorrow
+  timing: "overdue" | "today" | "tomorrow";
+  actionType: "release" | "return";
+  daysDiff: number; // negative for overdue, 0 for today, 1 for tomorrow
+  badgeLabel: string;
+  badgeTone: "danger" | "urgent" | "warning";
+};
+
+/** Action Check list — queries urgent actions for today/overdue and warnings for tomorrow. */
+export async function actionCheckList(
+  session: AppSession,
+  bookingType: "all" | "manual" | "online" = "all",
+  limit = 50,
+): Promise<ActionCheckItem[]> {
+  const supabase = await import("@/lib/auth").then((m) => m.getSupabase());
+  const branch = branchFilter(session);
+  const todayStr = manilaToday();
+  const tomorrowStr = addDays(todayStr, 1);
+
+  let query = supabase
+    .from("bookings")
+    .select(BOOKING_SELECT)
+    .in("status", ["Pending", "Confirmed", "Released", "Active"])
+    .or(`start_date.lte.${tomorrowStr},end_date.lte.${tomorrowStr}`)
+    .order("start_date", { ascending: true })
+    .limit(limit);
+
+  if (branch !== null) {
+    query = query.eq("branch_id", branch);
+  }
+
+  if (bookingType !== "all") {
+    query = query.eq("booking_type", bookingType);
+  }
+
+  const rows = await fetchRows<BookingRow>(query);
+  const items: ActionCheckItem[] = [];
+
+  for (const row of rows) {
+    const status = (row.status ?? "").toLowerCase();
+    const customer = row.users?.name ?? row.guest_name ?? "Valued Customer";
+    const phone = row.users?.phone ?? row.phone_number;
+    const carName = [row.cars?.brand, row.cars?.model].filter(Boolean).join(" ") || "Vehicle";
+    const plate = row.cars?.plate_number ?? "—";
+    const start = row.start_date ?? "";
+    const end = row.end_date ?? "";
+
+    // 1. Check Release Action (Confirmed or Pending)
+    if (status === "confirmed" || status === "pending") {
+      if (start && start < todayStr) {
+        const diffMs = Date.parse(todayStr) - Date.parse(start);
+        const days = Math.max(1, Math.round(diffMs / 86400000));
+        items.push({
+          id: row.id,
+          booking_type: row.booking_type ?? "online",
+          customer_name: customer,
+          phone_number: phone,
+          car_name: carName,
+          plate_number: plate,
+          status: row.status ?? "Confirmed",
+          start_date: row.start_date,
+          end_date: row.end_date,
+          pickup_time: row.pickup_time,
+          return_time: row.return_time,
+          urgency: "urgent",
+          timing: "overdue",
+          actionType: "release",
+          daysDiff: -days,
+          badgeLabel: days === 1 ? "Overdue Release (1d)" : `Overdue Release (${days}d)`,
+          badgeTone: "danger",
+        });
+      } else if (start === todayStr) {
+        items.push({
+          id: row.id,
+          booking_type: row.booking_type ?? "online",
+          customer_name: customer,
+          phone_number: phone,
+          car_name: carName,
+          plate_number: plate,
+          status: row.status ?? "Confirmed",
+          start_date: row.start_date,
+          end_date: row.end_date,
+          pickup_time: row.pickup_time,
+          return_time: row.return_time,
+          urgency: "urgent",
+          timing: "today",
+          actionType: "release",
+          daysDiff: 0,
+          badgeLabel: "Release Today",
+          badgeTone: "urgent",
+        });
+      } else if (start === tomorrowStr) {
+        items.push({
+          id: row.id,
+          booking_type: row.booking_type ?? "online",
+          customer_name: customer,
+          phone_number: phone,
+          car_name: carName,
+          plate_number: plate,
+          status: row.status ?? "Confirmed",
+          start_date: row.start_date,
+          end_date: row.end_date,
+          pickup_time: row.pickup_time,
+          return_time: row.return_time,
+          urgency: "warning",
+          timing: "tomorrow",
+          actionType: "release",
+          daysDiff: 1,
+          badgeLabel: "Release Tomorrow",
+          badgeTone: "warning",
+        });
+      }
+    }
+
+    // 2. Check Return Action (Released or Active)
+    if (status === "released" || status === "active") {
+      if (end && end < todayStr) {
+        const diffMs = Date.parse(todayStr) - Date.parse(end);
+        const days = Math.max(1, Math.round(diffMs / 86400000));
+        items.push({
+          id: row.id,
+          booking_type: row.booking_type ?? "online",
+          customer_name: customer,
+          phone_number: phone,
+          car_name: carName,
+          plate_number: plate,
+          status: row.status ?? "Released",
+          start_date: row.start_date,
+          end_date: row.end_date,
+          pickup_time: row.pickup_time,
+          return_time: row.return_time,
+          urgency: "urgent",
+          timing: "overdue",
+          actionType: "return",
+          daysDiff: -days,
+          badgeLabel: days === 1 ? "Overdue Return (1d)" : `Overdue Return (${days}d)`,
+          badgeTone: "danger",
+        });
+      } else if (end === todayStr) {
+        items.push({
+          id: row.id,
+          booking_type: row.booking_type ?? "online",
+          customer_name: customer,
+          phone_number: phone,
+          car_name: carName,
+          plate_number: plate,
+          status: row.status ?? "Released",
+          start_date: row.start_date,
+          end_date: row.end_date,
+          pickup_time: row.pickup_time,
+          return_time: row.return_time,
+          urgency: "urgent",
+          timing: "today",
+          actionType: "return",
+          daysDiff: 0,
+          badgeLabel: "Return Today",
+          badgeTone: "urgent",
+        });
+      } else if (end === tomorrowStr) {
+        items.push({
+          id: row.id,
+          booking_type: row.booking_type ?? "online",
+          customer_name: customer,
+          phone_number: phone,
+          car_name: carName,
+          plate_number: plate,
+          status: row.status ?? "Released",
+          start_date: row.start_date,
+          end_date: row.end_date,
+          pickup_time: row.pickup_time,
+          return_time: row.return_time,
+          urgency: "warning",
+          timing: "tomorrow",
+          actionType: "return",
+          daysDiff: 1,
+          badgeLabel: "Return Tomorrow",
+          badgeTone: "warning",
+        });
+      }
+    }
+  }
+
+  // Sort: Overdue (-X) first, then Today (0), then Tomorrow (1)
+  items.sort((a, b) => {
+    if (a.daysDiff !== b.daysDiff) {
+      return a.daysDiff - b.daysDiff;
+    }
+    return a.id - b.id;
+  });
+
+  return items;
+}
+
+/** Action Check list specifically for walk-in / manual bookings */
+export async function actionCheckManualList(
+  session: AppSession,
+  limit = 50,
+): Promise<ActionCheckItem[]> {
+  return actionCheckList(session, "manual", limit);
 }
 
 /** The most recent bookings (legacy "Recent Bookings" block). */
