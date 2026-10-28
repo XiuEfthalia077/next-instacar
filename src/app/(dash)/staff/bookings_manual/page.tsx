@@ -228,7 +228,7 @@ export default async function StaffBookingsManualPage({
       ext_price_11_12: number | null;
       ext_price_13_24: number | null;
     }>(carQuery),
-    todayManualSchedule(session, 10),
+    todayManualSchedule(session, 50),
   ]);
 
   const todayStr = manilaToday();

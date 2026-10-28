@@ -312,7 +312,7 @@ export async function bookingCounters(session: AppSession) {
 /** Today's pickups + returns (legacy "Today's Schedule" block). */
 export async function todaySchedule(
   session: AppSession,
-  limit = 10,
+  limit = 50,
 ): Promise<BookingRow[]> {
   const supabase = await import("@/lib/auth").then((m) => m.getSupabase());
   const branch = branchFilter(session);
@@ -336,7 +336,7 @@ export async function todaySchedule(
 /** Today's pickups + returns specifically for manual/walk-in bookings */
 export async function todayManualSchedule(
   session: AppSession,
-  limit = 10,
+  limit = 50,
 ): Promise<BookingRow[]> {
   const supabase = await import("@/lib/auth").then((m) => m.getSupabase());
   const branch = branchFilter(session);

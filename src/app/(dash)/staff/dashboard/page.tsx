@@ -36,7 +36,7 @@ export default async function StaffDashboardPage({
 
   const [counters, schedule, recent, attentionItems] = await Promise.all([
     bookingCounters(session),
-    todaySchedule(session, 10),
+    todaySchedule(session, 50),
     recentBookings(session, 5),
     bookingsNeedingAttention(session, 20),
   ]);

@@ -63,7 +63,7 @@ export default async function AdminDashboardPage({
     listCars(session, { perPage: 5 }),
     listBranches(),
     bookingsNeedingAttention(session, 20),
-    todaySchedule(session, 10),
+    todaySchedule(session, 50),
   ]);
 
   const day = manilaToday();
