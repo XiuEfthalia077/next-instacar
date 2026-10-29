@@ -123,18 +123,14 @@ export function AvailabilityCalendar({
   const applyDaySelection = (dayStr: string) => {
     if (onSelectRange) {
       if (rangeStart) {
-        if (dayStr >= rangeStart) {
-          // Second click: selected end date!
-          onSelectRange(rangeStart, dayStr);
-          setRangeStart(null);
-          setHoverDay(null);
-        } else {
-          // Clicked earlier date: reset start to this earlier date
-          setRangeStart(dayStr);
-          onSelectRange(dayStr, dayStr);
-        }
+        // Strict Second Click: Always sets the return/end date and completes the range
+        const start = dayStr < rangeStart ? dayStr : rangeStart;
+        const end = dayStr < rangeStart ? rangeStart : dayStr;
+        onSelectRange(start, end);
+        setRangeStart(null);
+        setHoverDay(null);
       } else {
-        // First click: start new range
+        // Strict First Click (or Third Click reset): Sets pickup/start date
         setRangeStart(dayStr);
         onSelectRange(dayStr, dayStr);
       }
@@ -251,8 +247,9 @@ export function AvailabilityCalendar({
           // Active range selection
           let isSelected = false;
           if (rangeStart) {
+            const previewStart = hoverDay && hoverDay < rangeStart ? hoverDay : rangeStart;
             const previewEnd = hoverDay && hoverDay >= rangeStart ? hoverDay : rangeStart;
-            isSelected = currentDayStr >= rangeStart && currentDayStr <= previewEnd;
+            isSelected = currentDayStr >= previewStart && currentDayStr <= previewEnd;
           } else if (startDate && endDate) {
             isSelected = currentDayStr >= startDate && currentDayStr <= endDate;
           } else if (startDate) {

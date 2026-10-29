@@ -71,6 +71,23 @@ export function EditReservationDialog({
 
   const isDelivery = fulfillment === "delivery";
 
+  const handleConfirmSaveClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const todayIso = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Manila",
+    }).format(new Date());
+    const isPast =
+      (!!startDate && startDate < todayIso) ||
+      (!!endDate && endDate < todayIso);
+
+    if (isPast && !pastConfirmedRef.current) {
+      setPastConfirmOpen(true);
+      return;
+    }
+
+    formRef.current?.requestSubmit();
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] overflow-y-auto rounded-2xl w-[95vw] sm:max-w-2xl">
@@ -300,7 +317,8 @@ export function EditReservationDialog({
                 </Button>
               </DialogClose>
               <LoadingButton
-                type="submit"
+                type="button"
+                onClick={handleConfirmSaveClick}
                 loadingText="Saving Changes..."
                 className="rounded-lg px-4 font-bold bg-[#ffcc00] text-black hover:bg-[#e6b800]"
               >

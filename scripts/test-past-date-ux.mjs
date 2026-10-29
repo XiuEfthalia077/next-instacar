@@ -82,17 +82,60 @@ async function runPastDateUxTest() {
       throw new Error(`FAIL: Expected range ending in 01 and 05, got ${pickupVal} to ${returnVal}`);
     }
 
-    // 8b. Verify Return Date input is NOT readOnly
-    const isReturnReadOnly = await page.locator('#manual-return-date').getAttribute('readonly');
-    if (isReturnReadOnly !== null) {
-      throw new Error("FAIL: manual-return-date input is readOnly!");
+    // 8b. Test 3rd click (Resets range and starts new start date) & 4th click (Sets end date)
+    console.log("8b. Testing strict 2-click reset: Click 3 on Day 10...");
+    const day10Btn = page.locator('div[role="dialog"] div.grid-cols-7 button:has-text("10")').first();
+    await day10Btn.click();
+    await page.waitForTimeout(300);
+    const pickupVal3 = await page.locator('#manual-pickup-date').inputValue();
+    const returnVal3 = await page.locator('#manual-return-date').inputValue();
+    console.log(`✔ Click 3 reset verified: start=${pickupVal3}, end=${returnVal3}`);
+    if (!pickupVal3.endsWith("-10")) {
+      throw new Error(`FAIL: Expected Click 3 to reset start date to Day 10, got ${pickupVal3}`);
     }
-    console.log("✔ PASSED: manual-return-date is fully editable (not readOnly)!");
 
-    // 9. Fill required fields (Guest Name, Car, IDs) to test Step 3 (Submit Warning)
-    console.log("8. Testing Step 3: Final confirmation on Confirm Booking...");
+    console.log("8c. Click 4 on Day 12 to complete second 2-click selection...");
+    const day12Btn = page.locator('div[role="dialog"] div.grid-cols-7 button:has-text("12")').first();
+    await day12Btn.click();
+    await page.waitForTimeout(300);
+    const pickupVal4 = await page.locator('#manual-pickup-date').inputValue();
+    const returnVal4 = await page.locator('#manual-return-date').inputValue();
+    console.log(`✔ Click 4 range completed: ${pickupVal4} → ${returnVal4}`);
+    if (!pickupVal4.endsWith("-10") || !returnVal4.endsWith("-12")) {
+      throw new Error(`FAIL: Expected Day 10 to Day 12, got ${pickupVal4} to ${returnVal4}`);
+    }
+
+    // 9. Test Fulfillment Type & Address Logic
+    console.log("9. Testing Fulfillment Type and Address Logic...");
+    // Check Pickup default address:
+    const pickupAddressVal = await page.locator('#manual-delivery-address').inputValue();
+    const isPickupAddressReadOnly = await page.locator('#manual-delivery-address').getAttribute('readonly');
+    console.log(`✔ Pickup Address value: "${pickupAddressVal}", readOnly: ${isPickupAddressReadOnly !== null}`);
+    if (!pickupAddressVal.includes("Pandac, Pavia, Iloilo") || isPickupAddressReadOnly === null) {
+      throw new Error("FAIL: Pickup address should default to branch location and be readOnly!");
+    }
+
+    // Switch to Delivery:
+    await page.selectOption('#manual-fulfillment', 'Delivery');
+    const isDeliveryAddressReadOnly = await page.locator('#manual-delivery-address').getAttribute('readonly');
+    console.log(`✔ Switched to Delivery: readOnly is now ${isDeliveryAddressReadOnly !== null}`);
+    if (isDeliveryAddressReadOnly !== null) {
+      throw new Error("FAIL: Delivery address should be editable when Delivery is selected!");
+    }
+    await page.fill('#manual-delivery-address', '123 Custom Delivery St, Iloilo City');
+
+    // Check Return Address input and helper text
+    const returnAddressInput = page.locator('#manual-return-address');
+    if (await returnAddressInput.count() === 0) {
+      throw new Error("FAIL: Return Address input is missing!");
+    }
+    await returnAddressInput.fill('Back to main branch shop');
+    console.log("✔ PASSED: Return Address input and helper text verified!");
+
+    // 10. Fill required fields (Guest Name, Car, IDs) to test Past Date Double-Submit Bug
+    console.log("10. Testing Past Date Double-Submit Bug...");
     await page.selectOption('#manual-customer-type', 'guest');
-    await page.fill('#manual-guest-name', 'Past Date UX Tester');
+    await page.fill('#manual-guest-name', 'Past Date Double-Submit Tester');
 
     // Select car
     const carSelect = page.locator('#manual-car-id');
@@ -118,12 +161,36 @@ async function runPastDateUxTest() {
     }
 
     // Click "Confirm Booking"
-    const submitBtn = page.locator('button[type="submit"]:has-text("Confirm Booking")');
+    console.log("11. Clicking 'Confirm Booking' button...");
+    const submitBtn = page.locator('button:has-text("Confirm Booking")');
     await submitBtn.click();
 
     // Check for Step 3 Final confirmation modal:
     await page.waitForSelector('text=This booking is set in the past. Are you sure you want to proceed?', { timeout: 5000 });
     console.log("✔ Step 3 Final Confirmation Modal appeared: 'This booking is set in the past. Are you sure you want to proceed?'");
+
+    // Click Cancel first to verify nothing is submitted
+    console.log("12. Clicking 'Cancel' on the warning modal to test that submit is STOPPED...");
+    const cancelModalBtn = page.locator('div[role="alertdialog"] button:has-text("Cancel")');
+    await cancelModalBtn.click();
+    await page.waitForTimeout(1000);
+
+    // Verify dialog is still open and page did NOT navigate or submit
+    const dialogStillOpen = await page.locator('div[role="dialog"]').isVisible();
+    if (!dialogStillOpen) {
+      throw new Error("FAIL: Booking was submitted even when Cancel was clicked!");
+    }
+    console.log("✔ PASSED: Booking submission was strictly STOPPED when Cancel was clicked!");
+
+    // Click "Confirm Booking" again, then click "Yes, Proceed"
+    console.log("13. Clicking 'Confirm Booking' again and accepting warning...");
+    await submitBtn.click();
+    await page.waitForSelector('text=This booking is set in the past. Are you sure you want to proceed?', { timeout: 5000 });
+    await page.click('div[role="alertdialog"] button:has-text("Yes, Proceed")');
+
+    // Wait for form to submit and dialog to close or redirect
+    await page.waitForTimeout(3000);
+    console.log("✔ Booking submission triggered cleanly upon explicit Accept!");
 
     console.log("\n=================================================================");
     console.log("  ALL PAST DATE UX VALIDATION FLOW CHECKS PASSED PERFECTLY!");

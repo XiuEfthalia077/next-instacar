@@ -139,6 +139,8 @@ type BookingRow = {
   secondary_id_path: string | null;
   proof_billing_path: string | null;
   proof_payment_path: string | null;
+  delivery_address?: string | null;
+  return_delivery_address?: string | null;
 };
 
 /**
@@ -641,6 +643,10 @@ export async function addManualBookingAction(formData: FormData) {
   const fulfillmentType: "Pickup" | "Delivery" =
     rawFulfillment.toLowerCase() === "delivery" ? "Delivery" : "Pickup";
   const deliveryAddress = str(formData, "delivery_address") || null;
+  const returnDeliveryAddress =
+    str(formData, "return_delivery_address") ||
+    str(formData, "return_address") ||
+    null;
 
   const { data: inserted, error } = await db
     .from("bookings")
@@ -669,6 +675,7 @@ export async function addManualBookingAction(formData: FormData) {
       pickup_fee: money(formData, "pickup_fee"),
       fulfillment_type: fulfillmentType,
       delivery_address: deliveryAddress,
+      return_delivery_address: returnDeliveryAddress,
       remarks: str(formData, "remarks") || null,
       status: "Confirmed",
       booking_type: "manual",
@@ -877,6 +884,11 @@ export async function updateBookingAction(formData: FormData) {
       down_payment: money(formData, "down_payment"),
       delivery_fee: money(formData, "delivery_fee"),
       pickup_fee: money(formData, "pickup_fee"),
+      delivery_address: str(formData, "delivery_address") || old.delivery_address || null,
+      return_delivery_address:
+        str(formData, "return_delivery_address") ||
+        old.return_delivery_address ||
+        null,
       remarks: str(formData, "remarks") || null,
       total_price: totalPrice,
       last_action_by: session.userId,

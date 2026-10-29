@@ -216,6 +216,26 @@ export function RentCarFlowDialog({
     return blockedRanges.some((r) => r.start <= endDate && r.end >= startDate);
   }, [startDate, endDate, blockedRanges]);
 
+  const handleConfirmBookingClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!agreedToTerms || hours < 10 || hasDateOverlap || isSubmitting) return;
+
+    const todayIso = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Manila",
+    }).format(new Date());
+    const isPast =
+      (!!startDate && startDate < todayIso) ||
+      (!!endDate && endDate < todayIso);
+
+    if (isPast && !pastConfirmedRef.current) {
+      setPastConfirmOpen(true);
+      return;
+    }
+
+    setIsSubmitting(true);
+    formRef.current?.requestSubmit();
+  };
+
   return (
     <>
       {/* Trigger: Click starts Step 1 (Car Rental Agreement Modal) */}
@@ -704,7 +724,8 @@ export function RentCarFlowDialog({
             )}
 
             <LoadingButton
-              type="submit"
+              type="button"
+              onClick={handleConfirmBookingClick}
               disabled={!agreedToTerms || hours < 10 || hasDateOverlap || isSubmitting}
               loading={isSubmitting}
               loadingText="Confirming Booking..."

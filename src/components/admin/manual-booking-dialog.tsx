@@ -68,6 +68,7 @@ export type ManualCarOption = {
 type DurationMode = "custom" | 10 | 24;
 
 const DRAFT_KEY = "instacar_manual_booking_draft_v1";
+const DEFAULT_BRANCH_ADDRESS = "Instacar Car Rental Services, Pandac, Pavia, Iloilo";
 
 function pad(value: number) {
   return String(value).padStart(2, "0");
@@ -130,6 +131,7 @@ export function ManualBookingDialog({
     "Pickup" | "Delivery" | "Office Self-Pickup"
   >("Pickup");
   const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [returnAddress, setReturnAddress] = useState("");
 
   // Searchable select state for registered members
   const [memberSearch, setMemberSearch] = useState("");
@@ -162,6 +164,7 @@ export function ManualBookingDialog({
         if (d.carId) setCarId(d.carId);
         if (d.fulfillmentType) setFulfillmentType(d.fulfillmentType);
         if (d.deliveryAddress) setDeliveryAddress(d.deliveryAddress);
+        if (d.returnAddress) setReturnAddress(d.returnAddress);
         if (d.deliveryFee) setDeliveryFee(d.deliveryFee);
         if (d.pickupFee) setPickupFee(d.pickupFee);
         if (d.discount) setDiscount(d.discount);
@@ -188,6 +191,7 @@ export function ManualBookingDialog({
         carId,
         fulfillmentType,
         deliveryAddress,
+        returnAddress,
         deliveryFee,
         pickupFee,
         discount,
@@ -210,6 +214,7 @@ export function ManualBookingDialog({
     carId,
     fulfillmentType,
     deliveryAddress,
+    returnAddress,
     deliveryFee,
     pickupFee,
     discount,
@@ -234,6 +239,7 @@ export function ManualBookingDialog({
     setCarId("");
     setFulfillmentType("Pickup");
     setDeliveryAddress("");
+    setReturnAddress("");
     setDeliveryFee("0");
     setPickupFee("0");
     setDiscount("0");
@@ -456,7 +462,25 @@ export function ManualBookingDialog({
     !invalidRange &&
     !tooShort &&
     hours >= 9.99 &&
+    (fulfillmentType !== "Delivery" || !!deliveryAddress.trim()) &&
     (customerType === "registered" ? !!userId : !!guestName.trim());
+
+  const handleConfirmBookingClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!formValid || isSubmitting) return;
+
+    if (isPastDate && !pastConfirmedRef.current) {
+      // Strictly STOP the API request and only show the warning modal
+      setPastConfirmOpen(true);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch {}
+    formRef.current?.requestSubmit();
+  };
 
   const chooseDuration = (mode: DurationMode) => {
     setDurationMode(mode);
@@ -890,16 +914,49 @@ export function ManualBookingDialog({
                 id="manual-delivery-address"
                 type="text"
                 name="delivery_address"
-                value={deliveryAddress}
-                onChange={(event) => setDeliveryAddress(event.target.value)}
+                value={fulfillmentType === "Pickup" ? DEFAULT_BRANCH_ADDRESS : deliveryAddress}
+                onChange={(event) => {
+                  if (fulfillmentType === "Delivery") {
+                    setDeliveryAddress(event.target.value);
+                  }
+                }}
+                readOnly={fulfillmentType === "Pickup"}
                 placeholder={
                   fulfillmentType === "Delivery"
-                    ? "Enter customer delivery & drop-off address"
-                    : "Pickup address or branch location (optional)"
+                    ? "Enter customer delivery address"
+                    : DEFAULT_BRANCH_ADDRESS
                 }
                 required={fulfillmentType === "Delivery"}
+                className={cn(
+                  "rounded-lg",
+                  fulfillmentType === "Pickup" &&
+                    "bg-muted/60 text-muted-foreground cursor-not-allowed border-dashed select-none",
+                )}
+              />
+              {fulfillmentType === "Pickup" ? (
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Default branch location for vehicle collection.
+                </p>
+              ) : null}
+            </div>
+
+            {/* New Return Address Input */}
+            <div className="sm:col-span-2">
+              <Label htmlFor="manual-return-address" className="mb-1 block text-xs font-bold">
+                Return Address
+              </Label>
+              <Input
+                id="manual-return-address"
+                type="text"
+                name="return_delivery_address"
+                value={returnAddress}
+                onChange={(event) => setReturnAddress(event.target.value)}
+                placeholder="e.g., back to the shop, or a custom location for us to collect"
                 className="rounded-lg"
               />
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Where will the customer return the car? (e.g., back to the shop, or a custom location for us to collect).
+              </p>
             </div>
 
             <div>
@@ -1040,7 +1097,8 @@ export function ManualBookingDialog({
                 </Button>
               </DialogClose>
               <LoadingButton
-                type="submit"
+                type="button"
+                onClick={handleConfirmBookingClick}
                 disabled={!formValid || isSubmitting}
                 loading={isSubmitting}
                 loadingText="Confirming Booking..."

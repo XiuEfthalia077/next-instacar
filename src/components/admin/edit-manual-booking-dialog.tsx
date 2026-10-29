@@ -177,6 +177,25 @@ export function EditManualBookingDialog({
   const { date: startDate, time: pickupTime } = splitDateTime(pickupDatetime);
   const { date: endDate, time: returnTime } = splitDateTime(returnDatetime);
 
+  const handleConfirmSaveClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!formValid) return;
+
+    const todayIso = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Manila",
+    }).format(new Date());
+    const isPast =
+      (!!startDate && startDate < todayIso) ||
+      (!!endDate && endDate < todayIso);
+
+    if (isPast && !pastConfirmedRef.current) {
+      setPastConfirmOpen(true);
+      return;
+    }
+
+    formRef.current?.requestSubmit();
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] overflow-y-auto rounded-2xl p-6 sm:p-8 w-[95vw] sm:max-w-3xl">
@@ -534,7 +553,8 @@ export function EditManualBookingDialog({
               </Button>
             </DialogClose>
             <LoadingButton
-              type="submit"
+              type="button"
+              onClick={handleConfirmSaveClick}
               disabled={!formValid}
               loadingText="Saving Changes..."
               className="rounded-lg px-4 font-bold bg-[#ffcc00] text-black hover:bg-[#e6b800]"
