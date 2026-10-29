@@ -51,6 +51,7 @@ const PARTS = [
   "migrations/20260101001200_enable_realtime.sql",
   "migrations/20260101001300_otp_password_resets_and_inquiries.sql",
   "migrations/20260101001400_fix_bookings_insert_and_read_rls.sql",
+  "migrations/20260101001500_allow_staff_bookings_read_and_past_dates.sql",
   "seed.sql",
   "seed-car-images.sql",
   "migrations/20260101000700_auth_users_sync.sql",

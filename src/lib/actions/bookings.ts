@@ -208,8 +208,9 @@ async function hasOverlap(options: {
   excludeBookingId?: number;
 }): Promise<boolean> {
   const supabase = await getSupabase();
+  const db = getAdminClient() ?? supabase;
 
-  const { data } = await supabase
+  const { data } = await db
     .from("bookings")
     .select("id, start_date, end_date, pickup_time, return_time")
     .eq("car_id", options.carId)
@@ -599,6 +600,7 @@ export async function addManualBookingAction(formData: FormData) {
       ? session.branchId || insertBranchId(session)
       : int(formData, "branch_id") || insertBranchId(session);
   const supabase = await getSupabase();
+  const db = getAdminClient() ?? supabase;
 
   let folder: string;
   if (userId) {
@@ -625,7 +627,7 @@ export async function addManualBookingAction(formData: FormData) {
     if (!upload) continue;
 
     const fileName = buildFileName(prefix, upload);
-    const result = await uploadFile(supabase, {
+    const result = await uploadFile(db, {
       bucket: BUCKETS.bookingUploads,
       folder,
       fileName,
@@ -640,7 +642,7 @@ export async function addManualBookingAction(formData: FormData) {
     rawFulfillment.toLowerCase() === "delivery" ? "Delivery" : "Pickup";
   const deliveryAddress = str(formData, "delivery_address") || null;
 
-  const { data: inserted, error } = await supabase
+  const { data: inserted, error } = await db
     .from("bookings")
     .insert({
       user_id: userId || null,
@@ -678,7 +680,7 @@ export async function addManualBookingAction(formData: FormData) {
     flashRedirect(home, "error", `Database error: ${error.message}`);
   }
 
-  await supabase.from("cars").update({ status: "Active" }).eq("id", carId);
+  await db.from("cars").update({ status: "Active" }).eq("id", carId);
 
   revalidatePath("/admin/bookings_manual");
   revalidatePath("/staff/bookings_manual");
@@ -801,8 +803,9 @@ export async function updateBookingAction(formData: FormData) {
   }
 
   const supabase = await getSupabase();
+  const db = getAdminClient() ?? supabase;
 
-  const { data: oldData } = await supabase
+  const { data: oldData } = await db
     .from("bookings")
     .select(
       "id, car_id, user_id, guest_name, gmail, primary_id_path, secondary_id_path, proof_billing_path, branch_id",
@@ -845,7 +848,7 @@ export async function updateBookingAction(formData: FormData) {
     if (!upload) continue;
 
     const fileName = buildFileName(prefix, upload);
-    const result = await uploadFile(supabase, {
+    const result = await uploadFile(db, {
       bucket: BUCKETS.bookingUploads,
       folder,
       fileName,
@@ -855,7 +858,7 @@ export async function updateBookingAction(formData: FormData) {
     if (result.ok) paths[key] = `${folder}/${fileName}`;
   }
 
-  const { error } = await supabase
+  const { error } = await db
     .from("bookings")
     .update({
       user_id: userId || null,
@@ -885,8 +888,8 @@ export async function updateBookingAction(formData: FormData) {
   if (error) flashRedirect(home, "error", `Failed to update booking: ${error.message}`);
 
   if (old.car_id && old.car_id !== carId) {
-    await supabase.from("cars").update({ status: "Available" }).eq("id", old.car_id);
-    await supabase.from("cars").update({ status: "Active" }).eq("id", carId);
+    await db.from("cars").update({ status: "Available" }).eq("id", old.car_id);
+    await db.from("cars").update({ status: "Active" }).eq("id", carId);
   }
 
   refreshBookingViews(bookingId);
@@ -907,8 +910,9 @@ export async function updateReservationAction(formData: FormData) {
   if (!bookingId) flashRedirect(home, "error", "Invalid booking.");
 
   const supabase = await getSupabase();
+  const db = getAdminClient() ?? supabase;
 
-  const { data: oldData } = await supabase
+  const { data: oldData } = await db
     .from("bookings")
     .select(
       "id, car_id, primary_id_path, secondary_id_path, proof_billing_path, proof_payment_path, branch_id",
@@ -967,7 +971,7 @@ export async function updateReservationAction(formData: FormData) {
     if (!upload) continue;
 
     const fileName = buildFileName(prefix, upload);
-    const result = await uploadFile(supabase, {
+    const result = await uploadFile(db, {
       bucket: BUCKETS.bookingUploads,
       folder,
       fileName,
@@ -977,7 +981,7 @@ export async function updateReservationAction(formData: FormData) {
     if (result.ok) paths[key] = `${folder}/${fileName}`;
   }
 
-  const { error } = await supabase
+  const { error } = await db
     .from("bookings")
     .update({
       fulfillment_type: fulfillment,

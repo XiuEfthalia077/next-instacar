@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/common/loading-button";
 import { AvailabilityCalendar } from "@/components/common/availability-calendar";
 import { PastDateConfirmDialog } from "@/components/common/past-date-confirm-dialog";
+import { TimePicker } from "@/components/common/time-picker";
 import {
   Dialog,
   DialogClose,
@@ -66,7 +67,7 @@ export function EditReservationDialog({
   const [pickupTime, setPickupTime] = useState(timeValue(booking.pickup_time));
   const [returnTime, setReturnTime] = useState(timeValue(booking.return_time));
   const [pastConfirmOpen, setPastConfirmOpen] = useState(false);
-  const [pastConfirmed, setPastConfirmed] = useState(false);
+  const pastConfirmedRef = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
 
   const isDelivery = fulfillment === "delivery";
@@ -75,7 +76,7 @@ export function EditReservationDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="max-h-[92vh] overflow-y-auto rounded-2xl p-6 sm:p-8 sm:max-w-2xl">
+      <DialogContent className="max-h-[92vh] overflow-y-auto rounded-2xl p-6 sm:p-8 w-[95vw] sm:max-w-2xl">
         <DialogHeader className="border-b border-border/70 pb-3 pr-8">
           <DialogTitle className="flex items-center gap-2 text-lg font-bold">
             <ClipboardList className="size-5 text-[#b38a00] dark:text-[#ffd700]" />
@@ -91,9 +92,11 @@ export function EditReservationDialog({
           ref={formRef}
           action={updateReservationAction}
           onSubmit={(e) => {
-            const todayIso = new Date().toISOString().slice(0, 10);
+            const todayIso = new Intl.DateTimeFormat("en-CA", {
+              timeZone: "Asia/Manila",
+            }).format(new Date());
             const isPast = !!startDate && startDate < todayIso;
-            if (isPast && !pastConfirmed) {
+            if (isPast && !pastConfirmedRef.current) {
               e.preventDefault();
               setPastConfirmOpen(true);
               return;
@@ -174,27 +177,19 @@ export function EditReservationDialog({
 
             <div>
               <Label className="mb-1 block text-xs font-bold">Pickup Time</Label>
-              <Input
-                type="time"
+              <TimePicker
                 name="pickup_time"
                 value={pickupTime}
-                onChange={(e) => setPickupTime(e.target.value)}
-                step={60}
-                required
-                className="rounded-lg"
+                onChange={setPickupTime}
               />
             </div>
 
             <div>
               <Label className="mb-1 block text-xs font-bold">Return Time</Label>
-              <Input
-                type="time"
+              <TimePicker
                 name="return_time"
                 value={returnTime}
-                onChange={(e) => setReturnTime(e.target.value)}
-                step={60}
-                required
-                className="rounded-lg"
+                onChange={setReturnTime}
               />
             </div>
 
@@ -265,10 +260,11 @@ export function EditReservationDialog({
         open={pastConfirmOpen}
         onOpenChange={setPastConfirmOpen}
         onConfirm={() => {
-          setPastConfirmed(true);
+          pastConfirmedRef.current = true;
+          setPastConfirmOpen(false);
           setTimeout(() => {
             formRef.current?.requestSubmit();
-          }, 0);
+          }, 50);
         }}
       />
     </Dialog>

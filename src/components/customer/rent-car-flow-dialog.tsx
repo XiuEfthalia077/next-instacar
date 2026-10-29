@@ -20,6 +20,7 @@ import { FileUploadDropzone } from "@/components/common/file-upload-dropzone";
 import { LoadingButton } from "@/components/common/loading-button";
 import { AvailabilityCalendar } from "@/components/common/availability-calendar";
 import { PastDateConfirmDialog } from "@/components/common/past-date-confirm-dialog";
+import { TimePicker } from "@/components/common/time-picker";
 import { Money } from "@/components/common/money";
 import { Button } from "@/components/ui/button";
 import {
@@ -98,7 +99,7 @@ export function RentCarFlowDialog({
   const [deliveryAddress, setDeliveryAddress] = React.useState("");
   const [returnAddress, setReturnAddress] = React.useState("");
   const [pastConfirmOpen, setPastConfirmOpen] = React.useState(false);
-  const [pastConfirmed, setPastConfirmed] = React.useState(false);
+  const pastConfirmedRef = React.useRef(false);
   const formRef = React.useRef<HTMLFormElement>(null);
 
   const carName = [car.brand, car.model].filter(Boolean).join(" ") || "Vehicle";
@@ -231,7 +232,7 @@ export function RentCarFlowDialog({
 
       {/* STEP 2: BOOKING FORM MODAL (Only opens after Agreement is accepted) */}
       <Dialog open={flowStep === "form"} onOpenChange={(isOpen) => !isOpen && handleCloseAll()}>
-        <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto border-border bg-card p-6 text-card-foreground sm:p-8 sm:rounded-2xl">
+        <DialogContent className="max-h-[92vh] w-[95vw] sm:max-w-2xl md:max-w-3xl overflow-y-auto border-border bg-card p-6 text-card-foreground sm:p-8 sm:rounded-2xl">
           <DialogHeader className="border-b border-border/80 pb-4 pr-8">
             <DialogTitle className="text-lg font-black tracking-tight text-foreground">
               Book {carName}
@@ -246,9 +247,11 @@ export function RentCarFlowDialog({
                 e.preventDefault();
                 return;
               }
-              const todayIso = new Date().toISOString().slice(0, 10);
+              const todayIso = new Intl.DateTimeFormat("en-CA", {
+                timeZone: "Asia/Manila",
+              }).format(new Date());
               const isPast = !!startDate && startDate < todayIso;
-              if (isPast && !pastConfirmed) {
+              if (isPast && !pastConfirmedRef.current) {
                 e.preventDefault();
                 setPastConfirmOpen(true);
                 return;
@@ -342,17 +345,19 @@ export function RentCarFlowDialog({
             </div>
 
             {/* 3. PICKUP & RETURN DATE/TIME INPUTS */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <Label htmlFor="pickup_datetime" className="text-xs font-bold text-foreground">
-                  Pickup Date &amp; Time
+                <Label htmlFor="pickup_date" className="text-xs font-bold text-foreground">
+                  Pickup Date
                 </Label>
                 <Input
-                  id="pickup_datetime"
-                  type="datetime-local"
-                  value={pickupDatetime}
+                  id="pickup_date"
+                  type="date"
+                  value={startDate}
                   onChange={(e) => {
-                    setPickupDatetime(e.target.value);
+                    const d = e.target.value;
+                    const t = pickupTime || "10:00";
+                    setPickupDatetime(`${d}T${t}`);
                     setQuickDuration("custom");
                   }}
                   required
@@ -361,20 +366,66 @@ export function RentCarFlowDialog({
               </div>
 
               <div>
-                <Label htmlFor="return_datetime" className="text-xs font-bold text-foreground">
-                  Return Date &amp; Time
+                <Label htmlFor="pickup_time" className="text-xs font-bold text-foreground">
+                  Pickup Time
+                </Label>
+                <div className="mt-1">
+                  <TimePicker
+                    id="pickup_time"
+                    value={pickupTime}
+                    onChange={(newTime) => {
+                      const d = startDate || new Date().toISOString().slice(0, 10);
+                      setPickupDatetime(`${d}T${newTime}`);
+                      if (quickDuration === "10h") {
+                        const startMs = new Date(`${d}T${newTime}`).getTime();
+                        const end = new Date(startMs + 10 * 3_600_000);
+                        const pad = (n: number) => String(n).padStart(2, "0");
+                        setReturnDatetime(`${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`);
+                      } else if (quickDuration === "24h") {
+                        const startMs = new Date(`${d}T${newTime}`).getTime();
+                        const end = new Date(startMs + 24 * 3_600_000);
+                        const pad = (n: number) => String(n).padStart(2, "0");
+                        setReturnDatetime(`${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`);
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="return_date" className="text-xs font-bold text-foreground">
+                  Return Date
                 </Label>
                 <Input
-                  id="return_datetime"
-                  type="datetime-local"
-                  value={returnDatetime}
+                  id="return_date"
+                  type="date"
+                  value={endDate}
                   onChange={(e) => {
-                    setReturnDatetime(e.target.value);
+                    const d = e.target.value;
+                    const t = returnTime || "10:00";
+                    setReturnDatetime(`${d}T${t}`);
                     setQuickDuration("custom");
                   }}
                   required
                   className="mt-1 rounded-xl"
                 />
+              </div>
+
+              <div>
+                <Label htmlFor="return_time" className="text-xs font-bold text-foreground">
+                  Return Time
+                </Label>
+                <div className="mt-1">
+                  <TimePicker
+                    id="return_time"
+                    value={returnTime}
+                    onChange={(newTime) => {
+                      const d = endDate || startDate || new Date().toISOString().slice(0, 10);
+                      setReturnDatetime(`${d}T${newTime}`);
+                      setQuickDuration("custom");
+                    }}
+                  />
+                </div>
               </div>
             </div>
 
@@ -836,11 +887,11 @@ export function RentCarFlowDialog({
         open={pastConfirmOpen}
         onOpenChange={setPastConfirmOpen}
         onConfirm={() => {
-          setPastConfirmed(true);
-          setIsSubmitting(true);
+          pastConfirmedRef.current = true;
+          setPastConfirmOpen(false);
           setTimeout(() => {
             formRef.current?.requestSubmit();
-          }, 0);
+          }, 50);
         }}
       />
     </>

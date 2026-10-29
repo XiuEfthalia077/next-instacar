@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/common/loading-button";
 import { AvailabilityCalendar } from "@/components/common/availability-calendar";
 import { PastDateConfirmDialog } from "@/components/common/past-date-confirm-dialog";
+import { TimePicker } from "@/components/common/time-picker";
 import {
   Dialog,
   DialogClose,
@@ -134,7 +135,7 @@ export function EditManualBookingDialog({
   const [downPayment, setDownPayment] = useState<string>(String(booking.down_payment ?? 0));
   const [remarks, setRemarks] = useState<string>(booking.remarks ?? "");
   const [pastConfirmOpen, setPastConfirmOpen] = useState(false);
-  const [pastConfirmed, setPastConfirmed] = useState(false);
+  const pastConfirmedRef = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
 
   const selectedCar = useMemo(() => cars.find((car) => String(car.id) === carId) ?? null, [cars, carId]);
@@ -177,7 +178,7 @@ export function EditManualBookingDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto rounded-2xl p-6 sm:p-8 sm:max-w-3xl">
+      <DialogContent className="max-h-[92vh] overflow-y-auto rounded-2xl p-6 sm:p-8 w-[95vw] sm:max-w-3xl">
         <DialogHeader className="border-b border-border/80 pb-3 pr-8">
           <DialogTitle className="flex items-center gap-2 text-lg font-bold">
             <ClipboardList className="size-5 text-[#b38a00] dark:text-[#ffd700]" />
@@ -192,9 +193,11 @@ export function EditManualBookingDialog({
           ref={formRef}
           action={updateBookingAction}
           onSubmit={(e) => {
-            const todayIso = new Date().toISOString().slice(0, 10);
+            const todayIso = new Intl.DateTimeFormat("en-CA", {
+              timeZone: "Asia/Manila",
+            }).format(new Date());
             const isPast = !!startDate && startDate < todayIso;
-            if (isPast && !pastConfirmed) {
+            if (isPast && !pastConfirmedRef.current) {
               e.preventDefault();
               setPastConfirmOpen(true);
               return;
@@ -348,29 +351,64 @@ export function EditManualBookingDialog({
             </div>
 
             <div>
-              <Label htmlFor={`edit-manual-pickup-${booking.id}`} className="mb-1 block text-xs font-bold">
-                Pickup Date &amp; Time
+              <Label htmlFor={`edit-manual-pickup-date-${booking.id}`} className="mb-1 block text-xs font-bold">
+                Pickup Date
               </Label>
               <Input
-                id={`edit-manual-pickup-${booking.id}`}
-                type="datetime-local"
-                value={pickupDatetime}
-                onChange={(event) => setPickupDatetime(event.target.value)}
+                id={`edit-manual-pickup-date-${booking.id}`}
+                type="date"
+                value={startDate}
+                onChange={(event) => {
+                  const d = event.target.value;
+                  const t = pickupTime || "10:00";
+                  setPickupDatetime(`${d}T${t}`);
+                }}
                 required
                 className="rounded-lg"
               />
             </div>
             <div>
-              <Label htmlFor={`edit-manual-return-${booking.id}`} className="mb-1 block text-xs font-bold">
-                Return Date &amp; Time
+              <Label htmlFor={`edit-manual-pickup-time-${booking.id}`} className="mb-1 block text-xs font-bold">
+                Pickup Time
+              </Label>
+              <TimePicker
+                id={`edit-manual-pickup-time-${booking.id}`}
+                value={pickupTime}
+                onChange={(newTime) => {
+                  const d = startDate || new Date().toISOString().slice(0, 10);
+                  setPickupDatetime(`${d}T${newTime}`);
+                }}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor={`edit-manual-return-date-${booking.id}`} className="mb-1 block text-xs font-bold">
+                Return Date
               </Label>
               <Input
-                id={`edit-manual-return-${booking.id}`}
-                type="datetime-local"
-                value={returnDatetime}
-                onChange={(event) => setReturnDatetime(event.target.value)}
+                id={`edit-manual-return-date-${booking.id}`}
+                type="date"
+                value={endDate}
+                onChange={(event) => {
+                  const d = event.target.value;
+                  const t = returnTime || "10:00";
+                  setReturnDatetime(`${d}T${t}`);
+                }}
                 required
                 className="rounded-lg"
+              />
+            </div>
+            <div>
+              <Label htmlFor={`edit-manual-return-time-${booking.id}`} className="mb-1 block text-xs font-bold">
+                Return Time
+              </Label>
+              <TimePicker
+                id={`edit-manual-return-time-${booking.id}`}
+                value={returnTime}
+                onChange={(newTime) => {
+                  const d = endDate || startDate || new Date().toISOString().slice(0, 10);
+                  setReturnDatetime(`${d}T${newTime}`);
+                }}
               />
             </div>
 
@@ -511,10 +549,11 @@ export function EditManualBookingDialog({
         open={pastConfirmOpen}
         onOpenChange={setPastConfirmOpen}
         onConfirm={() => {
-          setPastConfirmed(true);
+          pastConfirmedRef.current = true;
+          setPastConfirmOpen(false);
           setTimeout(() => {
             formRef.current?.requestSubmit();
-          }, 0);
+          }, 50);
         }}
       />
     </Dialog>

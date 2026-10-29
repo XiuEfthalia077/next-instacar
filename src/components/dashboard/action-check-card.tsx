@@ -218,7 +218,7 @@ export function ActionCheckCard({
 
       {/* Complete Scrollable Action Check Modal */}
       <Dialog open={openAll} onOpenChange={setOpenAll}>
-        <DialogContent className="max-w-2xl max-h-[85vh] p-6">
+        <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[85vh] p-4 sm:p-6">
           <DialogHeader>
             <div className="flex items-center gap-2">
               <span className="flex size-8 items-center justify-center rounded-lg bg-[#ffcc00]/15 text-[#b38a00] dark:text-[#ffd700]">

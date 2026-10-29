@@ -28,7 +28,7 @@ export function PastDateConfirmDialog({
 }) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="z-[201] max-w-md rounded-2xl border-border bg-card p-6 text-card-foreground shadow-2xl">
+      <AlertDialogContent className="z-[201] w-[92vw] max-w-md rounded-2xl border-border bg-card p-6 text-card-foreground shadow-2xl">
         <AlertDialogHeader className="space-y-3">
           <div className="flex size-11 items-center justify-center rounded-xl bg-amber-500/15 text-amber-500">
             <AlertTriangle className="size-6" />

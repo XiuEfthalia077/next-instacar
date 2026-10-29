@@ -8,6 +8,7 @@ import {
   ChevronDown,
   CircleDollarSign,
   PlusCircle,
+  RotateCcw,
   Search,
   UserRound,
   X,
@@ -16,6 +17,7 @@ import {
 import { LoadingButton } from "@/components/common/loading-button";
 import { AvailabilityCalendar } from "@/components/common/availability-calendar";
 import { PastDateConfirmDialog } from "@/components/common/past-date-confirm-dialog";
+import { TimePicker } from "@/components/common/time-picker";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -65,6 +67,8 @@ export type ManualCarOption = {
 
 type DurationMode = "custom" | 10 | 24;
 
+const DRAFT_KEY = "instacar_manual_booking_draft_v1";
+
 function pad(value: number) {
   return String(value).padStart(2, "0");
 }
@@ -105,11 +109,11 @@ export function ManualBookingDialog({
   cars: ManualCarOption[];
 }) {
   const [open, setOpen] = useState(false);
-  const [customerType, setCustomerType] = useState<"registered" | "guest">(
-    "registered",
-  );
+  const [customerType, setCustomerType] = useState<"registered" | "guest">("registered");
   const [userId, setUserId] = useState("");
   const [guestName, setGuestName] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
+  const [guestPhone, setGuestPhone] = useState("");
   const [pickup, setPickup] = useState("");
   const [returnAt, setReturnAt] = useState("");
   const [durationMode, setDurationMode] = useState<DurationMode>("custom");
@@ -119,7 +123,7 @@ export function ManualBookingDialog({
   const [pickupFee, setPickupFee] = useState("0");
   const [discount, setDiscount] = useState("0");
   const [downPayment, setDownPayment] = useState("0");
-  const [now, setNow] = useState(0);
+  const [remarks, setRemarks] = useState("");
 
   // Fulfillment state
   const [fulfillmentType, setFulfillmentType] = useState<
@@ -132,9 +136,108 @@ export function ManualBookingDialog({
   const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pastConfirmOpen, setPastConfirmOpen] = useState(false);
-  const [pastConfirmed, setPastConfirmed] = useState(false);
+
+  const pastConfirmedRef = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
   const memberDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Restore draft from localStorage on initial render
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        const d = JSON.parse(saved);
+        if (d.customerType) setCustomerType(d.customerType);
+        if (d.userId) setUserId(d.userId);
+        if (d.guestName) setGuestName(d.guestName);
+        if (d.guestEmail) setGuestEmail(d.guestEmail);
+        if (d.guestPhone) setGuestPhone(d.guestPhone);
+        if (d.pickup) setPickup(d.pickup);
+        if (d.returnAt) setReturnAt(d.returnAt);
+        if (d.durationMode) setDurationMode(d.durationMode);
+        if (d.typeFilter) setTypeFilter(d.typeFilter);
+        if (d.carId) setCarId(d.carId);
+        if (d.fulfillmentType) setFulfillmentType(d.fulfillmentType);
+        if (d.deliveryAddress) setDeliveryAddress(d.deliveryAddress);
+        if (d.deliveryFee) setDeliveryFee(d.deliveryFee);
+        if (d.pickupFee) setPickupFee(d.pickupFee);
+        if (d.discount) setDiscount(d.discount);
+        if (d.downPayment) setDownPayment(d.downPayment);
+        if (d.remarks) setRemarks(d.remarks);
+      }
+    } catch {}
+  }, []);
+
+  // Persist draft to localStorage whenever fields change
+  useEffect(() => {
+    if (!open) return;
+    try {
+      const draft = {
+        customerType,
+        userId,
+        guestName,
+        guestEmail,
+        guestPhone,
+        pickup,
+        returnAt,
+        durationMode,
+        typeFilter,
+        carId,
+        fulfillmentType,
+        deliveryAddress,
+        deliveryFee,
+        pickupFee,
+        discount,
+        downPayment,
+        remarks,
+      };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    } catch {}
+  }, [
+    open,
+    customerType,
+    userId,
+    guestName,
+    guestEmail,
+    guestPhone,
+    pickup,
+    returnAt,
+    durationMode,
+    typeFilter,
+    carId,
+    fulfillmentType,
+    deliveryAddress,
+    deliveryFee,
+    pickupFee,
+    discount,
+    downPayment,
+    remarks,
+  ]);
+
+  const handleResetForm = () => {
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch {}
+    const stamp = Date.now();
+    setCustomerType("registered");
+    setUserId("");
+    setGuestName("");
+    setGuestEmail("");
+    setGuestPhone("");
+    setPickup(toDateTimeInput(new Date(stamp)));
+    setReturnAt(toDateTimeInput(new Date(stamp + 24 * 3_600_000)));
+    setDurationMode(24);
+    setTypeFilter("");
+    setCarId("");
+    setFulfillmentType("Pickup");
+    setDeliveryAddress("");
+    setDeliveryFee("0");
+    setPickupFee("0");
+    setDiscount("0");
+    setDownPayment("0");
+    setRemarks("");
+    pastConfirmedRef.current = false;
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -167,12 +270,11 @@ export function ManualBookingDialog({
     [customers, userId],
   );
 
-  /** Seed the schedule the first time the dialog opens (legacy defaults to now + 10h). */
+  /** Seed the schedule the first time the dialog opens if unset */
   const handleOpenChange = (next: boolean) => {
     setIsSubmitting(false);
     if (next) {
       const stamp = Date.now();
-      setNow(stamp);
       if (!pickup) setPickup(toDateTimeInput(new Date(stamp)));
       if (!returnAt) {
         setReturnAt(toDateTimeInput(new Date(stamp + 10 * 3_600_000)));
@@ -181,17 +283,52 @@ export function ManualBookingDialog({
     setOpen(next);
   };
 
-  useEffect(() => {
-    if (!open) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
-    return () => window.clearInterval(timer);
-  }, [open]);
-
   const carTypes = useMemo(
     () =>
       [...new Set(cars.map((car) => car.type).filter((type): type is string => !!type))].sort(),
     [cars],
   );
+
+  const pickupDate = pickup ? pickup.slice(0, 10) : "";
+  const pickupTime = pickup && pickup.length >= 16 ? pickup.slice(11, 16) : "10:00";
+  const returnDate = returnAt ? returnAt.slice(0, 10) : "";
+  const returnTime = returnAt && returnAt.length >= 16 ? returnAt.slice(11, 16) : "10:00";
+
+  const changePickupDate = (newDate: string) => {
+    const time = pickupTime || "10:00";
+    const newPickup = `${newDate}T${time}`;
+    setPickup(newPickup);
+    if (durationMode === 10) {
+      setReturnAt(addHours(newPickup, 10));
+    } else if (durationMode === 24) {
+      setReturnAt(addHours(newPickup, 24));
+    } else {
+      if (!returnDate || returnDate < newDate) {
+        setReturnAt(`${newDate}T${returnTime || "10:00"}`);
+      }
+    }
+  };
+
+  const changePickupTime = (newTime: string) => {
+    const d = pickupDate || todayStr;
+    const newPickup = `${d}T${newTime}`;
+    setPickup(newPickup);
+    if (durationMode === 10) {
+      setReturnAt(addHours(newPickup, 10));
+    } else if (durationMode === 24) {
+      setReturnAt(addHours(newPickup, 24));
+    }
+  };
+
+  const changeReturnDate = (newDate: string) => {
+    const time = returnTime || "10:00";
+    setReturnAt(`${newDate}T${time}`);
+  };
+
+  const changeReturnTime = (newTime: string) => {
+    const d = returnDate || pickupDate || todayStr;
+    setReturnAt(`${d}T${newTime}`);
+  };
 
   const hours = useMemo(() => {
     if (!pickup || !returnAt) return 0;
@@ -211,29 +348,31 @@ export function ManualBookingDialog({
       cars
         .filter((car) =>
           car.busySlots.some((slot) => {
-            const busyStart = new Date(slot.start).getTime();
-            const busyEnd = new Date(slot.end).getTime();
-            if (!Number.isFinite(busyStart) || !Number.isFinite(busyEnd)) return false;
-            return startStamp < busyEnd && endStamp > busyStart;
+            const slotStart = new Date(slot.start).getTime();
+            const slotEnd = new Date(slot.end).getTime();
+            return startStamp < slotEnd && endStamp > slotStart;
           }),
         )
         .map((car) => car.id),
     );
   }, [cars, startStamp, endStamp]);
 
-  const selectedCar =
-    cars.find(
-      (car) =>
-        String(car.id) === carId &&
-        (!typeFilter || car.type === typeFilter),
-    ) ?? null;
+  const filteredCars = useMemo(() => {
+    if (!typeFilter) return cars;
+    return cars.filter((car) => car.type === typeFilter);
+  }, [cars, typeFilter]);
 
-  const isCarConflicted = selectedCar ? conflictingCars.has(selectedCar.id) : false;
+  const selectedCar = useMemo(
+    () => cars.find((car) => String(car.id) === carId),
+    [cars, carId],
+  );
+
+  const isCarConflicted = !!selectedCar && conflictingCars.has(selectedCar.id);
 
   const basePrice =
     selectedCar && hours > 0
       ? calculatePriceByHours(
-          Math.ceil(hours),
+          hours,
           Number(selectedCar.price_10_hours ?? 0),
           Number(selectedCar.price_12_hours ?? 0),
           Number(selectedCar.price_24_hours ?? 0),
@@ -248,7 +387,15 @@ export function ManualBookingDialog({
   const downPaymentValue = amount(downPayment);
   const balance = Math.max(0, basePrice - discountValue - downPaymentValue);
 
-  const pickupInPast = now > 0 && !!startStamp && startStamp < now - 60_000;
+  const todayStr = useMemo(() => {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Manila",
+    }).format(new Date());
+  }, []);
+
+  // A booking is only in the past if the pickup date itself is before today in Manila.
+  // For today or future dates, any time earlier in the day is allowed without past warnings.
+  const isPastDate = !!pickupDate && pickupDate < todayStr;
   const invalidRange = !!startStamp && !!endStamp && endStamp <= startStamp;
   const tooShort = hours > 0 && hours < 9.99;
 
@@ -263,13 +410,14 @@ export function ManualBookingDialog({
           : "0 Hours";
 
   const formValid =
-    !!pickup &&
-    !!returnAt &&
+    !!pickupDate &&
+    !!returnDate &&
     !!selectedCar &&
     !isCarConflicted &&
     !invalidRange &&
     !tooShort &&
-    hours >= 9.99;
+    hours >= 9.99 &&
+    (customerType === "registered" ? !!userId : !!guestName.trim());
 
   const chooseDuration = (mode: DurationMode) => {
     setDurationMode(mode);
@@ -288,15 +436,15 @@ export function ManualBookingDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button className="gap-2 font-bold">
+        <Button className="gap-2 font-bold shadow-xs">
           <PlusCircle className="size-4" />
           New Walk-in Booking
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-h-[92vh] overflow-y-auto rounded-2xl p-6 sm:p-8 sm:max-w-3xl">
-        <DialogHeader className="border-b border-border/80 pb-3 pr-8">
-          <DialogTitle className="flex items-center gap-2 text-lg font-bold">
+      <DialogContent className="max-h-[92vh] overflow-y-auto w-[95vw] sm:max-w-2xl md:max-w-3xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
             <UserRound className="size-5 text-[#b38a00] dark:text-[#ffd700]" />
             Create Walk-in Booking
           </DialogTitle>
@@ -313,12 +461,15 @@ export function ManualBookingDialog({
               e.preventDefault();
               return;
             }
-            if (pickupInPast && !pastConfirmed) {
+            if (isPastDate && !pastConfirmedRef.current) {
               e.preventDefault();
               setPastConfirmOpen(true);
               return;
             }
             setIsSubmitting(true);
+            try {
+              localStorage.removeItem(DRAFT_KEY);
+            } catch {}
           }}
           className="space-y-4"
           encType="multipart/form-data"
@@ -338,70 +489,60 @@ export function ManualBookingDialog({
                 className={filterControlClass}
               >
                 <option value="registered">Registered Member</option>
-                <option value="guest">Guest / Walk-in</option>
+                <option value="guest">Walk-in / Guest</option>
               </select>
             </div>
 
             {customerType === "registered" ? (
               <div className="sm:col-span-2 relative" ref={memberDropdownRef}>
-                <Label htmlFor="manual-member-trigger" className="mb-1 block text-xs font-bold">
-                  Select Member <span className="text-rose-600">*</span>
+                <Label htmlFor="manual-user-id" className="mb-1 block text-xs font-bold">
+                  Registered Member
                 </Label>
-                <input
-                  type="hidden"
-                  name="user_id"
-                  value={userId}
-                  required={customerType === "registered"}
-                />
+                <input type="hidden" name="user_id" value={userId} />
 
-                <button
-                  type="button"
-                  id="manual-member-trigger"
+                {/* Custom searchable member select */}
+                <div
                   onClick={() => setMemberDropdownOpen((prev) => !prev)}
                   className={cn(
                     filterControlClass,
-                    "flex w-full items-center justify-between text-left font-normal cursor-pointer py-2.5 px-3 rounded-lg border",
-                    !selectedCustomer && "text-muted-foreground",
+                    "flex items-center justify-between cursor-pointer",
+                    !userId && "text-muted-foreground",
                   )}
                 >
-                  <span className="truncate font-medium">
+                  <span className="truncate">
                     {selectedCustomer
-                      ? `${selectedCustomer.name} (ID: #${selectedCustomer.id})`
-                      : "-- Select Member --"}
+                      ? `${selectedCustomer.name} (ID: #${selectedCustomer.id}${
+                          selectedCustomer.email ? ` • ${selectedCustomer.email}` : ""
+                        })`
+                      : "-- Search or Select Registered Member --"}
                   </span>
-                  <div className="flex items-center gap-1.5 shrink-0 text-muted-foreground">
-                    {userId ? (
-                      <span
-                        role="button"
-                        aria-label="Clear selection"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setUserId("");
-                        }}
-                        className="p-0.5 hover:text-foreground transition-colors"
-                      >
-                        <X className="size-3.5" />
-                      </span>
-                    ) : null}
-                    <ChevronDown className="size-4" />
-                  </div>
-                </button>
+                  <ChevronDown className="size-4 shrink-0 text-muted-foreground opacity-60" />
+                </div>
 
                 {memberDropdownOpen ? (
-                  <div className="absolute left-0 right-0 top-full z-50 mt-1.5 rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl p-2 animate-in fade-in-0 zoom-in-95">
+                  <div className="absolute z-50 mt-1 w-full rounded-xl border border-border bg-popover p-2 shadow-xl animate-in fade-in-0 zoom-in-95">
                     <div className="relative mb-2">
-                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-                      <input
+                      <Search className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
+                      <Input
                         type="text"
+                        placeholder="Type name, email, or member ID..."
                         value={memberSearch}
                         onChange={(e) => setMemberSearch(e.target.value)}
-                        placeholder="Search member name or ID..."
                         autoFocus
-                        className="w-full rounded-lg border border-border/80 bg-background/80 py-1.5 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:border-[#ffcc00] focus:outline-none focus:ring-1 focus:ring-[#ffcc00]"
+                        className="pl-8 pr-7 h-8 text-xs rounded-lg"
                       />
+                      {memberSearch ? (
+                        <button
+                          type="button"
+                          onClick={() => setMemberSearch("")}
+                          className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      ) : null}
                     </div>
 
-                    <div className="max-h-52 overflow-y-auto space-y-1">
+                    <div className="max-h-56 overflow-y-auto space-y-1">
                       {filteredCustomers.length > 0 ? (
                         filteredCustomers.map((customer) => {
                           const isSelected = String(customer.id) === userId;
@@ -471,6 +612,8 @@ export function ManualBookingDialog({
                     id="manual-guest-email"
                     type="email"
                     name="guest_email"
+                    value={guestEmail}
+                    onChange={(event) => setGuestEmail(event.target.value)}
                     placeholder="email@gmail.com"
                     className="rounded-lg"
                   />
@@ -483,6 +626,8 @@ export function ManualBookingDialog({
                     id="manual-guest-phone"
                     type="text"
                     name="guest_phone"
+                    value={guestPhone}
+                    onChange={(event) => setGuestPhone(event.target.value)}
                     placeholder="09xxxxxxxxx"
                     className="rounded-lg"
                   />
@@ -520,11 +665,11 @@ export function ManualBookingDialog({
               />
             </div>
 
-            {/* Interactive Availability Calendar (Screenshot 1 & 2) */}
+            {/* Interactive Availability Calendar */}
             <div className="sm:col-span-2">
               <AvailabilityCalendar
-                startDate={pickup ? pickup.slice(0, 10) : undefined}
-                endDate={returnAt ? returnAt.slice(0, 10) : undefined}
+                startDate={pickupDate || undefined}
+                endDate={returnDate || undefined}
                 blockedRanges={
                   selectedCar
                     ? selectedCar.busySlots.map((s) => ({
@@ -536,7 +681,7 @@ export function ManualBookingDialog({
                 }
                 allowPastDates={true}
                 onSelectDay={(dayStr) => {
-                  const time = pickup && pickup.length >= 16 ? pickup.slice(11, 16) : "10:00";
+                  const time = pickupTime || "10:00";
                   const newPickup = `${dayStr}T${time}`;
                   changePickup(newPickup);
                   if (durationMode === 10) {
@@ -546,7 +691,6 @@ export function ManualBookingDialog({
                   } else {
                     const nextDate = new Date(`${dayStr}T12:00:00`);
                     nextDate.setDate(nextDate.getDate() + 1);
-                    const pad = (n: number) => String(n).padStart(2, "0");
                     const nextDayStr = `${nextDate.getFullYear()}-${pad(nextDate.getMonth() + 1)}-${pad(nextDate.getDate())}`;
                     setReturnAt(`${nextDayStr}T${time}`);
                   }
@@ -578,39 +722,64 @@ export function ManualBookingDialog({
               </div>
             </div>
 
+            {/* Stylized Time Selection UI */}
             <div>
-              <Label htmlFor="manual-pickup" className="mb-1 block text-xs font-bold">
-                Pickup Date &amp; Time
+              <Label htmlFor="manual-pickup-date" className="mb-1 block text-xs font-bold">
+                Pickup Date
               </Label>
               <Input
-                id="manual-pickup"
-                type="datetime-local"
-                value={pickup}
-                onChange={(event) => changePickup(event.target.value)}
+                id="manual-pickup-date"
+                type="date"
+                value={pickupDate}
+                onChange={(event) => changePickupDate(event.target.value)}
                 required
                 className="rounded-lg"
               />
             </div>
 
             <div>
-              <Label htmlFor="manual-return" className="mb-1 block text-xs font-bold">
-                Return Date &amp; Time
+              <Label htmlFor="manual-pickup-time" className="mb-1 block text-xs font-bold">
+                Pickup Time
+              </Label>
+              <TimePicker
+                id="manual-pickup-time"
+                value={pickupTime}
+                onChange={(newTime) => changePickupTime(newTime)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="manual-return-date" className="mb-1 block text-xs font-bold">
+                Return Date
               </Label>
               <Input
-                id="manual-return"
-                type="datetime-local"
-                value={returnAt}
-                onChange={(event) => setReturnAt(event.target.value)}
+                id="manual-return-date"
+                type="date"
+                value={returnDate}
+                onChange={(event) => changeReturnDate(event.target.value)}
                 readOnly={durationMode !== "custom"}
                 required
                 className="rounded-lg"
               />
             </div>
 
-            <input type="hidden" name="start_date" value={pickup.slice(0, 10)} />
-            <input type="hidden" name="pickup_time" value={pickup.slice(11, 16)} />
-            <input type="hidden" name="end_date" value={returnAt.slice(0, 10)} />
-            <input type="hidden" name="return_time" value={returnAt.slice(11, 16)} />
+            <div>
+              <Label htmlFor="manual-return-time" className="mb-1 block text-xs font-bold">
+                Return Time
+              </Label>
+              <TimePicker
+                id="manual-return-time"
+                value={returnTime}
+                disabled={durationMode !== "custom"}
+                onChange={(newTime) => changeReturnTime(newTime)}
+              />
+            </div>
+
+            {/* Hidden fields passed to server action */}
+            <input type="hidden" name="start_date" value={pickupDate} />
+            <input type="hidden" name="pickup_time" value={pickupTime} />
+            <input type="hidden" name="end_date" value={returnDate} />
+            <input type="hidden" name="return_time" value={returnTime} />
 
             <div className="sm:col-span-2">
               <Label htmlFor="manual-type-filter" className="mb-1 block text-xs font-bold">
@@ -631,41 +800,38 @@ export function ManualBookingDialog({
               </select>
 
               <select
-                id="manual-car"
+                id="manual-car-id"
                 name="car_id"
                 value={carId}
                 onChange={(event) => setCarId(event.target.value)}
                 required
                 className={filterControlClass}
               >
-                <option value="">-- Select a Car --</option>
-                {cars
-                  .filter((car) => !typeFilter || car.type === typeFilter)
-                  .map((car) => {
-                    const conflict = conflictingCars.has(car.id);
-                    return (
-                      <option key={car.id} value={String(car.id)} disabled={conflict}>
-                        {carLabel(car)} — {formatPeso(Number(car.price_24_hours ?? 0))}/24h
-                        {conflict ? " (NOT AVAILABLE)" : ""}
-                      </option>
-                    );
-                  })}
+                <option value="">-- Select Vehicle --</option>
+                {filteredCars.map((car) => {
+                  const conflicted = conflictingCars.has(car.id);
+                  return (
+                    <option key={car.id} value={car.id} disabled={conflicted}>
+                      {carLabel(car)}
+                      {conflicted ? " (UNAVAILABLE - Already Booked)" : ""}
+                    </option>
+                  );
+                })}
               </select>
-              <input type="hidden" name="vehicle_id" value={carId} />
-
-              <p
-                className={cn(
-                  "mt-1.5 text-[11px] font-semibold",
-                  pickupInPast || invalidRange || tooShort
-                    ? "text-rose-600 dark:text-rose-400"
-                    : "text-muted-foreground",
-                )}
-              >
-                {durationText}
-              </p>
+              {isCarConflicted ? (
+                <p className="mt-1 text-xs text-rose-600 dark:text-rose-400 font-semibold">
+                  This car has an overlapping booking for the selected dates. Please choose another car or adjust the dates.
+                </p>
+              ) : null}
+              {isPastDate ? (
+                <p className="mt-1 text-xs text-amber-600 dark:text-amber-400 font-semibold">
+                  Pickup date is in the past. Proceeding will record a past-dated booking.
+                </p>
+              ) : null}
             </div>
 
-            <div>
+            {/* Fulfillment Type */}
+            <div className="sm:col-span-2">
               <Label htmlFor="manual-fulfillment" className="mb-1 block text-xs font-bold">
                 Fulfillment Type
               </Label>
@@ -680,18 +846,17 @@ export function ManualBookingDialog({
                 }
                 className={filterControlClass}
               >
-                <option value="Pickup">Pickup</option>
-                <option value="Delivery">Delivery</option>
-                <option value="Office Self-Pickup">Office Self-Pickup</option>
+                <option value="Pickup">Pickup at Office</option>
+                <option value="Delivery">Doorstep Delivery</option>
               </select>
             </div>
 
-            <div>
-              <Label htmlFor="manual-address" className="mb-1 block text-xs font-bold">
-                Pickup / Delivery Address {fulfillmentType === "Delivery" ? <span className="text-rose-600">*</span> : null}
+            <div className="sm:col-span-2">
+              <Label htmlFor="manual-delivery-address" className="mb-1 block text-xs font-bold">
+                {fulfillmentType === "Delivery" ? "Delivery Address *" : "Pickup / Branch Address"}
               </Label>
               <Input
-                id="manual-address"
+                id="manual-delivery-address"
                 type="text"
                 name="delivery_address"
                 value={deliveryAddress}
@@ -746,6 +911,8 @@ export function ManualBookingDialog({
                 id="manual-remarks"
                 name="remarks"
                 rows={2}
+                value={remarks}
+                onChange={(e) => setRemarks(e.target.value)}
                 placeholder="Enter any special instructions or notes..."
                 className={cn(filterControlClass, "h-auto min-h-[66px] py-2")}
               />
@@ -824,21 +991,33 @@ export function ManualBookingDialog({
             </div>
           </div>
 
-          <DialogFooter className="gap-2 border-t border-border pt-4">
-            <DialogClose asChild>
-              <Button type="button" variant="outline" className="rounded-lg px-4 font-semibold">
-                Cancel
-              </Button>
-            </DialogClose>
-            <LoadingButton
-              type="submit"
-              disabled={!formValid || isSubmitting}
-              loading={isSubmitting}
-              loadingText="Confirming Booking..."
-              className="rounded-lg px-5 font-bold bg-[#ffcc00] text-black hover:bg-[#e6b800] shadow-sm"
+          <DialogFooter className="flex-col sm:flex-row items-center justify-between gap-2 border-t border-border pt-4">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleResetForm}
+              className="gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors"
             >
-              Confirm Booking
-            </LoadingButton>
+              <RotateCcw className="size-3.5" />
+              Reset Form
+            </Button>
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <DialogClose asChild>
+                <Button type="button" variant="outline" className="rounded-lg px-4 font-semibold">
+                  Cancel
+                </Button>
+              </DialogClose>
+              <LoadingButton
+                type="submit"
+                disabled={!formValid || isSubmitting}
+                loading={isSubmitting}
+                loadingText="Confirming Booking..."
+                className="rounded-lg px-5 font-bold bg-[#ffcc00] text-black hover:bg-[#e6b800] shadow-sm"
+              >
+                Confirm Booking
+              </LoadingButton>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -847,11 +1026,11 @@ export function ManualBookingDialog({
         open={pastConfirmOpen}
         onOpenChange={setPastConfirmOpen}
         onConfirm={() => {
-          setPastConfirmed(true);
-          setIsSubmitting(true);
+          pastConfirmedRef.current = true;
+          setPastConfirmOpen(false);
           setTimeout(() => {
             formRef.current?.requestSubmit();
-          }, 0);
+          }, 50);
         }}
       />
     </Dialog>

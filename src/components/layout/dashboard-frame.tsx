@@ -53,14 +53,14 @@ export function DashboardFrame({
         />
       </Suspense>
 
-      <div className="md:pl-[220px] xl:pl-[260px]">
+      <div className="min-w-0 max-w-full md:pl-[220px] xl:pl-[260px]">
         <Topbar
           session={session}
           branches={branches}
           onToggleSidebar={() => setSidebarOpen((open) => !open)}
         />
 
-        <main className="px-3.5 py-5 md:px-6 md:py-6">{children}</main>
+        <main className="min-w-0 max-w-full overflow-x-hidden px-3.5 py-5 md:px-6 md:py-6">{children}</main>
       </div>
     </div>
   );
