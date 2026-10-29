@@ -160,11 +160,11 @@ export function TopLoader() {
 
   return (
     <div
-      className="pointer-events-none fixed left-0 right-0 top-0 z-[99999] h-1 overflow-hidden"
+      className="pointer-events-none fixed left-0 right-0 top-0 z-[99999] h-1.5 overflow-visible"
       aria-hidden="true"
     >
       <div
-        className="h-full bg-gradient-to-r from-[#ffcc00] via-[#ffd700] to-[#ffcc00] shadow-[0_0_12px_#ffcc00,0_0_6px_#ffd700]"
+        className="relative h-full bg-gradient-to-r from-[#e6b800] via-[#ffd700] to-[#ffcc00] shadow-[0_0_12px_#ffcc00,0_0_6px_#ffd700]"
         style={{
           width: `${progress}%`,
           opacity: fading ? 0 : visible ? 1 : 0,
@@ -172,7 +172,25 @@ export function TopLoader() {
             ? "opacity 300ms ease-out, width 200ms ease-out"
             : "width 200ms cubic-bezier(0.4, 0, 0.2, 1), opacity 150ms ease-in",
         }}
-      />
+      >
+        {/* Leading edge animated mini car */}
+        <div className="absolute right-0 -top-2.5 translate-x-1/2 drop-shadow-[0_2px_8px_rgba(255,204,0,0.8)]">
+          <svg
+            viewBox="0 0 24 14"
+            className="w-5 h-3 text-[#ffcc00]"
+            fill="currentColor"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            {/* Aerodynamic sport car silhouette */}
+            <path d="M1 9 C2 8, 4 6, 7 4 C9 2, 14 2, 18 4 L21 7 C23 7.5, 24 9, 24 10 L22 11 C21 11, 20 10.5, 19 10.5 C18 10.5, 17 11, 16.5 11.5 L8.5 11.5 C8 11, 7 10.5, 6 10.5 C5 10.5, 4 11, 3 11.5 L1 11 Z" />
+            {/* Wheels */}
+            <circle cx="6" cy="11.5" r="2" fill="#18181b" stroke="#ffd700" strokeWidth="0.8" />
+            <circle cx="18" cy="11.5" r="2" fill="#18181b" stroke="#ffd700" strokeWidth="0.8" />
+            {/* Headlight beam */}
+            <polygon points="23,8 26,7 26,10" fill="#ffd700" opacity="0.85" />
+          </svg>
+        </div>
+      </div>
     </div>
   );
 }

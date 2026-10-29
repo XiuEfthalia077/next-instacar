@@ -692,4 +692,59 @@
     transition: background-color 5000s ease-in-out 0s !important;
     caret-color: #ffffff !important;
   }
+
+  /* ------------------------------------------------------------- */
+  /* InstaCar Custom Loading Animations                            */
+  /* ------------------------------------------------------------- */
+  @keyframes car-road-slide {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  @keyframes car-wheel-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes car-chassis-vibe {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-1.5px); }
+  }
+
+  @keyframes car-headlight-pulse {
+    0%, 100% { opacity: 0.5; filter: drop-shadow(0 0 8px rgba(255, 204, 0, 0.4)); }
+    50% { opacity: 0.85; filter: drop-shadow(0 0 16px rgba(255, 204, 0, 0.7)); }
+  }
+
+  @keyframes car-speed-streak {
+    0% { opacity: 0; transform: translateX(12px) scaleX(0.5); }
+    40% { opacity: 0.8; }
+    100% { opacity: 0; transform: translateX(-35px) scaleX(1.4); }
+  }
+
+  .animate-car-road {
+    animation: car-road-slide 0.55s linear infinite;
+  }
+  .animate-car-wheel {
+    animation: car-wheel-spin 0.4s linear infinite;
+  }
+  .animate-car-chassis {
+    animation: car-chassis-vibe 0.28s ease-in-out infinite;
+  }
+  .animate-car-headlight {
+    animation: car-headlight-pulse 1.4s ease-in-out infinite;
+  }
+  .animate-speed-streak-1 {
+    animation: car-speed-streak 0.6s ease-out infinite;
+  }
+  .animate-speed-streak-2 {
+    animation: car-speed-streak 0.75s ease-out 0.2s infinite;
+  }
+  .animate-speed-streak-3 {
+    animation: car-speed-streak 0.5s ease-out 0.1s infinite;
+  }
+
+  .clip-headlight-cone {
+    clip-path: polygon(0% 40%, 100% 0%, 100% 100%, 0% 60%);
+  }
 }
