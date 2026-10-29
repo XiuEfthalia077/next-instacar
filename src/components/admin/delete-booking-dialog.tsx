@@ -6,15 +6,15 @@ import { AlertTriangle, Trash2 } from "lucide-react";
 import { LoadingButton } from "@/components/common/loading-button";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { deleteBookingAction } from "@/lib/actions/bookings";
 
 export interface DeleteBookingDialogProps {
@@ -40,36 +40,25 @@ export function DeleteBookingDialog({
   const setOpen = isControlled ? setControlledOpen! : setInternalOpen;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <AlertDialog open={open} onOpenChange={setOpen}>
       {trigger ? (
-        <DialogTrigger asChild>{trigger}</DialogTrigger>
-      ) : (
-        <DialogTrigger asChild>
-          <Button
-            type="button"
-            variant="destructive"
-            className={`gap-2 font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-sm ${className ?? ""}`}
-          >
-            <Trash2 className="size-4" />
-            Delete Booking
-          </Button>
-        </DialogTrigger>
-      )}
+        <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
+      ) : null}
 
-      <DialogContent className="z-[201] rounded-2xl p-6 sm:p-7 max-w-md border-rose-500/30">
-        <DialogHeader className="space-y-3">
+      <AlertDialogContent className="z-[201] rounded-2xl p-6 sm:p-7 max-w-md border-rose-500/30">
+        <AlertDialogHeader className="space-y-3">
           <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 ring-1 ring-rose-500/20">
             <AlertTriangle className="size-6" />
           </div>
 
-          <DialogTitle className="text-center text-lg font-bold text-foreground">
+          <AlertDialogTitle className="text-center text-lg font-bold text-foreground">
             Delete Booking #BK-{bookingId}?
-          </DialogTitle>
+          </AlertDialogTitle>
 
-          <DialogDescription className="text-center text-xs leading-relaxed text-muted-foreground">
+          <AlertDialogDescription className="text-center text-xs leading-relaxed text-muted-foreground">
             Are you sure you want to permanently delete this booking? This action cannot be undone.
-          </DialogDescription>
-        </DialogHeader>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
 
         <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-3.5 text-xs text-rose-800 dark:text-rose-300">
           <p className="font-bold flex items-center gap-1.5 mb-1">
@@ -85,27 +74,25 @@ export function DeleteBookingDialog({
           <input type="hidden" name="booking_id" value={bookingId} />
           {redirectTo ? <input type="hidden" name="redirect_to" value={redirectTo} /> : null}
 
-          <DialogFooter className="flex-row items-center justify-end gap-2 pt-2">
-            <DialogClose asChild>
-              <Button
-                type="button"
-                variant="outline"
-                className="rounded-xl px-4 font-semibold"
-              >
-                Cancel
-              </Button>
-            </DialogClose>
+          <AlertDialogFooter className="flex-row items-center justify-end gap-2 pt-2">
+            <AlertDialogCancel
+              type="button"
+              className="rounded-xl px-4 font-semibold"
+            >
+              Cancel
+            </AlertDialogCancel>
 
             <LoadingButton
               type="submit"
               variant="destructive"
+              loadingText="Deleting..."
               className="rounded-xl bg-rose-600 px-5 font-bold text-white shadow-md hover:bg-rose-700"
             >
               Yes, Delete
             </LoadingButton>
-          </DialogFooter>
+          </AlertDialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

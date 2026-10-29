@@ -66,6 +66,7 @@ export function EditReservationDialog({
   const [returnTime, setReturnTime] = useState(timeValue(booking.return_time));
   const [pastConfirmOpen, setPastConfirmOpen] = useState(false);
   const [pastUnlocked, setPastUnlocked] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const pastConfirmedRef = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -119,7 +120,6 @@ export function EditReservationDialog({
             }
           }}
           className="space-y-4"
-          encType="multipart/form-data"
         >
           <input type="hidden" name="booking_id" value={booking.id} />
           <input type="hidden" name="source" value="online" />
@@ -296,20 +296,19 @@ export function EditReservationDialog({
           </div>
 
           <DialogFooter className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 border-t border-border pt-4">
-            <DeleteBookingDialog
-              bookingId={booking.id}
-              redirectTo={`/admin/bookings_online?filter=${encodeURIComponent(filter)}`}
-              trigger={
-                <Button
-                  type="button"
-                  variant="destructive"
-                  className="w-full sm:w-auto gap-2 font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-sm"
-                >
-                  <Trash2 className="size-4" />
-                  Delete Booking
-                </Button>
-              }
-            />
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDeleteConfirmOpen(true);
+              }}
+              className="w-full sm:w-auto gap-2 font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-sm cursor-pointer"
+            >
+              <Trash2 className="size-4" />
+              Delete Booking
+            </Button>
             <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
               <DialogClose asChild>
                 <Button type="button" variant="outline" className="rounded-lg px-4 font-semibold">
@@ -328,6 +327,13 @@ export function EditReservationDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+
+      <DeleteBookingDialog
+        bookingId={booking.id}
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        redirectTo={`/admin/bookings_online?filter=${encodeURIComponent(filter)}`}
+      />
 
       <PastDateConfirmDialog
         open={pastConfirmOpen}

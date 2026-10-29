@@ -717,7 +717,7 @@ export async function bookingsNeedingAttention(
   let query = supabase
     .from("bookings")
     .select(BOOKING_SELECT)
-    .in("status", ["Pending", "Confirmed", "Released", "Active"])
+    .in("status", ["Pending", "Confirmed", "Released"])
     .order("start_date", { ascending: true })
     .limit(limit);
 

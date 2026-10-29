@@ -1379,7 +1379,7 @@ export async function deleteBookingAction(formData: FormData) {
         .from("bookings")
         .select("id")
         .eq("car_id", booking.car_id)
-        .in("status", ["Confirmed", "Released", "Active"])
+        .in("status", ["Confirmed", "Released"])
         .limit(1);
 
       if (!otherBookings || otherBookings.length === 0) {
