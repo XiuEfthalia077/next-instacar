@@ -249,6 +249,9 @@ export async function deleteUserAction(formData: FormData) {
 
   const existing = existingData as { id: number; auth_id: string | null } | null;
 
+  // Cleanly unassign any fleet vehicles so they safely revert to company ownership
+  await supabase.from("cars").update({ user_id: null }).eq("user_id", userId);
+
   const { error } = await supabase.from("users").delete().eq("id", userId);
 
   if (error) {

@@ -41,6 +41,7 @@ import { BUCKETS, buildFileName, uploadFile, removeFile } from "@/lib/storage";
 import { bookingPhotoKey } from "@/lib/storage";
 import { insertBranchId } from "@/lib/data/scope";
 import { getAdminClient } from "@/lib/supabase-admin";
+import { bookingMutex } from "@/lib/concurrency";
 import type { AppSession } from "@/lib/types";
 
 /* ------------------------------------------------------------------ */
@@ -648,43 +649,69 @@ export async function addManualBookingAction(formData: FormData) {
     str(formData, "return_address") ||
     null;
 
-  const { data: inserted, error } = await db
-    .from("bookings")
-    .insert({
-      user_id: userId || null,
-      created_by: session.userId,
-      last_action_by: session.userId,
-      last_action_at: new Date().toISOString(),
-      last_action_type: "Confirmed",
-      branch_id: branchId,
-      guest_name: guestName || null,
-      gmail: guestEmail || null,
-      phone_number: guestPhone || null,
-      primary_id_path: uploads.primary || null,
-      secondary_id_path: uploads.secondary || null,
-      proof_billing_path: uploads.billing || null,
-      car_id: carId,
-      start_date: startDate,
-      end_date: endDate,
-      pickup_time: pickupTime,
-      return_time: returnTime,
-      total_price: totalPrice,
-      discount_price: money(formData, "discount_price"),
-      down_payment: money(formData, "down_payment"),
-      delivery_fee: money(formData, "delivery_fee"),
-      pickup_fee: money(formData, "pickup_fee"),
-      fulfillment_type: fulfillmentType,
-      delivery_address: deliveryAddress,
-      return_delivery_address: returnDeliveryAddress,
-      remarks: str(formData, "remarks") || null,
-      status: "Confirmed",
-      booking_type: "manual",
-    })
-    .select("id")
-    .maybeSingle();
+  let inserted: { id: number } | null = null;
+  const releaseLock = await bookingMutex.lock(`car:${carId}`);
+  try {
+    const raceOverlap = await hasOverlap({ carId, start: startDate, end: endDate });
+    if (raceOverlap) {
+      flashRedirect(
+        home,
+        "error",
+        "This vehicle was just reserved by another customer for the selected dates.",
+      );
+    }
 
-  if (error) {
-    flashRedirect(home, "error", `Database error: ${error.message}`);
+    const { data, error } = await db
+      .from("bookings")
+      .insert({
+        user_id: userId || null,
+        created_by: session.userId,
+        last_action_by: session.userId,
+        last_action_at: new Date().toISOString(),
+        last_action_type: "Confirmed",
+        branch_id: branchId,
+        guest_name: guestName || null,
+        gmail: guestEmail || null,
+        phone_number: guestPhone || null,
+        primary_id_path: uploads.primary || null,
+        secondary_id_path: uploads.secondary || null,
+        proof_billing_path: uploads.billing || null,
+        car_id: carId,
+        start_date: startDate,
+        end_date: endDate,
+        pickup_time: pickupTime,
+        return_time: returnTime,
+        total_price: totalPrice,
+        discount_price: money(formData, "discount_price"),
+        down_payment: money(formData, "down_payment"),
+        delivery_fee: money(formData, "delivery_fee"),
+        pickup_fee: money(formData, "pickup_fee"),
+        fulfillment_type: fulfillmentType,
+        delivery_address: deliveryAddress,
+        return_delivery_address: returnDeliveryAddress,
+        remarks: str(formData, "remarks") || null,
+        status: "Confirmed",
+        booking_type: "manual",
+      })
+      .select("id")
+      .maybeSingle();
+
+    if (error) {
+      const isConflict =
+        error.code === "23P01" ||
+        error.message?.includes("Double-booking prevented") ||
+        error.message?.includes("already reserved");
+      flashRedirect(
+        home,
+        "error",
+        isConflict
+          ? "This vehicle was just reserved by another customer for the selected dates."
+          : `Database error: ${error.message}`,
+      );
+    }
+    inserted = data as { id: number } | null;
+  } finally {
+    releaseLock();
   }
 
   await db.from("cars").update({ status: "Active" }).eq("id", carId);
@@ -993,28 +1020,60 @@ export async function updateReservationAction(formData: FormData) {
     if (result.ok) paths[key] = `${folder}/${fileName}`;
   }
 
-  const { error } = await db
-    .from("bookings")
-    .update({
-      fulfillment_type: fulfillment,
-      delivery_address: str(formData, "delivery_address") || null,
-      start_date: startDate,
-      end_date: endDate,
-      pickup_time: pickupTime,
-      return_time: returnTime,
-      total_price: money(formData, "total_price"),
-      down_payment: money(formData, "down_payment"),
-      primary_id_path: paths.primary || null,
-      secondary_id_path: paths.secondary || null,
-      proof_billing_path: paths.billing || null,
-      proof_payment_path: paths.payment || null,
-      last_action_by: session.userId,
-      last_action_at: new Date().toISOString(),
-      last_action_type: "Edited",
-    })
-    .eq("id", bookingId);
+  const carId = old.car_id ?? 0;
+  const releaseLock = await bookingMutex.lock(`car:${carId}`);
+  try {
+    const raceOverlap = await hasOverlap({
+      carId,
+      start: startDate,
+      end: endDate,
+      excludeBookingId: bookingId,
+    });
+    if (raceOverlap) {
+      flashRedirect(
+        home,
+        "error",
+        "This vehicle was just reserved by another customer for the selected dates.",
+      );
+    }
 
-  if (error) flashRedirect(home, "error", `Failed to update reservation: ${error.message}`);
+    const { error } = await db
+      .from("bookings")
+      .update({
+        fulfillment_type: fulfillment,
+        delivery_address: str(formData, "delivery_address") || null,
+        start_date: startDate,
+        end_date: endDate,
+        pickup_time: pickupTime,
+        return_time: returnTime,
+        total_price: money(formData, "total_price"),
+        down_payment: money(formData, "down_payment"),
+        primary_id_path: paths.primary || null,
+        secondary_id_path: paths.secondary || null,
+        proof_billing_path: paths.billing || null,
+        proof_payment_path: paths.payment || null,
+        last_action_by: session.userId,
+        last_action_at: new Date().toISOString(),
+        last_action_type: "Edited",
+      })
+      .eq("id", bookingId);
+
+    if (error) {
+      const isConflict =
+        error.code === "23P01" ||
+        error.message?.includes("Double-booking prevented") ||
+        error.message?.includes("already reserved");
+      flashRedirect(
+        home,
+        "error",
+        isConflict
+          ? "This vehicle is already booked or unavailable during selected dates."
+          : `Failed to update reservation: ${error.message}`,
+      );
+    }
+  } finally {
+    releaseLock();
+  }
 
   refreshBookingViews(bookingId);
   flashRedirect(home, "success", "Reservation details updated successfully!");
@@ -1612,34 +1671,62 @@ export async function createBookingAction(formData: FormData) {
   const deliveryAddressVal =
     fulfillment === "Delivery" ? str(formData, "delivery_address") || null : null;
 
-  const { data: insertedBooking, error } = await db
-    .from("bookings")
-    .insert({
-      user_id: session.userId,
-      created_by: session.userId,
-      car_id: carId,
-      branch_id: car.branch_id,
-      start_date: startDate,
-      end_date: endDate,
-      pickup_time: pickupTime,
-      return_time: returnTime,
-      total_price: totalPrice,
-      discount_price: 0,
-      down_payment: 0,
-      status: "Pending",
-      booking_type: "online",
-      fulfillment_type: fulfillment,
-      delivery_address: deliveryAddressVal,
-      return_delivery_address: str(formData, "return_delivery_address") || null,
-      primary_id_path: primaryId,
-      secondary_id_path: secondaryId || null,
-      proof_billing_path: proofBilling || null,
-      proof_payment_path: proofPayment || null,
-    })
-    .select("id")
-    .maybeSingle();
+  let insertedBooking: { id: number } | null = null;
+  const releaseLock = await bookingMutex.lock(`car:${carId}`);
+  try {
+    const raceOverlap = await hasOverlap({ carId, start: startDate, end: endDate });
+    if (raceOverlap) {
+      flashRedirect(
+        back,
+        "error",
+        "This vehicle was just reserved by another customer for the selected dates. Please select another vehicle or different dates.",
+      );
+    }
 
-  if (error) flashRedirect(back, "error", `Database Error: ${error.message}`);
+    const { data, error } = await db
+      .from("bookings")
+      .insert({
+        user_id: session.userId,
+        created_by: session.userId,
+        car_id: carId,
+        branch_id: car.branch_id,
+        start_date: startDate,
+        end_date: endDate,
+        pickup_time: pickupTime,
+        return_time: returnTime,
+        total_price: totalPrice,
+        discount_price: 0,
+        down_payment: 0,
+        status: "Pending",
+        booking_type: "online",
+        fulfillment_type: fulfillment,
+        delivery_address: deliveryAddressVal,
+        return_delivery_address: str(formData, "return_delivery_address") || null,
+        primary_id_path: primaryId,
+        secondary_id_path: secondaryId || null,
+        proof_billing_path: proofBilling || null,
+        proof_payment_path: proofPayment || null,
+      })
+      .select("id")
+      .maybeSingle();
+
+    if (error) {
+      const isConflict =
+        error.code === "23P01" ||
+        error.message?.includes("Double-booking prevented") ||
+        error.message?.includes("already reserved");
+      flashRedirect(
+        back,
+        "error",
+        isConflict
+          ? "This vehicle was just reserved by another customer for the selected dates."
+          : `Database Error: ${error.message}`,
+      );
+    }
+    insertedBooking = data as { id: number } | null;
+  } finally {
+    releaseLock();
+  }
 
   const bookingId = (insertedBooking as { id: number } | null)?.id ?? 0;
 

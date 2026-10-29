@@ -122,7 +122,16 @@ export async function getFleetAnalytics(
       bookings!booking_payments_booking_id_fkey (
         id, car_id, branch_id, start_date, end_date, total_price, status
       )
-    `);
+    `)
+    .order("id", { ascending: false });
+
+  // Push down date range filters to database level to avoid full-table scans
+  if (filters.startDate) {
+    paymentsQuery = paymentsQuery.gte("created_at", filters.startDate);
+  }
+  if (filters.endDate) {
+    paymentsQuery = paymentsQuery.lte("created_at", `${filters.endDate}T23:59:59.999Z`);
+  }
 
   const { data: paymentsData } = await paymentsQuery;
   const rawPayments = paymentsData ?? [];

@@ -7,7 +7,12 @@ import type { ActionState } from "@/lib/action-state";
 import { getSupabase, requireRole, VIEW_BRANCH_COOKIE } from "@/lib/auth";
 import { ROLE_HOME } from "@/lib/constants";
 import type { UserRole } from "@/lib/types";
-import { checkRateLimit } from "@/lib/rate-limit";
+import {
+  checkRateLimit,
+  checkAccountLockout,
+  recordFailedLogin,
+  clearFailedLogins,
+} from "@/lib/rate-limit";
 import { signUpSchema } from "@/lib/validations";
 import { queueEmail, resolveAppUrl } from "@/lib/queue";
 
@@ -100,6 +105,15 @@ export async function signInAction(
     return { error: "Email and password are required." };
   }
 
+  // Check account lockout (5 consecutive failed attempts)
+  const lockout = checkAccountLockout(email);
+  if (lockout.locked) {
+    const minutes = Math.ceil(lockout.resetSeconds / 60);
+    return {
+      error: `Account temporarily locked due to 5 failed login attempts. Please wait ${minutes} minute(s) before trying again.`,
+    };
+  }
+
   // Rate limiting against brute-force login attempts
   const rateLimitKey = `login_${email || "anon"}`;
   const limit = checkRateLimit(rateLimitKey, { interval: 60_000, maxRequests: 8 });
@@ -120,8 +134,18 @@ export async function signInAction(
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    return { error: loginErrorMessage(error) };
+    const failResult = recordFailedLogin(email);
+    if (failResult.locked) {
+      return {
+        error: "Account locked: Too many failed login attempts (5/5). Please wait 15 minutes before trying again.",
+      };
+    }
+    const remainingMsg = ` (${failResult.remainingAttempts} attempt(s) remaining before lockout)`;
+    return { error: `${loginErrorMessage(error)}${remainingMsg}` };
   }
+
+  // Successful login clears failed attempt history
+  clearFailedLogins(email);
 
   const {
     data: { user },
