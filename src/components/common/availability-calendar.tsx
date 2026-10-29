@@ -15,9 +15,12 @@ export type AvailabilityCalendarProps = {
   startDate?: string;
   endDate?: string;
   blockedRanges?: BlockedRange[];
-  onSelectDay: (dayStr: string) => void;
+  onSelectDay?: (dayStr: string) => void;
+  onSelectRange?: (startDay: string, endDay: string) => void;
   title?: string;
   allowPastDates?: boolean;
+  pastUnlocked?: boolean;
+  onUnlockPast?: () => void;
   className?: string;
 };
 
@@ -26,13 +29,22 @@ export function AvailabilityCalendar({
   endDate,
   blockedRanges = [],
   onSelectDay,
+  onSelectRange,
   title = "Availability Calendar",
   allowPastDates = true,
+  pastUnlocked = false,
+  onUnlockPast,
   className,
 }: AvailabilityCalendarProps) {
   // Past date confirmation state
   const [pendingPastDay, setPendingPastDay] = React.useState<string | null>(null);
   const [confirmModalOpen, setConfirmModalOpen] = React.useState(false);
+  const [internalPastUnlocked, setInternalPastUnlocked] = React.useState(false);
+
+  const isPastUnlocked = pastUnlocked || internalPastUnlocked;
+
+  // Track if user is clicking the end of a range
+  const [isSelectingEnd, setIsSelectingEnd] = React.useState(false);
 
   // Initialize view date based on startDate or current date
   const [calDate, setCalDate] = React.useState(() => {
@@ -43,7 +55,7 @@ export function AvailabilityCalendar({
     return new Date();
   });
 
-  // Keep month view aligned if startDate changes significantly
+  // Keep month view aligned if startDate changes
   React.useEffect(() => {
     if (startDate) {
       const d = new Date(startDate);
@@ -91,32 +103,48 @@ export function AvailabilityCalendar({
   };
 
   const todayStr = React.useMemo(() => {
-    const now = new Date();
-    const pad = (n: number) => String(n).padStart(2, "0");
-    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Manila",
+    }).format(new Date());
   }, []);
 
-  const handleClickDay = (dayStr: string) => {
-    if (dayStr < todayStr) {
-      // Past date clicked: immediately prompt for confirmation
-      setPendingPastDay(dayStr);
-      setConfirmModalOpen(true);
-    } else {
-      // Normal available / today date
+  const applyDaySelection = (dayStr: string) => {
+    if (onSelectRange) {
+      if (isSelectingEnd && startDate && dayStr >= startDate) {
+        onSelectRange(startDate, dayStr);
+        setIsSelectingEnd(false);
+      } else {
+        onSelectRange(dayStr, dayStr);
+        setIsSelectingEnd(true);
+      }
+    } else if (onSelectDay) {
       onSelectDay(dayStr);
     }
   };
 
+  const handleClickDay = (dayStr: string) => {
+    const isPast = dayStr < todayStr;
+    if (isPast && !isPastUnlocked) {
+      // Step 1: When Admin/Staff clicks a past date for Pickup Date, show the warning modal once
+      setPendingPastDay(dayStr);
+      setConfirmModalOpen(true);
+    } else {
+      // Step 2: Once unlocked, allow free selection of dates without repeat popups
+      applyDaySelection(dayStr);
+    }
+  };
+
   const handleConfirmPast = () => {
+    setInternalPastUnlocked(true);
+    onUnlockPast?.();
     if (pendingPastDay) {
-      onSelectDay(pendingPastDay);
+      applyDaySelection(pendingPastDay);
     }
     setPendingPastDay(null);
     setConfirmModalOpen(false);
   };
 
   const handleCancelPast = () => {
-    // If user clicks "No" or closes the modal, selection reverts
     setPendingPastDay(null);
     setConfirmModalOpen(false);
   };
@@ -144,7 +172,7 @@ export function AvailabilityCalendar({
           <span className="rounded-md bg-rose-600 px-2.5 py-0.5 text-white shadow-xs">
             Booked / Maint
           </span>
-          <span className="rounded-md bg-[#ffcc00] px-2.5 py-0.5 font-extrabold text-black shadow-xs">
+          <span className="rounded-md bg-[#ffcc00] px-2.5 py-0.5 text-black shadow-xs">
             Selected
           </span>
         </div>
@@ -216,7 +244,9 @@ export function AvailabilityCalendar({
                     ? "Unavailable — Scheduled for Maintenance"
                     : "Unavailable — Booked"
                   : isPast
-                    ? "Past Date (Click to confirm selection)"
+                    ? isPastUnlocked
+                      ? "Past Date (Unlocked)"
+                      : "Past Date (Click to confirm selection)"
                     : isToday
                       ? "Today — Available"
                       : "Available for Rent"
@@ -251,7 +281,7 @@ export function AvailabilityCalendar({
         </span>
       </div>
 
-      {/* Immediate Past Date Confirmation Modal */}
+      {/* Step 1 Past Date Confirmation Modal */}
       <PastDateConfirmDialog
         open={confirmModalOpen}
         onOpenChange={(isOpen) => {
@@ -259,7 +289,7 @@ export function AvailabilityCalendar({
         }}
         onConfirm={handleConfirmPast}
         title="Past Date Selection"
-        message="You are selecting a date in the past. Are you sure you want to proceed with this booking?"
+        message="You are selecting a past date. Are you sure?"
       />
     </div>
   );

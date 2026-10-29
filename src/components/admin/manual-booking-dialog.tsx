@@ -136,6 +136,7 @@ export function ManualBookingDialog({
   const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pastConfirmOpen, setPastConfirmOpen] = useState(false);
+  const [pastUnlocked, setPastUnlocked] = useState(false);
 
   const pastConfirmedRef = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
@@ -236,6 +237,7 @@ export function ManualBookingDialog({
     setDiscount("0");
     setDownPayment("0");
     setRemarks("");
+    setPastUnlocked(false);
     pastConfirmedRef.current = false;
   };
 
@@ -680,19 +682,15 @@ export function ManualBookingDialog({
                     : []
                 }
                 allowPastDates={true}
-                onSelectDay={(dayStr) => {
-                  const time = pickupTime || "10:00";
-                  const newPickup = `${dayStr}T${time}`;
-                  changePickup(newPickup);
-                  if (durationMode === 10) {
-                    setReturnAt(addHours(newPickup, 10));
-                  } else if (durationMode === 24) {
-                    setReturnAt(addHours(newPickup, 24));
+                pastUnlocked={pastUnlocked}
+                onUnlockPast={() => setPastUnlocked(true)}
+                onSelectRange={(startDay, endDay) => {
+                  if (startDay === endDay) {
+                    changePickupDate(startDay);
                   } else {
-                    const nextDate = new Date(`${dayStr}T12:00:00`);
-                    nextDate.setDate(nextDate.getDate() + 1);
-                    const nextDayStr = `${nextDate.getFullYear()}-${pad(nextDate.getMonth() + 1)}-${pad(nextDate.getDate())}`;
-                    setReturnAt(`${nextDayStr}T${time}`);
+                    changePickupDate(startDay);
+                    changeReturnDate(endDay);
+                    setDurationMode("custom");
                   }
                 }}
               />
@@ -1032,6 +1030,8 @@ export function ManualBookingDialog({
             formRef.current?.requestSubmit();
           }, 50);
         }}
+        title="Past Date Booking Confirmation"
+        message="This booking is set in the past. Are you sure you want to proceed?"
       />
     </Dialog>
   );

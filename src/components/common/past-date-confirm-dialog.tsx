@@ -18,7 +18,7 @@ export function PastDateConfirmDialog({
   onOpenChange,
   onConfirm,
   title = "Past Date Confirmation",
-  message = "You are selecting a date in the past. Are you sure you want to proceed with this booking?",
+  message = "This booking is set in the past. Are you sure you want to proceed?",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;

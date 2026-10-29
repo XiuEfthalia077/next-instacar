@@ -135,6 +135,7 @@ export function EditManualBookingDialog({
   const [downPayment, setDownPayment] = useState<string>(String(booking.down_payment ?? 0));
   const [remarks, setRemarks] = useState<string>(booking.remarks ?? "");
   const [pastConfirmOpen, setPastConfirmOpen] = useState(false);
+  const [pastUnlocked, setPastUnlocked] = useState(false);
   const pastConfirmedRef = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -336,16 +337,22 @@ export function EditManualBookingDialog({
                     : []
                 }
                 allowPastDates={true}
-                onSelectDay={(dayStr) => {
+                pastUnlocked={pastUnlocked}
+                onUnlockPast={() => setPastUnlocked(true)}
+                onSelectRange={(startDay, endDay) => {
                   const pTime = pickupTime || "10:00";
-                  const newPickup = `${dayStr}T${pTime}`;
-                  setPickupDatetime(newPickup);
-                  const nextDate = new Date(`${dayStr}T12:00:00`);
-                  nextDate.setDate(nextDate.getDate() + 1);
-                  const pad = (n: number) => String(n).padStart(2, "0");
-                  const nextDayStr = `${nextDate.getFullYear()}-${pad(nextDate.getMonth() + 1)}-${pad(nextDate.getDate())}`;
                   const rTime = returnTime || "10:00";
-                  setReturnDatetime(`${nextDayStr}T${rTime}`);
+                  if (startDay === endDay) {
+                    setPickupDatetime(`${startDay}T${pTime}`);
+                    const nextDate = new Date(`${startDay}T12:00:00`);
+                    nextDate.setDate(nextDate.getDate() + 1);
+                    const pad = (n: number) => String(n).padStart(2, "0");
+                    const nextDayStr = `${nextDate.getFullYear()}-${pad(nextDate.getMonth() + 1)}-${pad(nextDate.getDate())}`;
+                    setReturnDatetime(`${nextDayStr}T${rTime}`);
+                  } else {
+                    setPickupDatetime(`${startDay}T${pTime}`);
+                    setReturnDatetime(`${endDay}T${rTime}`);
+                  }
                 }}
               />
             </div>
@@ -555,6 +562,8 @@ export function EditManualBookingDialog({
             formRef.current?.requestSubmit();
           }, 50);
         }}
+        title="Past Date Booking Confirmation"
+        message="This booking is set in the past. Are you sure you want to proceed?"
       />
     </Dialog>
   );

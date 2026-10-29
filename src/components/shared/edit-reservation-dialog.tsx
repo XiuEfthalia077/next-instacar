@@ -67,6 +67,7 @@ export function EditReservationDialog({
   const [pickupTime, setPickupTime] = useState(timeValue(booking.pickup_time));
   const [returnTime, setReturnTime] = useState(timeValue(booking.return_time));
   const [pastConfirmOpen, setPastConfirmOpen] = useState(false);
+  const [pastUnlocked, setPastUnlocked] = useState(false);
   const pastConfirmedRef = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -114,13 +115,20 @@ export function EditReservationDialog({
             startDate={startDate}
             endDate={endDate}
             allowPastDates={true}
-            onSelectDay={(dayStr) => {
-              setStartDate(dayStr);
-              const nextDate = new Date(`${dayStr}T12:00:00`);
-              nextDate.setDate(nextDate.getDate() + 1);
-              const pad = (n: number) => String(n).padStart(2, "0");
-              const nextDayStr = `${nextDate.getFullYear()}-${pad(nextDate.getMonth() + 1)}-${pad(nextDate.getDate())}`;
-              setEndDate(nextDayStr);
+            pastUnlocked={pastUnlocked}
+            onUnlockPast={() => setPastUnlocked(true)}
+            onSelectRange={(startDay, endDay) => {
+              if (startDay === endDay) {
+                setStartDate(startDay);
+                const nextDate = new Date(`${startDay}T12:00:00`);
+                nextDate.setDate(nextDate.getDate() + 1);
+                const pad = (n: number) => String(n).padStart(2, "0");
+                const nextDayStr = `${nextDate.getFullYear()}-${pad(nextDate.getMonth() + 1)}-${pad(nextDate.getDate())}`;
+                setEndDate(nextDayStr);
+              } else {
+                setStartDate(startDay);
+                setEndDate(endDay);
+              }
             }}
           />
 
@@ -266,6 +274,8 @@ export function EditReservationDialog({
             formRef.current?.requestSubmit();
           }, 50);
         }}
+        title="Past Date Booking Confirmation"
+        message="This booking is set in the past. Are you sure you want to proceed?"
       />
     </Dialog>
   );
