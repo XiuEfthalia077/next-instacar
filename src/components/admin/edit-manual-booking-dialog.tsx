@@ -197,7 +197,9 @@ export function EditManualBookingDialog({
             const todayIso = new Intl.DateTimeFormat("en-CA", {
               timeZone: "Asia/Manila",
             }).format(new Date());
-            const isPast = !!startDate && startDate < todayIso;
+            const isPast =
+              (!!startDate && startDate < todayIso) ||
+              (!!endDate && endDate < todayIso);
             if (isPast && !pastConfirmedRef.current) {
               e.preventDefault();
               setPastConfirmOpen(true);
@@ -342,17 +344,8 @@ export function EditManualBookingDialog({
                 onSelectRange={(startDay, endDay) => {
                   const pTime = pickupTime || "10:00";
                   const rTime = returnTime || "10:00";
-                  if (startDay === endDay) {
-                    setPickupDatetime(`${startDay}T${pTime}`);
-                    const nextDate = new Date(`${startDay}T12:00:00`);
-                    nextDate.setDate(nextDate.getDate() + 1);
-                    const pad = (n: number) => String(n).padStart(2, "0");
-                    const nextDayStr = `${nextDate.getFullYear()}-${pad(nextDate.getMonth() + 1)}-${pad(nextDate.getDate())}`;
-                    setReturnDatetime(`${nextDayStr}T${rTime}`);
-                  } else {
-                    setPickupDatetime(`${startDay}T${pTime}`);
-                    setReturnDatetime(`${endDay}T${rTime}`);
-                  }
+                  setPickupDatetime(`${startDay}T${pTime}`);
+                  setReturnDatetime(`${endDay}T${rTime}`);
                 }}
               />
             </div>

@@ -43,14 +43,17 @@ export function AvailabilityCalendar({
 
   const isPastUnlocked = pastUnlocked || internalPastUnlocked;
 
-  // Track if user is clicking the end of a range
-  const [isSelectingEnd, setIsSelectingEnd] = React.useState(false);
+  // Track range selection (click 1 = start date, click 2 = end date)
+  const [rangeStart, setRangeStart] = React.useState<string | null>(null);
+  const [hoverDay, setHoverDay] = React.useState<string | null>(null);
 
   // Initialize view date based on startDate or current date
   const [calDate, setCalDate] = React.useState(() => {
     if (startDate) {
-      const d = new Date(startDate);
-      if (!isNaN(d.getTime())) return d;
+      const parts = startDate.split("-").map(Number);
+      if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+        return new Date(parts[0], parts[1] - 1, parts[2] || 1);
+      }
     }
     return new Date();
   });
@@ -58,20 +61,29 @@ export function AvailabilityCalendar({
   // Keep month view aligned if startDate changes
   React.useEffect(() => {
     if (startDate) {
-      const d = new Date(startDate);
-      if (!isNaN(d.getTime())) {
+      const parts = startDate.split("-").map(Number);
+      if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+        const targetYear = parts[0];
+        const targetMonth = parts[1] - 1;
         setCalDate((prev) => {
           if (
-            prev.getFullYear() === d.getFullYear() &&
-            prev.getMonth() === d.getMonth()
+            prev.getFullYear() === targetYear &&
+            prev.getMonth() === targetMonth
           ) {
             return prev;
           }
-          return new Date(d.getFullYear(), d.getMonth(), 1);
+          return new Date(targetYear, targetMonth, 1);
         });
       }
     }
   }, [startDate]);
+
+  // Clear rangeStart if external startDate changes to a different date
+  React.useEffect(() => {
+    if (rangeStart && startDate && startDate !== rangeStart) {
+      setRangeStart(null);
+    }
+  }, [startDate, rangeStart]);
 
   const calendarDays = React.useMemo(() => {
     const year = calDate.getFullYear();
@@ -110,12 +122,21 @@ export function AvailabilityCalendar({
 
   const applyDaySelection = (dayStr: string) => {
     if (onSelectRange) {
-      if (isSelectingEnd && startDate && dayStr >= startDate) {
-        onSelectRange(startDate, dayStr);
-        setIsSelectingEnd(false);
+      if (rangeStart) {
+        if (dayStr >= rangeStart) {
+          // Second click: selected end date!
+          onSelectRange(rangeStart, dayStr);
+          setRangeStart(null);
+          setHoverDay(null);
+        } else {
+          // Clicked earlier date: reset start to this earlier date
+          setRangeStart(dayStr);
+          onSelectRange(dayStr, dayStr);
+        }
       } else {
+        // First click: start new range
+        setRangeStart(dayStr);
         onSelectRange(dayStr, dayStr);
-        setIsSelectingEnd(true);
       }
     } else if (onSelectDay) {
       onSelectDay(dayStr);
@@ -125,11 +146,11 @@ export function AvailabilityCalendar({
   const handleClickDay = (dayStr: string) => {
     const isPast = dayStr < todayStr;
     if (isPast && !isPastUnlocked) {
-      // Step 1: When Admin/Staff clicks a past date for Pickup Date, show the warning modal once
+      // Step 1: Warning modal on first past date interaction
       setPendingPastDay(dayStr);
       setConfirmModalOpen(true);
     } else {
-      // Step 2: Once unlocked, allow free selection of dates without repeat popups
+      // Step 2: Past dates unlocked - freely click start and end date
       applyDaySelection(dayStr);
     }
   };
@@ -151,6 +172,7 @@ export function AvailabilityCalendar({
 
   return (
     <div
+      onMouseLeave={() => setHoverDay(null)}
       className={cn(
         "rounded-2xl border border-border bg-card p-4 space-y-3 shadow-xs",
         className,
@@ -225,11 +247,18 @@ export function AvailabilityCalendar({
           const isPast = currentDayStr < todayStr;
           const isBlocked = Boolean(blocked);
           const isUnavailable = isBlocked || (!allowPastDates && isPast);
-          const isSelected =
-            startDate &&
-            endDate &&
-            currentDayStr >= startDate &&
-            currentDayStr <= endDate;
+
+          // Active range selection
+          let isSelected = false;
+          if (rangeStart) {
+            const previewEnd = hoverDay && hoverDay >= rangeStart ? hoverDay : rangeStart;
+            isSelected = currentDayStr >= rangeStart && currentDayStr <= previewEnd;
+          } else if (startDate && endDate) {
+            isSelected = currentDayStr >= startDate && currentDayStr <= endDate;
+          } else if (startDate) {
+            isSelected = currentDayStr === startDate;
+          }
+
           const isToday = todayStr === currentDayStr;
 
           return (
@@ -238,6 +267,11 @@ export function AvailabilityCalendar({
               key={currentDayStr}
               disabled={isUnavailable}
               onClick={() => !isUnavailable && handleClickDay(currentDayStr)}
+              onMouseEnter={() => {
+                if (rangeStart && !isUnavailable) {
+                  setHoverDay(currentDayStr);
+                }
+              }}
               title={
                 blocked
                   ? blocked.reason === "Maintenance"
@@ -258,9 +292,11 @@ export function AvailabilityCalendar({
                   : isBlocked
                     ? "border border-rose-500/50 bg-rose-500/20 text-rose-400 cursor-not-allowed opacity-90"
                     : isPast
-                      ? "border border-slate-700/60 bg-slate-800/50 text-slate-400 hover:bg-slate-700/60 hover:text-slate-200 hover:border-slate-500 cursor-pointer"
+                      ? isPastUnlocked
+                        ? "border border-slate-700/80 bg-slate-800/60 text-slate-300 hover:border-emerald-500/60 hover:bg-slate-700/70 hover:text-white cursor-pointer"
+                        : "border border-slate-700/60 bg-slate-800/50 text-slate-400 hover:bg-slate-700/60 hover:text-slate-200 hover:border-slate-500 cursor-pointer"
                       : isToday
-                        ? "border border-[#ffcc00]/80 bg-[#ffcc00]/15 text-foreground hover:bg-[#ffcc00]/25 cursor-pointer font-black"
+                        ? "border-2 border-emerald-400 bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30 cursor-pointer font-black"
                         : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 hover:border-emerald-500 cursor-pointer",
               )}
             >

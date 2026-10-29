@@ -54,6 +54,11 @@ async function runPastDateUxTest() {
     await page.waitForSelector('div[role="alertdialog"]', { state: "hidden", timeout: 3000 });
     console.log("✔ Past dates now unlocked!");
 
+    // Verify after Click 1 (Day 1): pickup date is Day 1 and return date is Day 1 (not forced +24h to Day 2!)
+    const pickupVal1 = await page.locator('#manual-pickup-date').inputValue();
+    const returnVal1 = await page.locator('#manual-return-date').inputValue();
+    console.log(`✔ Click 1 values: start=${pickupVal1}, end=${returnVal1}`);
+
     // 7. Click Day 5 (Return date, also in the past) -> Should NOT trigger any warning modal!
     console.log("7. Clicking past date (Day 5) to set Return Date...");
     let modalTriggeredAgain = false;
@@ -74,8 +79,15 @@ async function runPastDateUxTest() {
     const returnVal = await page.locator('#manual-return-date').inputValue();
     console.log(`✔ Date range successfully selected: ${pickupVal} → ${returnVal}`);
     if (!pickupVal.endsWith("-01") || !returnVal.endsWith("-05")) {
-      console.warn(`Note: Selected values are ${pickupVal} and ${returnVal}`);
+      throw new Error(`FAIL: Expected range ending in 01 and 05, got ${pickupVal} to ${returnVal}`);
     }
+
+    // 8b. Verify Return Date input is NOT readOnly
+    const isReturnReadOnly = await page.locator('#manual-return-date').getAttribute('readonly');
+    if (isReturnReadOnly !== null) {
+      throw new Error("FAIL: manual-return-date input is readOnly!");
+    }
+    console.log("✔ PASSED: manual-return-date is fully editable (not readOnly)!");
 
     // 9. Fill required fields (Guest Name, Car, IDs) to test Step 3 (Submit Warning)
     console.log("8. Testing Step 3: Final confirmation on Confirm Booking...");

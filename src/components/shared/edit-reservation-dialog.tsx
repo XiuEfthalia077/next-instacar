@@ -96,7 +96,9 @@ export function EditReservationDialog({
             const todayIso = new Intl.DateTimeFormat("en-CA", {
               timeZone: "Asia/Manila",
             }).format(new Date());
-            const isPast = !!startDate && startDate < todayIso;
+            const isPast =
+              (!!startDate && startDate < todayIso) ||
+              (!!endDate && endDate < todayIso);
             if (isPast && !pastConfirmedRef.current) {
               e.preventDefault();
               setPastConfirmOpen(true);
@@ -118,17 +120,8 @@ export function EditReservationDialog({
             pastUnlocked={pastUnlocked}
             onUnlockPast={() => setPastUnlocked(true)}
             onSelectRange={(startDay, endDay) => {
-              if (startDay === endDay) {
-                setStartDate(startDay);
-                const nextDate = new Date(`${startDay}T12:00:00`);
-                nextDate.setDate(nextDate.getDate() + 1);
-                const pad = (n: number) => String(n).padStart(2, "0");
-                const nextDayStr = `${nextDate.getFullYear()}-${pad(nextDate.getMonth() + 1)}-${pad(nextDate.getDate())}`;
-                setEndDate(nextDayStr);
-              } else {
-                setStartDate(startDay);
-                setEndDate(endDay);
-              }
+              setStartDate(startDay);
+              setEndDate(endDay);
             }}
           />
 

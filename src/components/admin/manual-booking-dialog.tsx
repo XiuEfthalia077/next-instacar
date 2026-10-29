@@ -137,6 +137,8 @@ export function ManualBookingDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pastConfirmOpen, setPastConfirmOpen] = useState(false);
   const [pastUnlocked, setPastUnlocked] = useState(false);
+  const [inputPastConfirmOpen, setInputPastConfirmOpen] = useState(false);
+  const [pendingInputDate, setPendingInputDate] = useState<{ field: "pickup" | "return"; value: string } | null>(null);
 
   const pastConfirmedRef = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
@@ -311,6 +313,16 @@ export function ManualBookingDialog({
     }
   };
 
+  const handlePickupDateChange = (newDate: string) => {
+    if (!newDate) return;
+    if (newDate < todayStr && !pastUnlocked) {
+      setPendingInputDate({ field: "pickup", value: newDate });
+      setInputPastConfirmOpen(true);
+    } else {
+      changePickupDate(newDate);
+    }
+  };
+
   const changePickupTime = (newTime: string) => {
     const d = pickupDate || todayStr;
     const newPickup = `${d}T${newTime}`;
@@ -325,6 +337,30 @@ export function ManualBookingDialog({
   const changeReturnDate = (newDate: string) => {
     const time = returnTime || "10:00";
     setReturnAt(`${newDate}T${time}`);
+    setDurationMode("custom");
+  };
+
+  const handleReturnDateChange = (newDate: string) => {
+    if (!newDate) return;
+    if (newDate < todayStr && !pastUnlocked) {
+      setPendingInputDate({ field: "return", value: newDate });
+      setInputPastConfirmOpen(true);
+    } else {
+      changeReturnDate(newDate);
+    }
+  };
+
+  const handleConfirmInputPast = () => {
+    setPastUnlocked(true);
+    if (pendingInputDate) {
+      if (pendingInputDate.field === "pickup") {
+        changePickupDate(pendingInputDate.value);
+      } else {
+        changeReturnDate(pendingInputDate.value);
+      }
+    }
+    setPendingInputDate(null);
+    setInputPastConfirmOpen(false);
   };
 
   const changeReturnTime = (newTime: string) => {
@@ -395,9 +431,10 @@ export function ManualBookingDialog({
     }).format(new Date());
   }, []);
 
-  // A booking is only in the past if the pickup date itself is before today in Manila.
-  // For today or future dates, any time earlier in the day is allowed without past warnings.
-  const isPastDate = !!pickupDate && pickupDate < todayStr;
+  // A booking is in the past if pickup date or return date is before today in Manila.
+  const isPastDate =
+    (!!pickupDate && pickupDate < todayStr) ||
+    (!!returnDate && returnDate < todayStr);
   const invalidRange = !!startStamp && !!endStamp && endStamp <= startStamp;
   const tooShort = hours > 0 && hours < 9.99;
 
@@ -685,13 +722,11 @@ export function ManualBookingDialog({
                 pastUnlocked={pastUnlocked}
                 onUnlockPast={() => setPastUnlocked(true)}
                 onSelectRange={(startDay, endDay) => {
-                  if (startDay === endDay) {
-                    changePickupDate(startDay);
-                  } else {
-                    changePickupDate(startDay);
-                    changeReturnDate(endDay);
-                    setDurationMode("custom");
-                  }
+                  const pTime = pickupTime || "10:00";
+                  const rTime = returnTime || "10:00";
+                  setPickup(`${startDay}T${pTime}`);
+                  setReturnAt(`${endDay}T${rTime}`);
+                  setDurationMode("custom");
                 }}
               />
             </div>
@@ -729,7 +764,7 @@ export function ManualBookingDialog({
                 id="manual-pickup-date"
                 type="date"
                 value={pickupDate}
-                onChange={(event) => changePickupDate(event.target.value)}
+                onChange={(event) => handlePickupDateChange(event.target.value)}
                 required
                 className="rounded-lg"
               />
@@ -754,8 +789,7 @@ export function ManualBookingDialog({
                 id="manual-return-date"
                 type="date"
                 value={returnDate}
-                onChange={(event) => changeReturnDate(event.target.value)}
-                readOnly={durationMode !== "custom"}
+                onChange={(event) => handleReturnDateChange(event.target.value)}
                 required
                 className="rounded-lg"
               />
@@ -768,7 +802,6 @@ export function ManualBookingDialog({
               <TimePicker
                 id="manual-return-time"
                 value={returnTime}
-                disabled={durationMode !== "custom"}
                 onChange={(newTime) => changeReturnTime(newTime)}
               />
             </div>
@@ -1020,6 +1053,21 @@ export function ManualBookingDialog({
         </form>
       </DialogContent>
 
+      {/* Step 1 Past Date Input Confirmation Modal */}
+      <PastDateConfirmDialog
+        open={inputPastConfirmOpen}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setInputPastConfirmOpen(false);
+            setPendingInputDate(null);
+          }
+        }}
+        onConfirm={handleConfirmInputPast}
+        title="Past Date Selection"
+        message="You are selecting a past date. Are you sure?"
+      />
+
+      {/* Step 3 Final Submit Confirmation Modal */}
       <PastDateConfirmDialog
         open={pastConfirmOpen}
         onOpenChange={setPastConfirmOpen}

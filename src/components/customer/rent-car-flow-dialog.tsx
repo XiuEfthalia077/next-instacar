@@ -251,7 +251,9 @@ export function RentCarFlowDialog({
               const todayIso = new Intl.DateTimeFormat("en-CA", {
                 timeZone: "Asia/Manila",
               }).format(new Date());
-              const isPast = !!startDate && startDate < todayIso;
+              const isPast =
+                (!!startDate && startDate < todayIso) ||
+                (!!endDate && endDate < todayIso);
               if (isPast && !pastConfirmedRef.current) {
                 e.preventDefault();
                 setPastConfirmOpen(true);
@@ -279,34 +281,9 @@ export function RentCarFlowDialog({
               onSelectRange={(startDay, endDay) => {
                 const pTime = pickupDatetime ? pickupDatetime.slice(11, 16) : "09:00";
                 const rTime = returnDatetime ? returnDatetime.slice(11, 16) : "09:00";
-                if (startDay === endDay) {
-                  const newPickup = `${startDay}T${pTime}`;
-                  setPickupDatetime(newPickup);
-                  if (quickDuration === "10h") {
-                    const end = new Date(Date.parse(newPickup) + 10 * 3_600_000);
-                    const pad = (n: number) => String(n).padStart(2, "0");
-                    setReturnDatetime(
-                      `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`,
-                    );
-                  } else if (quickDuration === "24h") {
-                    const end = new Date(Date.parse(newPickup) + 24 * 3_600_000);
-                    const pad = (n: number) => String(n).padStart(2, "0");
-                    setReturnDatetime(
-                      `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`,
-                    );
-                  } else {
-                    const nextD = new Date(`${startDay}T12:00:00`);
-                    nextD.setDate(nextD.getDate() + 1);
-                    const pad = (n: number) => String(n).padStart(2, "0");
-                    setReturnDatetime(
-                      `${nextD.getFullYear()}-${pad(nextD.getMonth() + 1)}-${pad(nextD.getDate())}T${rTime}`,
-                    );
-                  }
-                } else {
-                  setPickupDatetime(`${startDay}T${pTime}`);
-                  setReturnDatetime(`${endDay}T${rTime}`);
-                  setQuickDuration("custom");
-                }
+                setPickupDatetime(`${startDay}T${pTime}`);
+                setReturnDatetime(`${endDay}T${rTime}`);
+                setQuickDuration("custom");
               }}
             />
 
