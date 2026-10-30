@@ -237,6 +237,7 @@ export function RegisterCarDialog({
                   name="price_10_hours"
                   type="number"
                   step="0.01"
+                  max="1000000"
                   placeholder="0"
                   className="mt-1"
                 />
@@ -250,6 +251,7 @@ export function RegisterCarDialog({
                   name="operator_10_hours"
                   type="number"
                   step="0.01"
+                  max="1000000"
                   placeholder="0"
                   className="mt-1 text-emerald-400"
                 />
@@ -264,6 +266,7 @@ export function RegisterCarDialog({
                   name="price_12_hours"
                   type="number"
                   step="0.01"
+                  max="1000000"
                   placeholder="0"
                   className="mt-1"
                 />
@@ -277,6 +280,7 @@ export function RegisterCarDialog({
                   name="operator_12_hours"
                   type="number"
                   step="0.01"
+                  max="1000000"
                   placeholder="0"
                   className="mt-1 text-emerald-400"
                 />
@@ -291,6 +295,7 @@ export function RegisterCarDialog({
                   name="price_24_hours"
                   type="number"
                   step="0.01"
+                  max="1000000"
                   required
                   placeholder="0"
                   className="mt-1 font-bold text-[#ffcc00]"
@@ -305,6 +310,7 @@ export function RegisterCarDialog({
                   name="operator_24_hours"
                   type="number"
                   step="0.01"
+                  max="1000000"
                   placeholder="0"
                   className="mt-1 text-emerald-400"
                 />
@@ -330,6 +336,7 @@ export function RegisterCarDialog({
                   name="ext_price_1_6"
                   type="number"
                   step="0.01"
+                  max="1000000"
                   placeholder="0"
                   className="mt-1 text-xs"
                 />
@@ -343,6 +350,7 @@ export function RegisterCarDialog({
                   name="ext_price_7_10"
                   type="number"
                   step="0.01"
+                  max="1000000"
                   placeholder="0"
                   className="mt-1 text-xs"
                 />
@@ -356,6 +364,7 @@ export function RegisterCarDialog({
                   name="ext_price_11_12"
                   type="number"
                   step="0.01"
+                  max="1000000"
                   placeholder="0"
                   className="mt-1 text-xs"
                 />
@@ -369,6 +378,7 @@ export function RegisterCarDialog({
                   name="ext_price_13_24"
                   type="number"
                   step="0.01"
+                  max="1000000"
                   placeholder="0"
                   className="mt-1 text-xs"
                 />

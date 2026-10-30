@@ -10,6 +10,7 @@ import { LoadingButton } from "@/components/common/loading-button";
 import { AvailabilityCalendar } from "@/components/common/availability-calendar";
 import { PastDateConfirmDialog } from "@/components/common/past-date-confirm-dialog";
 import { TimePicker } from "@/components/common/time-picker";
+import { useSlowNetworkStatus, SlowNetworkFeedback } from "@/components/common/slow-network-feedback";
 import {
   Dialog,
   DialogClose,
@@ -136,6 +137,8 @@ export function EditManualBookingDialog({
   const [remarks, setRemarks] = useState<string>(booking.remarks ?? "");
   const [pastConfirmOpen, setPastConfirmOpen] = useState(false);
   const [pastUnlocked, setPastUnlocked] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const networkStatus = useSlowNetworkStatus(isSubmitting);
   const pastConfirmedRef = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -163,14 +166,41 @@ export function EditManualBookingDialog({
         )
       : 0;
 
+  const MAX_ALLOWED_AMOUNT = 1_000_000;
+
+  const handleNumericInput =
+    (setter: (val: string) => void) =>
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const raw = event.target.value;
+      if (raw === "") {
+        setter("");
+        return;
+      }
+      const num = parseFloat(raw);
+      if (!isNaN(num) && num > MAX_ALLOWED_AMOUNT) {
+        setter(String(MAX_ALLOWED_AMOUNT));
+        return;
+      }
+      setter(raw);
+    };
+
   const discountValue = Number.parseFloat(discount) || 0;
   const downPaymentValue = Number.parseFloat(downPayment) || 0;
+  const deliveryFeeValue = Number.parseFloat(deliveryFee) || 0;
+  const pickupFeeValue = Number.parseFloat(pickupFee) || 0;
   const balance = Math.max(0, basePrice - discountValue - downPaymentValue);
+
+  const isAmountsValid =
+    deliveryFeeValue <= MAX_ALLOWED_AMOUNT &&
+    pickupFeeValue <= MAX_ALLOWED_AMOUNT &&
+    discountValue <= MAX_ALLOWED_AMOUNT &&
+    downPaymentValue <= MAX_ALLOWED_AMOUNT;
 
   const formValid =
     !!pickupDatetime &&
     !!returnDatetime &&
     !!selectedCar &&
+    isAmountsValid &&
     new Date(returnDatetime).getTime() > new Date(pickupDatetime).getTime() &&
     (customerType === "guest" ? !!guestName.trim() : !!userId);
 
@@ -179,7 +209,7 @@ export function EditManualBookingDialog({
 
   const handleConfirmSaveClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (!formValid) return;
+    if (!formValid || isSubmitting) return;
 
     const todayIso = new Intl.DateTimeFormat("en-CA", {
       timeZone: "Asia/Manila",
@@ -193,6 +223,7 @@ export function EditManualBookingDialog({
       return;
     }
 
+    setIsSubmitting(true);
     formRef.current?.requestSubmit();
   };
 
@@ -464,9 +495,10 @@ export function EditManualBookingDialog({
                 type="number"
                 name="delivery_fee"
                 min={0}
+                max={MAX_ALLOWED_AMOUNT}
                 step="0.01"
                 value={deliveryFee}
-                onChange={(event) => setDeliveryFee(event.target.value)}
+                onChange={handleNumericInput(setDeliveryFee)}
                 className="rounded-lg"
               />
             </div>
@@ -479,9 +511,10 @@ export function EditManualBookingDialog({
                 type="number"
                 name="pickup_fee"
                 min={0}
+                max={MAX_ALLOWED_AMOUNT}
                 step="0.01"
                 value={pickupFee}
-                onChange={(event) => setPickupFee(event.target.value)}
+                onChange={handleNumericInput(setPickupFee)}
                 className="rounded-lg"
               />
             </div>
@@ -510,9 +543,10 @@ export function EditManualBookingDialog({
                 type="number"
                 name="discount_price"
                 min={0}
+                max={MAX_ALLOWED_AMOUNT}
                 step="0.01"
                 value={discount}
-                onChange={(event) => setDiscount(event.target.value)}
+                onChange={handleNumericInput(setDiscount)}
                 className="rounded-lg"
               />
             </div>
@@ -525,9 +559,10 @@ export function EditManualBookingDialog({
                 type="number"
                 name="down_payment"
                 min={0}
+                max={MAX_ALLOWED_AMOUNT}
                 step="0.01"
                 value={downPayment}
-                onChange={(event) => setDownPayment(event.target.value)}
+                onChange={handleNumericInput(setDownPayment)}
                 className="rounded-lg"
               />
             </div>
@@ -546,6 +581,8 @@ export function EditManualBookingDialog({
             </div>
           </div>
 
+          <SlowNetworkFeedback status={networkStatus} className="w-full my-1.5" />
+
           <DialogFooter className="gap-2 border-t border-border pt-4">
             <DialogClose asChild>
               <Button type="button" variant="outline" className="rounded-lg px-4 font-semibold">
@@ -555,7 +592,8 @@ export function EditManualBookingDialog({
             <LoadingButton
               type="button"
               onClick={handleConfirmSaveClick}
-              disabled={!formValid}
+              disabled={!formValid || isSubmitting}
+              loading={isSubmitting}
               loadingText="Saving Changes..."
               className="rounded-lg px-4 font-bold bg-[#ffcc00] text-black hover:bg-[#e6b800]"
             >

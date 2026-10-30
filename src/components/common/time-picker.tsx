@@ -94,33 +94,54 @@ export function TimePicker({
     setOpen(nextOpen);
   };
 
-  const handleHourSelect = (newHour: number) => {
+  const handleHourSelect = (newHour: number, e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
     const time24 = buildTime24(newHour, minute, period);
     onChange?.(time24);
   };
 
-  const handleMinuteSelect = (newMinute: number) => {
+  const handleMinuteSelect = (newMinute: number, e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
     const time24 = buildTime24(hour12, newMinute, period);
     onChange?.(time24);
   };
 
-  const handlePeriodToggle = (newPeriod: "AM" | "PM") => {
+  const handlePeriodToggle = (newPeriod: "AM" | "PM", e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
     const time24 = buildTime24(hour12, minute, newPeriod);
     onChange?.(time24);
   };
 
-  const handleSetNow = () => {
+  const handleSetNow = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
     const nowTime = getCurrentTime24();
     onChange?.(nowTime);
   };
 
+  const handlePresetSelect = (presetVal: string, e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    onChange?.(presetVal);
+  };
+
+  const handleDone = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    setOpen(false);
+  };
+
   return (
     <div className={cn("relative inline-block w-full", className)}>
-      {name && <input type="hidden" name={name} value={value ?? ""} id={id} />}
+      {name && <input type="hidden" name={name} value={value ?? ""} />}
 
       <Popover open={open} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <Button
+            id={id}
             type="button"
             variant="outline"
             disabled={disabled}
@@ -142,6 +163,9 @@ export function TimePicker({
         <PopoverContent
           align="start"
           sideOffset={6}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onCloseAutoFocus={(e) => e.preventDefault()}
+          onPointerDown={(e) => e.stopPropagation()}
           className="z-[250] w-[300px] rounded-xl border border-border bg-popover p-3 shadow-2xl"
         >
           {/* Header */}
@@ -158,7 +182,7 @@ export function TimePicker({
             <button
               type="button"
               onClick={handleSetNow}
-              className="inline-flex items-center gap-1 rounded-md bg-[#ffcc00]/20 px-2 py-0.5 text-[11px] font-bold text-[#b38a00] dark:text-[#ffcc00] hover:bg-[#ffcc00]/30 transition-colors"
+              className="inline-flex items-center gap-1 rounded-md bg-[#ffcc00]/20 px-2 py-0.5 text-[11px] font-bold text-[#b38a00] dark:text-[#ffcc00] hover:bg-[#ffcc00]/30 transition-colors cursor-pointer"
             >
               <Sparkles className="size-3" />
               Now
@@ -180,9 +204,9 @@ export function TimePicker({
                       <button
                         key={h}
                         type="button"
-                        onClick={() => handleHourSelect(h)}
+                        onClick={(e) => handleHourSelect(h, e)}
                         className={cn(
-                          "flex w-full items-center justify-center rounded-md py-1.5 text-xs font-medium transition-colors",
+                          "flex w-full items-center justify-center rounded-md py-1.5 text-xs font-medium transition-colors cursor-pointer",
                           isSelected
                             ? "bg-[#ffcc00] font-bold text-black shadow-xs"
                             : "hover:bg-muted text-foreground",
@@ -209,9 +233,9 @@ export function TimePicker({
                       <button
                         key={m}
                         type="button"
-                        onClick={() => handleMinuteSelect(m)}
+                        onClick={(e) => handleMinuteSelect(m, e)}
                         className={cn(
-                          "flex w-full items-center justify-center rounded-md py-1.5 text-xs font-medium transition-colors",
+                          "flex w-full items-center justify-center rounded-md py-1.5 text-xs font-medium transition-colors cursor-pointer",
                           isSelected
                             ? "bg-[#ffcc00] font-bold text-black shadow-xs"
                             : "hover:bg-muted text-foreground",
@@ -237,9 +261,9 @@ export function TimePicker({
                     <button
                       key={p}
                       type="button"
-                      onClick={() => handlePeriodToggle(p)}
+                      onClick={(e) => handlePeriodToggle(p, e)}
                       className={cn(
-                        "flex flex-1 items-center justify-center rounded-md text-xs font-bold transition-colors",
+                        "flex flex-1 items-center justify-center rounded-md text-xs font-bold transition-colors cursor-pointer",
                         isSelected
                           ? "bg-[#ffcc00] text-black shadow-xs"
                           : "hover:bg-muted text-foreground",
@@ -265,9 +289,9 @@ export function TimePicker({
                   <button
                     key={preset.value}
                     type="button"
-                    onClick={() => onChange?.(preset.value)}
+                    onClick={(e) => handlePresetSelect(preset.value, e)}
                     className={cn(
-                      "rounded-md border px-1.5 py-0.5 text-[10px] font-semibold transition-colors",
+                      "rounded-md border px-1.5 py-0.5 text-[10px] font-semibold transition-colors cursor-pointer",
                       isActive
                         ? "border-[#ffcc00] bg-[#ffcc00] text-black font-bold"
                         : "border-border bg-card text-foreground hover:bg-muted",
@@ -278,6 +302,25 @@ export function TimePicker({
                 );
               })}
             </div>
+          </div>
+
+          {/* Explicit Confirm / Done Footer */}
+          <div className="mt-3.5 flex items-center justify-between border-t border-border/80 pt-2.5">
+            <div className="text-[11px] text-muted-foreground font-medium truncate max-w-[170px]">
+              Selected:{" "}
+              <span className="font-bold text-[#b38a00] dark:text-[#ffcc00]">
+                {value ? format12Hour(value) : "None"}
+              </span>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleDone}
+              className="h-7 px-3 text-xs font-bold bg-[#ffcc00] text-black hover:bg-[#ffd700] rounded-lg gap-1 shadow-xs cursor-pointer"
+            >
+              <Check className="size-3.5 stroke-[3]" />
+              Done
+            </Button>
           </div>
         </PopoverContent>
       </Popover>

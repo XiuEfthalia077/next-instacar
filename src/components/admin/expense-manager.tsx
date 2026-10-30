@@ -101,6 +101,7 @@ export function ExpenseManager({ expenses, totalExpenses }: ExpenseManagerProps)
                 type="number"
                 step="0.01"
                 min="0.01"
+                max="1000000"
                 required
                 placeholder="0.00"
                 className="h-10 rounded-xl pl-7 text-xs font-bold"

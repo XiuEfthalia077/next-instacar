@@ -88,7 +88,8 @@ function parseVehicleId(form: FormData): number {
 
 function money(form: FormData, key: string): number {
   const parsed = Number.parseFloat(str(form, key).replace(/,/g, ""));
-  return Number.isFinite(parsed) ? parsed : 0;
+  if (!Number.isFinite(parsed)) return 0;
+  return Math.min(Math.max(0, parsed), 1_000_000);
 }
 
 function file(form: FormData, key: string): File | null {

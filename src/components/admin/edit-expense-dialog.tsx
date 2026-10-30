@@ -80,6 +80,7 @@ export function EditExpenseDialog({ expense }: EditExpenseDialogProps) {
                 type="number"
                 step="0.01"
                 min="0.01"
+                max="1000000"
                 defaultValue={expense.amount}
                 placeholder="0.00"
                 required

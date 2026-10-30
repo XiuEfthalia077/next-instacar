@@ -18,6 +18,7 @@ import { LoadingButton } from "@/components/common/loading-button";
 import { AvailabilityCalendar } from "@/components/common/availability-calendar";
 import { PastDateConfirmDialog } from "@/components/common/past-date-confirm-dialog";
 import { TimePicker } from "@/components/common/time-picker";
+import { useSlowNetworkStatus, SlowNetworkFeedback } from "@/components/common/slow-network-feedback";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -137,6 +138,7 @@ export function ManualBookingDialog({
   const [memberSearch, setMemberSearch] = useState("");
   const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const networkStatus = useSlowNetworkStatus(isSubmitting);
   const [pastConfirmOpen, setPastConfirmOpen] = useState(false);
   const [pastUnlocked, setPastUnlocked] = useState(false);
   const [inputPastConfirmOpen, setInputPastConfirmOpen] = useState(false);
@@ -454,6 +456,30 @@ export function ManualBookingDialog({
           ? `${Math.ceil(hours)} Hours`
           : "0 Hours";
 
+  const MAX_ALLOWED_AMOUNT = 1_000_000;
+
+  const handleNumericInput =
+    (setter: (val: string) => void) =>
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const raw = event.target.value;
+      if (raw === "") {
+        setter("");
+        return;
+      }
+      const num = parseFloat(raw);
+      if (!isNaN(num) && num > MAX_ALLOWED_AMOUNT) {
+        setter(String(MAX_ALLOWED_AMOUNT));
+        return;
+      }
+      setter(raw);
+    };
+
+  const isAmountsValid =
+    amount(deliveryFee) <= MAX_ALLOWED_AMOUNT &&
+    amount(pickupFee) <= MAX_ALLOWED_AMOUNT &&
+    amount(discount) <= MAX_ALLOWED_AMOUNT &&
+    amount(downPayment) <= MAX_ALLOWED_AMOUNT;
+
   const formValid =
     !!pickupDate &&
     !!returnDate &&
@@ -462,6 +488,7 @@ export function ManualBookingDialog({
     !invalidRange &&
     !tooShort &&
     hours >= 9.99 &&
+    isAmountsValid &&
     (fulfillmentType !== "Delivery" || !!deliveryAddress.trim()) &&
     (customerType === "registered" ? !!userId : !!guestName.trim());
 
@@ -968,9 +995,10 @@ export function ManualBookingDialog({
                 type="number"
                 name="delivery_fee"
                 min={0}
+                max={MAX_ALLOWED_AMOUNT}
                 step="0.01"
                 value={deliveryFee}
-                onChange={(event) => setDeliveryFee(event.target.value)}
+                onChange={handleNumericInput(setDeliveryFee)}
                 className="rounded-lg"
               />
             </div>
@@ -984,9 +1012,10 @@ export function ManualBookingDialog({
                 type="number"
                 name="pickup_fee"
                 min={0}
+                max={MAX_ALLOWED_AMOUNT}
                 step="0.01"
                 value={pickupFee}
-                onChange={(event) => setPickupFee(event.target.value)}
+                onChange={handleNumericInput(setPickupFee)}
                 className="rounded-lg"
               />
             </div>
@@ -1015,9 +1044,10 @@ export function ManualBookingDialog({
                 type="number"
                 name="discount_price"
                 min={0}
+                max={MAX_ALLOWED_AMOUNT}
                 step="0.01"
                 value={discount}
-                onChange={(event) => setDiscount(event.target.value)}
+                onChange={handleNumericInput(setDiscount)}
                 className="rounded-lg"
               />
             </div>
@@ -1031,9 +1061,10 @@ export function ManualBookingDialog({
                 type="number"
                 name="down_payment"
                 min={0}
+                max={MAX_ALLOWED_AMOUNT}
                 step="0.01"
                 value={downPayment}
-                onChange={(event) => setDownPayment(event.target.value)}
+                onChange={handleNumericInput(setDownPayment)}
                 className="rounded-lg"
               />
             </div>
@@ -1078,6 +1109,8 @@ export function ManualBookingDialog({
               </div>
             </div>
           </div>
+
+          <SlowNetworkFeedback status={networkStatus} className="w-full my-1" />
 
           <DialogFooter className="flex-col sm:flex-row items-center justify-between gap-2 border-t border-border pt-4">
             <Button

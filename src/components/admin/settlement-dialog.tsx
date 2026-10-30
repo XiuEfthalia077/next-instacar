@@ -122,8 +122,16 @@ function FeeField({
         name={name}
         type="number"
         step="0.01"
+        max={1000000}
         value={value}
-        onChange={(event) => onChange(name, event.target.value)}
+        onChange={(event) => {
+          const num = parseFloat(event.target.value);
+          if (!isNaN(num) && num > 1000000) {
+            onChange(name, "1000000");
+            return;
+          }
+          onChange(name, event.target.value);
+        }}
         className="rounded-lg"
       />
       {hint ? <p className="mt-1 text-[0.68rem] text-muted-foreground">{hint}</p> : null}

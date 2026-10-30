@@ -21,6 +21,7 @@ import { LoadingButton } from "@/components/common/loading-button";
 import { AvailabilityCalendar } from "@/components/common/availability-calendar";
 import { PastDateConfirmDialog } from "@/components/common/past-date-confirm-dialog";
 import { TimePicker } from "@/components/common/time-picker";
+import { useSlowNetworkStatus, SlowNetworkFeedback } from "@/components/common/slow-network-feedback";
 import { Money } from "@/components/common/money";
 import { Button } from "@/components/ui/button";
 import {
@@ -79,6 +80,7 @@ export function RentCarFlowDialog({
   }, [controlledOpen, controlledOnOpenChange]);
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const networkStatus = useSlowNetworkStatus(isSubmitting);
 
   const handleCloseAll = React.useCallback(() => {
     setIsSubmitting(false);
@@ -722,6 +724,8 @@ export function RentCarFlowDialog({
                 <span>Selected dates overlap with an existing booking or maintenance schedule. Please select available green dates.</span>
               </div>
             )}
+
+            <SlowNetworkFeedback status={networkStatus} className="w-full" />
 
             <LoadingButton
               type="button"

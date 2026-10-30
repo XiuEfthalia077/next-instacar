@@ -266,6 +266,7 @@ export function EditCarDialog({
                   name="price_10_hours"
                   type="number"
                   step="0.01"
+                  max="1000000"
                   defaultValue={car.price_10_hours ?? 0}
                   className="mt-1"
                 />
@@ -279,6 +280,7 @@ export function EditCarDialog({
                   name="operator_10_hours"
                   type="number"
                   step="0.01"
+                  max="1000000"
                   defaultValue={car.operator_10_hours ?? 0}
                   className="mt-1 text-emerald-400"
                 />
@@ -293,6 +295,7 @@ export function EditCarDialog({
                   name="price_12_hours"
                   type="number"
                   step="0.01"
+                  max="1000000"
                   defaultValue={car.price_12_hours ?? 0}
                   className="mt-1"
                 />
@@ -306,6 +309,7 @@ export function EditCarDialog({
                   name="operator_12_hours"
                   type="number"
                   step="0.01"
+                  max="1000000"
                   defaultValue={car.operator_12_hours ?? 0}
                   className="mt-1 text-emerald-400"
                 />
@@ -320,6 +324,7 @@ export function EditCarDialog({
                   name="price_24_hours"
                   type="number"
                   step="0.01"
+                  max="1000000"
                   defaultValue={car.price_24_hours ?? 0}
                   required
                   className="mt-1 font-bold text-[#ffcc00]"
@@ -334,6 +339,7 @@ export function EditCarDialog({
                   name="operator_24_hours"
                   type="number"
                   step="0.01"
+                  max="1000000"
                   defaultValue={car.operator_24_hours ?? 0}
                   className="mt-1 text-emerald-400"
                 />
@@ -359,6 +365,7 @@ export function EditCarDialog({
                   name="ext_price_1_6"
                   type="number"
                   step="0.01"
+                  max="1000000"
                   defaultValue={car.ext_price_1_6 ?? 0}
                   className="mt-1 text-xs"
                 />
@@ -372,6 +379,7 @@ export function EditCarDialog({
                   name="ext_price_7_10"
                   type="number"
                   step="0.01"
+                  max="1000000"
                   defaultValue={car.ext_price_7_10 ?? 0}
                   className="mt-1 text-xs"
                 />
@@ -385,6 +393,7 @@ export function EditCarDialog({
                   name="ext_price_11_12"
                   type="number"
                   step="0.01"
+                  max="1000000"
                   defaultValue={car.ext_price_11_12 ?? 0}
                   className="mt-1 text-xs"
                 />
@@ -398,6 +407,7 @@ export function EditCarDialog({
                   name="ext_price_13_24"
                   type="number"
                   step="0.01"
+                  max="1000000"
                   defaultValue={car.ext_price_13_24 ?? 0}
                   className="mt-1 text-xs"
                 />

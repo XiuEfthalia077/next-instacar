@@ -10,6 +10,7 @@ import { LoadingButton } from "@/components/common/loading-button";
 import { AvailabilityCalendar } from "@/components/common/availability-calendar";
 import { PastDateConfirmDialog } from "@/components/common/past-date-confirm-dialog";
 import { TimePicker } from "@/components/common/time-picker";
+import { useSlowNetworkStatus, SlowNetworkFeedback } from "@/components/common/slow-network-feedback";
 import {
   Dialog,
   DialogClose,
@@ -69,6 +70,8 @@ export function EditReservationDialog({
   const [pastConfirmOpen, setPastConfirmOpen] = useState(false);
   const [pastUnlocked, setPastUnlocked] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const networkStatus = useSlowNetworkStatus(isSubmitting);
   const pastConfirmedRef = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -77,6 +80,8 @@ export function EditReservationDialog({
 
   const handleConfirmSaveClick = (e: React.MouseEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     const todayIso = new Intl.DateTimeFormat("en-CA", {
       timeZone: "Asia/Manila",
     }).format(new Date());
@@ -89,6 +94,7 @@ export function EditReservationDialog({
       return;
     }
 
+    setIsSubmitting(true);
     formRef.current?.requestSubmit();
   };
 
@@ -213,12 +219,12 @@ export function EditReservationDialog({
 
             <div>
               <Label className="mb-1 block text-xs font-bold">Total Price (₱)</Label>
-              <Input type="number" name="total_price" defaultValue={Number(booking.total_price ?? 0)} min={0} step="0.01" required className="rounded-lg" />
+              <Input type="number" name="total_price" defaultValue={Number(booking.total_price ?? 0)} min={0} max={1000000} step="0.01" required className="rounded-lg" />
             </div>
 
             <div>
               <Label className="mb-1 block text-xs font-bold">Down Payment (₱)</Label>
-              <Input type="number" name="down_payment" defaultValue={Number(booking.down_payment ?? 0)} min={0} step="0.01" required className="rounded-lg" />
+              <Input type="number" name="down_payment" defaultValue={Number(booking.down_payment ?? 0)} min={0} max={1000000} step="0.01" required className="rounded-lg" />
             </div>
           </div>
 
@@ -239,6 +245,8 @@ export function EditReservationDialog({
             </div>
           </div>
 
+          <SlowNetworkFeedback status={networkStatus} className="w-full my-1.5" />
+
           <DialogFooter className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 border-t border-border pt-4">
             {isAdmin ? (
               <Button
@@ -249,6 +257,7 @@ export function EditReservationDialog({
                   e.stopPropagation();
                   setDeleteConfirmOpen(true);
                 }}
+                disabled={isSubmitting}
                 className="w-full sm:w-auto gap-2 font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-sm cursor-pointer"
               >
                 <Trash2 className="size-4" />
@@ -264,6 +273,8 @@ export function EditReservationDialog({
               <LoadingButton
                 type="button"
                 onClick={handleConfirmSaveClick}
+                disabled={isSubmitting}
+                loading={isSubmitting}
                 loadingText="Saving Changes..."
                 className="rounded-lg px-4 font-bold bg-[#ffcc00] text-black hover:bg-[#e6b800]"
               >

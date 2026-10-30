@@ -117,9 +117,12 @@ export function PayBalanceDialog({
               type="number"
               step="0.01"
               min={1}
-              max={remainingBalance > 0 ? remainingBalance * 2 : 100000}
+              max={1000000}
               value={amount}
-              onChange={(e) => setAmount(Number(e.target.value))}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                setAmount(v > 1000000 ? 1000000 : v);
+              }}
               required
               className="mt-1 text-base font-bold text-foreground"
             />
