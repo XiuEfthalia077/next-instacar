@@ -334,6 +334,8 @@ export function SettlementsHistory({
               <Link
                 key={period.key}
                 href={periodHref(period.key)}
+                scroll={false}
+                data-no-loader="true"
                 className={cn(
                   "rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors",
                   hPeriod === period.key

@@ -15,6 +15,7 @@ import {
   fetchRowsWithCount,
 } from "@/lib/data/scope";
 import { ACTIVE_CAR_STATUSES, carStatuses } from "@/lib/data/legacy-status";
+import { cleanSearchQuery } from "@/lib/security";
 import type { AppSession, Car, CarStatus } from "@/lib/types";
 
 export type CarWithOwner = Car & {
@@ -75,10 +76,13 @@ export async function listCars(
   }
 
   if (filters.search) {
-    const term = `%${filters.search.trim()}%`;
-    query = query.or(
-      `brand.ilike.${term},model.ilike.${term},plate_number.ilike.${term}`,
-    );
+    const clean = cleanSearchQuery(filters.search);
+    if (clean) {
+      const term = `%${clean}%`;
+      query = query.or(
+        `brand.ilike.${term},model.ilike.${term},plate_number.ilike.${term}`,
+      );
+    }
   }
 
   const { rows, count } = await fetchRowsWithCount<CarWithOwner>(

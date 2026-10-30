@@ -162,6 +162,8 @@ export function SettlementsPending({
         <div className="flex min-w-[120px] flex-1 items-end">
           <Link
             href="/admin/settlements"
+            scroll={false}
+            data-no-loader="true"
             className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-[10px] border border-border bg-card px-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
           >
             <RotateCcw className="size-4" />

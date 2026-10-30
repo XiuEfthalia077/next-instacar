@@ -29,6 +29,8 @@ import {
 import {
   FilterBar,
   FilterField,
+  FilterSubmitButton,
+  FilterResetButton,
   filterControlClass,
 } from "@/components/common/filter-bar";
 import { Flash } from "@/components/common/flash";
@@ -484,18 +486,8 @@ export default async function StaffBookingsPage({
         className="mb-4"
         actions={
           <>
-            <button
-              type="submit"
-              className="h-10 rounded-[10px] bg-[#ffcc00] px-4 text-sm font-bold text-black transition-colors hover:bg-[#e6b800]"
-            >
-              Filter
-            </button>
-            <Link
-              href="/staff/bookings"
-              className="inline-flex h-10 items-center rounded-[10px] border border-border px-4 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted"
-            >
-              Reset
-            </Link>
+            <FilterSubmitButton />
+            <FilterResetButton href="/staff/bookings" />
           </>
         }
       >

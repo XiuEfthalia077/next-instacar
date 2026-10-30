@@ -26,7 +26,13 @@ import { CarGalleryDialog } from "@/components/admin/car-gallery-dialog";
 import { EditCarDialog } from "@/components/admin/edit-car-dialog";
 import { RegisterCarDialog } from "@/components/admin/register-car-dialog";
 import { EmptyState } from "@/components/common/empty-state";
-import { FilterBar, FilterField, filterControlClass } from "@/components/common/filter-bar";
+import {
+  FilterBar,
+  FilterField,
+  FilterSubmitButton,
+  FilterResetButton,
+  filterControlClass,
+} from "@/components/common/filter-bar";
 import { Flash } from "@/components/common/flash";
 import { Money } from "@/components/common/money";
 import { PageHeader } from "@/components/common/page-header";
@@ -141,12 +147,10 @@ export default async function SharedCarsPage({
       {/* Filters */}
       <FilterBar
         actions={
-          <button
-            type="submit"
-            className="h-10 rounded-xl bg-[#ffcc00] px-5 text-sm font-bold text-black transition hover:bg-[#ffd633]"
-          >
-            Filter
-          </button>
+          <>
+            <FilterSubmitButton />
+            <FilterResetButton href="/shared/cars" />
+          </>
         }
       >
         <FilterField label="Search Vehicle">

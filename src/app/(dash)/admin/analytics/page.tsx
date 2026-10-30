@@ -22,7 +22,13 @@ import Link from "next/link";
 
 import { ExpenseManager } from "@/components/admin/expense-manager";
 import { EmptyState } from "@/components/common/empty-state";
-import { FilterBar, FilterField, filterControlClass } from "@/components/common/filter-bar";
+import {
+  FilterBar,
+  FilterField,
+  FilterSubmitButton,
+  FilterResetButton,
+  filterControlClass,
+} from "@/components/common/filter-bar";
 import { Flash } from "@/components/common/flash";
 import { Money } from "@/components/common/money";
 import { PageHeader } from "@/components/common/page-header";
@@ -206,13 +212,12 @@ export default async function AdminAnalyticsDashboardPage({
       {/* ── 2. Filter Bar (Date Range, Branch, Ownership, Search) ── */}
       <FilterBar
         actions={
-          <Link
-            href="/admin/analytics"
-            className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-4 text-xs font-bold text-foreground transition-colors hover:bg-muted"
-          >
-            <RotateCcw className="size-3.5" />
-            <span>Reset Filters</span>
-          </Link>
+          <>
+            <FilterSubmitButton />
+            <FilterResetButton href="/admin/analytics">
+              Reset Filters
+            </FilterResetButton>
+          </>
         }
       >
         {/* Start Date */}

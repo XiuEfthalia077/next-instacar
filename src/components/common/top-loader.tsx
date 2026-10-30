@@ -109,6 +109,7 @@ export function TopLoader() {
     const handleDocumentClick = (e: MouseEvent) => {
       const target = (e.target as HTMLElement)?.closest("a");
       if (!target) return;
+      if (target.getAttribute("data-no-loader")) return;
 
       const href = target.getAttribute("href");
       if (

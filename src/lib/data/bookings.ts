@@ -19,6 +19,7 @@ import {
 import { bookingStatuses, OPEN_BOOKING_STATUSES } from "@/lib/data/legacy-status";
 import { addDays, manilaToday } from "@/lib/datetime";
 import { getBookingAttentionAlert, type BookingAttentionAlert } from "@/lib/alerts";
+import { cleanSearchQuery } from "@/lib/security";
 import type { AppSession, Booking, BookingStatus } from "@/lib/types";
 
 export type BookingCar = {
@@ -177,10 +178,44 @@ export async function listBookings(
   }
 
   if (filters.search) {
-    const term = `%${filters.search.trim()}%`;
-    query = query.or(
-      `guest_name.ilike.${term},gmail.ilike.${term},phone_number.ilike.${term}`,
-    );
+    const clean = cleanSearchQuery(filters.search);
+    if (clean) {
+      const term = `%${clean}%`;
+      const idNum = clean.replace(/^(?:bk-?|#)?(\d+)$/i, "$1");
+      const isNumericId = /^\d+$/.test(idNum);
+
+      // Search registered users matching the search term
+      const { data: matchedUsers } = await supabase
+        .from("users")
+        .select("id")
+        .or(`name.ilike.${term},email.ilike.${term},phone.ilike.${term}`);
+      const userIds = matchedUsers?.map((u) => u.id) ?? [];
+
+      // Search cars matching brand, model, or plate
+      const { data: matchedCars } = await supabase
+        .from("cars")
+        .select("id")
+        .or(`brand.ilike.${term},model.ilike.${term},plate_number.ilike.${term}`);
+      const carIds = matchedCars?.map((c) => c.id) ?? [];
+
+      const orClauses: string[] = [
+        `guest_name.ilike.${term}`,
+        `gmail.ilike.${term}`,
+        `phone_number.ilike.${term}`,
+      ];
+
+      if (isNumericId) {
+        orClauses.push(`id.eq.${idNum}`);
+      }
+      if (userIds.length > 0) {
+        orClauses.push(`user_id.in.(${userIds.join(",")})`);
+      }
+      if (carIds.length > 0) {
+        orClauses.push(`car_id.in.(${carIds.join(",")})`);
+      }
+
+      query = query.or(orClauses.join(","));
+    }
   }
 
   const { rows, count } = await fetchRowsWithCount<BookingRow>(

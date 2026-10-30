@@ -137,6 +137,8 @@ export function TablePagination({
         <Link
           href={buildHref(Math.max(1, page - 1))}
           aria-disabled={page <= 1}
+          scroll={false}
+          data-no-loader="true"
           className={cn(
             "rounded-lg border border-border bg-card px-3 py-1.5 font-semibold transition-colors hover:bg-muted",
             page <= 1 && "pointer-events-none opacity-40",
@@ -150,6 +152,8 @@ export function TablePagination({
         <Link
           href={buildHref(Math.min(pages, page + 1))}
           aria-disabled={page >= pages}
+          scroll={false}
+          data-no-loader="true"
           className={cn(
             "rounded-lg border border-border bg-card px-3 py-1.5 font-semibold transition-colors hover:bg-muted",
             page >= pages && "pointer-events-none opacity-40",
