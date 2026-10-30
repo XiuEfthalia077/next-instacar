@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Clock, Check, ChevronDown, Sparkles } from "lucide-react";
+import { Clock, Check, ChevronDown, Sparkles, X } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -173,20 +173,25 @@ export function TimePicker({
             <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
               <Clock className="size-3.5 text-[#b38a00] dark:text-[#ffcc00]" />
               <span>Select Time</span>
-              {value && (
-                <span className="ml-1 text-[11px] font-semibold text-muted-foreground">
-                  ({format12Hour(value)})
-                </span>
-              )}
             </div>
-            <button
-              type="button"
-              onClick={handleSetNow}
-              className="inline-flex items-center gap-1 rounded-md bg-[#ffcc00]/20 px-2 py-0.5 text-[11px] font-bold text-[#b38a00] dark:text-[#ffcc00] hover:bg-[#ffcc00]/30 transition-colors cursor-pointer"
-            >
-              <Sparkles className="size-3" />
-              Now
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handleSetNow}
+                className="inline-flex items-center gap-1 rounded-md bg-[#ffcc00]/20 px-2 py-0.5 text-[11px] font-bold text-[#b38a00] dark:text-[#ffcc00] hover:bg-[#ffcc00]/30 transition-colors cursor-pointer"
+              >
+                <Sparkles className="size-3" />
+                Now
+              </button>
+              <button
+                type="button"
+                onClick={handleDone}
+                aria-label="Close time picker"
+                className="inline-flex items-center justify-center rounded-md size-6 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
           </div>
 
           {/* Time Picker Columns */}
@@ -304,22 +309,15 @@ export function TimePicker({
             </div>
           </div>
 
-          {/* Explicit Confirm / Done Footer */}
-          <div className="mt-3.5 flex items-center justify-between border-t border-border/80 pt-2.5">
-            <div className="text-[11px] text-muted-foreground font-medium truncate max-w-[170px]">
-              Selected:{" "}
-              <span className="font-bold text-[#b38a00] dark:text-[#ffcc00]">
-                {value ? format12Hour(value) : "None"}
-              </span>
-            </div>
+          {/* Prominent Full-Width Confirm / Done Footer */}
+          <div className="mt-3.5 border-t border-border/80 pt-2.5">
             <Button
               type="button"
-              size="sm"
               onClick={handleDone}
-              className="h-7 px-3 text-xs font-bold bg-[#ffcc00] text-black hover:bg-[#ffd700] rounded-lg gap-1 shadow-xs cursor-pointer"
+              className="w-full h-8.5 text-xs font-black bg-[#ffcc00] text-black hover:bg-[#ffd700] rounded-lg flex items-center justify-center gap-1.5 shadow-xs cursor-pointer transition-colors"
             >
               <Check className="size-3.5 stroke-[3]" />
-              Done
+              Done {value ? `(${format12Hour(value)})` : ""}
             </Button>
           </div>
         </PopoverContent>
