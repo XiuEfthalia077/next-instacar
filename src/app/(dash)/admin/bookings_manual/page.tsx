@@ -564,17 +564,12 @@ export default async function AdminBookingsManualPage({
 
       <Flash {...flash} />
 
-      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Total Walk-ins"
           value={totals.all}
           icon={ClipboardList}
           tone="primary"
-        />
-        <ActionCheckCard
-          title="Walk-In Action Check"
-          description="Urgent walk-in actions requiring attention today and upcoming warnings for tomorrow."
-          items={actionItems}
         />
         <StatCard
           label="Confirmed"
@@ -595,6 +590,13 @@ export default async function AdminBookingsManualPage({
           tone="danger"
         />
       </div>
+
+      {/* Walk-in Action Check: Placed directly below Cancelled stat card */}
+      <ActionCheckCard
+        title="Walk-In Action Check"
+        description="Urgent walk-in actions requiring attention today and upcoming warnings for tomorrow."
+        items={actionItems}
+      />
 
       <PillTabs
         className="mb-4"

@@ -128,7 +128,7 @@ export default async function AdminDashboardPage({
       <NeedsAttentionPanel initialItems={attentionItems} />
 
       {/* KPI grid */}
-      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Total Fleet"
           value={stats.totalCars}
@@ -136,7 +136,6 @@ export default async function AdminDashboardPage({
           icon={CarFront}
           tone="info"
         />
-        <ActionCheckCard items={actionItems} />
         <StatCard
           label="Monthly Net"
           value={<Money value={stats.monthlyNet} showSign={false} />}
@@ -187,6 +186,9 @@ export default async function AdminDashboardPage({
           tone="purple"
         />
       </div>
+
+      {/* Action Check: Urgent actions today & warnings tomorrow */}
+      <ActionCheckCard items={actionItems} />
 
       <div className="grid gap-4 lg:grid-cols-12">
         {/* Recent bookings */}

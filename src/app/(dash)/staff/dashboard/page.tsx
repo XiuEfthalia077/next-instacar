@@ -83,10 +83,9 @@ export default async function StaffDashboardPage({
       <NeedsAttentionPanel initialItems={attentionItems} />
 
       {/* Stat cards */}
-      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Today's Pickups" value={counters.pickupsToday} hint="Cars going out" icon={Truck} />
         <StatCard label="Today's Returns" value={counters.returnsToday} hint="Cars coming in" icon={CalendarDays} />
-        <ActionCheckCard items={actionItems} />
         <StatCard label="Pending" value={counters.pending} hint="Awaiting action" icon={TriangleAlert} />
         <StatCard label="Active Rentals" value={counters.activeRentals} hint="On the road" icon={KeyRound} />
       </div>
