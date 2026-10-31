@@ -245,7 +245,7 @@ export default async function SharedBookingDetailsPage({
               </div>
             </div>
 
-            <div className="grid gap-3 border-t border-border bg-muted/30 p-4 sm:grid-cols-2 md:grid-cols-4 md:p-5">
+            <div className="grid grid-cols-1 gap-3 border-t border-border bg-muted/30 p-4 sm:grid-cols-2 lg:grid-cols-4 md:p-5">
               <div>
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Pick-up</p>
                 <p className="font-bold">{formatDate(booking.start_date, "long")}</p>
@@ -457,7 +457,7 @@ export default async function SharedBookingDetailsPage({
               )}
 
               {!isUser ? (
-                <form action={addCustomerInfoAction} className="space-y-4" encType="multipart/form-data">
+                <form action={addCustomerInfoAction} className="space-y-4">
                   <input type="hidden" name="booking_id" value={booking.id} />
                   <div>
                     <Label className="mb-1.5 block text-xs font-bold text-foreground">

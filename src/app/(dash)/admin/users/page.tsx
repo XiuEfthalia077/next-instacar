@@ -186,7 +186,7 @@ export default async function AdminUsersPage({
           className="rounded-2xl border border-dashed border-border bg-card p-5"
         />
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
           {rows.map((user) => {
             const branchName = user.branches?.name ?? null;
             const phone = user.phone?.trim() ? user.phone : "No phone";

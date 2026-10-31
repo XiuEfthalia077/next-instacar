@@ -128,7 +128,7 @@ export default async function AdminDashboardPage({
       <NeedsAttentionPanel initialItems={attentionItems} />
 
       {/* KPI grid */}
-      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Total Fleet"
           value={stats.totalCars}
@@ -206,7 +206,7 @@ export default async function AdminDashboardPage({
                 No recent bookings found.
               </p>
             ) : (
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[580px] text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/60 text-[11px] uppercase tracking-wide text-muted-foreground">
                     <th className="px-3 py-3 text-left font-bold">Customer</th>
@@ -286,7 +286,7 @@ export default async function AdminDashboardPage({
             {recentCars.length === 0 ? (
               <p className="px-4 py-6 text-center text-sm text-muted-foreground">No vehicles found.</p>
             ) : (
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[580px] text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/60 text-[11px] uppercase tracking-wide text-muted-foreground">
                     <th className="px-3 py-3 text-left font-bold">Vehicle</th>

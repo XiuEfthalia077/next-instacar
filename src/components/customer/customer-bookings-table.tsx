@@ -61,7 +61,7 @@ export function CustomerBookingsTable({
   return (
     <>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[650px] text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/60 text-[11px] uppercase tracking-wide text-muted-foreground">
               <th className="px-3.5 py-3 text-left font-extrabold">Booking Info</th>

@@ -101,7 +101,7 @@ export default async function UserDashboardPage({
       </section>
 
       {/* KPI grid */}
-      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
         <StatCard
           label="Total Bookings"
           value={totalBookings}
@@ -154,7 +154,7 @@ export default async function UserDashboardPage({
                 </Link>
               </div>
             ) : (
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[580px] text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/60 text-[11px] uppercase tracking-wide text-muted-foreground">
                     <th className="px-3 py-3 text-left font-bold">Booking</th>

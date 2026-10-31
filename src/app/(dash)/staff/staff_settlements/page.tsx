@@ -55,7 +55,7 @@ export default async function StaffSettlementsPage({
       <Flash {...flash} />
 
       {/* KPI Cards */}
-      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
         <StatCard
           label="Pending Settlements"
           value={filtered.length}

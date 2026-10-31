@@ -48,7 +48,7 @@ export function DataTable<T>({
       )}
     >
       <div className="overflow-x-auto">
-        <Table>
+        <Table className="min-w-[640px] sm:min-w-[720px] md:min-w-full">
           <TableHeader>
             <TableRow className="bg-muted/60 hover:bg-muted/60">
               {columns.map((column) => (
@@ -140,13 +140,13 @@ export function TablePagination({
           scroll={false}
           data-no-loader="true"
           className={cn(
-            "rounded-lg border border-border bg-card px-3 py-1.5 font-semibold transition-colors hover:bg-muted",
+            "inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-border bg-card px-3.5 py-2 font-semibold transition-colors hover:bg-muted",
             page <= 1 && "pointer-events-none opacity-40",
           )}
         >
           Previous
         </Link>
-        <span className="rounded-lg border border-border bg-card px-3 py-1.5 font-semibold text-foreground">
+        <span className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-border bg-card px-3.5 py-2 font-semibold text-foreground">
           Page {page} of {pages}
         </span>
         <Link
@@ -155,7 +155,7 @@ export function TablePagination({
           scroll={false}
           data-no-loader="true"
           className={cn(
-            "rounded-lg border border-border bg-card px-3 py-1.5 font-semibold transition-colors hover:bg-muted",
+            "inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-border bg-card px-3.5 py-2 font-semibold transition-colors hover:bg-muted",
             page >= pages && "pointer-events-none opacity-40",
           )}
         >

@@ -97,7 +97,7 @@ export default async function OperatorRevenuePage({
       <Flash {...flash} />
 
       {/* Summary + totals */}
-      <div className="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-3">
+      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
         <div className="flex items-center justify-between gap-4 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-800 p-5 text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_0_15px_rgba(255,204,0,0.4)] lg:col-span-1">
           <div>
             <p className="text-[10px] font-extrabold uppercase tracking-[0.15em] text-white/90">

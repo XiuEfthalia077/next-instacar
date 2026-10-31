@@ -6,8 +6,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronRight, X } from "lucide-react";
 
 import { SIDEBAR_NAV, isNavParent } from "@/lib/constants";
+import { switchBranchAction } from "@/lib/actions/auth";
 import { cn } from "@/lib/utils";
-import type { UserRole } from "@/lib/types";
+import type { Branch, UserRole } from "@/lib/types";
 
 const STORAGE_KEY = "sidebar-open-groups";
 
@@ -45,11 +46,17 @@ function getActiveGroupLabels(
 
 export function Sidebar({
   role,
+  branches = [],
+  viewBranch,
   open: mobileOpen = false,
+  tabletCollapsed = false,
   onClose,
 }: {
   role: UserRole;
+  branches?: Branch[];
+  viewBranch?: string | number;
   open?: boolean;
+  tabletCollapsed?: boolean;
   onClose?: () => void;
 }) {
   const pathname = usePathname();
@@ -139,7 +146,7 @@ export function Sidebar({
           prefetch={true}
           onClick={(e) => handleLinkClick(e, child.href, active)}
           className={cn(
-            "flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] transition-colors",
+            "flex items-center gap-2 rounded-lg px-3 py-2.5 min-h-[44px] text-[13px] transition-colors",
             active
               ? "font-bold text-[#FFD700]"
               : "text-[#BBBBBB] hover:text-[#FFD700]",
@@ -159,7 +166,7 @@ export function Sidebar({
         id="sidebarOverlay"
         onClick={() => setMobileOpen(false)}
         className={cn(
-          "fixed inset-0 z-[1080] bg-black/60 backdrop-blur-[2px] transition-opacity duration-300 ease-in-out md:hidden",
+          "fixed inset-0 z-[1080] bg-black/70 backdrop-blur-[2px] transition-opacity duration-300 ease-in-out md:hidden",
           mobileOpen ? "opacity-100" : "pointer-events-none opacity-0",
         )}
       />
@@ -167,15 +174,21 @@ export function Sidebar({
       <aside
         id="sidebar"
         className={cn(
-          "fixed inset-y-0 left-0 z-[1090] flex w-[280px] -translate-x-full flex-col overflow-y-auto border-r border-[#333] bg-black p-[20px_14px] transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] md:w-[220px] md:translate-x-0 xl:w-[260px]",
+          "fixed inset-y-0 left-0 z-[1090] flex w-[280px] -translate-x-full flex-col overflow-y-auto border-r border-[#333] bg-black p-[20px_14px] transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
+          // Mobile open state
           mobileOpen && "translate-x-0",
+          // Tablet width & collapsible state
+          "md:w-[200px]",
+          tabletCollapsed ? "md:-translate-x-full" : "md:translate-x-0",
+          // Laptop/Desktop layout (always visible and wider)
+          "lg:translate-x-0 lg:w-[240px] xl:w-[260px]",
         )}
       >
         <button
           type="button"
           onClick={() => setMobileOpen(false)}
           aria-label="Close navigation"
-          className="absolute right-4 top-4 text-white md:hidden"
+          className="absolute right-3.5 top-3.5 size-11 flex items-center justify-center rounded-xl bg-white/10 text-white md:hidden hover:bg-white/20 active:scale-95 transition-all cursor-pointer"
         >
           <X className="size-6" />
         </button>
@@ -191,6 +204,28 @@ export function Sidebar({
             {role} Portal
           </small>
         </div>
+
+        {/* Admin Branch Switcher in Sidebar (Visible on mobile/tablet) */}
+        {role === "admin" && branches && branches.length > 0 ? (
+          <div className="mb-4 rounded-xl border border-[#333] bg-[#141414] p-2.5">
+            <label className="text-[10px] font-extrabold uppercase tracking-wider text-[#a1a1aa] block mb-1.5">
+              Active Branch
+            </label>
+            <form action={switchBranchAction}>
+              <select
+                name="branch"
+                defaultValue={viewBranch === "all" ? "all" : String(viewBranch)}
+                onChange={(e) => e.currentTarget.form?.requestSubmit()}
+                className="w-full h-10 rounded-lg border border-[#444] bg-black px-2.5 text-xs font-bold text-[#FFD700] outline-none cursor-pointer focus:border-[#FFD700]"
+              >
+                <option value="all">All Branches</option>
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            </form>
+          </div>
+        ) : null}
 
         <nav className="flex-1">
           {groups.map((group) => (
@@ -217,7 +252,7 @@ export function Sidebar({
                           prefetch={true}
                           onClick={(e) => handleLinkClick(e, entry.href, active)}
                           className={cn(
-                            "relative mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] transition-colors",
+                            "relative mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 min-h-[44px] text-[13px] transition-colors",
                             active
                               ? "bg-[#FFD700] font-bold text-black shadow-[0_4px_15px_rgba(255,215,0,0.3)] before:absolute before:-left-3.5 before:top-1/2 before:h-[70%] before:w-1 before:-translate-y-1/2 before:rounded-[10px] before:bg-[#FFD700]"
                               : "text-[#EEEEEE] hover:bg-[#1A1A1A] hover:text-[#FFD700]",
@@ -243,7 +278,7 @@ export function Sidebar({
                         onClick={() => toggle(entry.label)}
                         aria-expanded={isOpen}
                         className={cn(
-                          "relative mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[13px] transition-colors",
+                          "relative mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 min-h-[44px] text-left text-[13px] transition-colors cursor-pointer",
                           hasActiveChild
                             ? "bg-[#1A1A1A] font-bold text-[#FFD700] before:absolute before:-left-3.5 before:top-1/2 before:h-[70%] before:w-1 before:-translate-y-1/2 before:rounded-[10px] before:bg-[#FFD700]"
                             : "text-[#EEEEEE] hover:bg-[#1A1A1A] hover:text-[#FFD700]",

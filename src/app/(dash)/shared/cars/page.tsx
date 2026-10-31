@@ -116,7 +116,7 @@ export default async function SharedCarsPage({
       <Flash {...flash} />
 
       {/* KPI Stats */}
-      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Total Fleet"
           value={counters.total}
@@ -224,7 +224,7 @@ export default async function SharedCarsPage({
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-xs">
+            <table className="w-full min-w-[700px] text-xs">
               <thead>
                 <tr className="border-b border-border bg-muted/60 text-[10px] uppercase tracking-wider text-muted-foreground">
                   <th className="px-3.5 py-3 text-left font-extrabold">Vehicle</th>

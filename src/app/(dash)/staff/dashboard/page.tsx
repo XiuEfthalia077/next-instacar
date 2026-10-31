@@ -83,7 +83,7 @@ export default async function StaffDashboardPage({
       <NeedsAttentionPanel initialItems={attentionItems} />
 
       {/* Stat cards */}
-      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Today's Pickups" value={counters.pickupsToday} hint="Cars going out" icon={Truck} />
         <StatCard label="Today's Returns" value={counters.returnsToday} hint="Cars coming in" icon={CalendarDays} />
         <StatCard label="Pending" value={counters.pending} hint="Awaiting action" icon={TriangleAlert} />
@@ -108,7 +108,7 @@ export default async function StaffDashboardPage({
         {recent.length === 0 ? (
           <EmptyState icon={ClipboardList} title="No bookings yet." className="py-12" />
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[580px] text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/60 text-[11px] uppercase tracking-wide text-muted-foreground">
                 <th className="px-4 py-3 text-left font-bold">Vehicle</th>

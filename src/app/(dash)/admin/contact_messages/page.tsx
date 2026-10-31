@@ -145,7 +145,7 @@ export default async function AdminContactMessagesPage({
       {/* Marks every unread inquiry as read, exactly like the legacy page load. */}
       <MarkContactMessagesRead />
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
         <StatCard
           label="Total Inquiries"
           value={messages.length}

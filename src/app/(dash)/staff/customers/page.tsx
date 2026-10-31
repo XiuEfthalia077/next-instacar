@@ -64,7 +64,7 @@ export default async function StaffCustomersPage({
       <Flash {...flash} />
 
       {/* KPI Cards */}
-      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
         <StatCard
           label="Total Customers"
           value={totalCustomers}
@@ -121,7 +121,7 @@ export default async function StaffCustomersPage({
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[650px] text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/60 text-[11px] uppercase tracking-wide text-muted-foreground">
                   <th className="px-3 py-3 text-left font-bold">Customer</th>

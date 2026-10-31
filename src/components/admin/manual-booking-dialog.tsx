@@ -562,7 +562,6 @@ export function ManualBookingDialog({
             } catch {}
           }}
           className="space-y-4"
-          encType="multipart/form-data"
         >
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="sm:col-span-2">

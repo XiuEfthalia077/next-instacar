@@ -257,7 +257,6 @@ export function EditManualBookingDialog({
             }
           }}
           className="space-y-4"
-          encType="multipart/form-data"
         >
           <input type="hidden" name="booking_id" value={booking.id} />
           <input type="hidden" name="source" value="manual" />
