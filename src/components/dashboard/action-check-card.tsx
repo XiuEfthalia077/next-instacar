@@ -7,7 +7,6 @@ import {
   ChevronRight,
   ClipboardCheck,
   Clock,
-  ExternalLink,
   TriangleAlert,
 } from "lucide-react";
 import Link from "next/link";
@@ -66,79 +65,68 @@ export function ActionCheckCard({
           : "border-border bg-card/90 hover:border-[#ffcc00]/60",
       )}
     >
-      {/* Row 1: ID + Urgency Pill on Left, Status + Details Button on Right */}
+      {/* Row 1: ID & Status on Left, Details Button on Right */}
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-          <span className="font-mono text-xs font-black text-foreground whitespace-nowrap px-2 py-0.5 rounded-md bg-muted/80">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="font-mono text-xs font-black text-foreground whitespace-nowrap px-2 py-0.5 rounded-md bg-muted/80 shrink-0">
             #BK-{item.id}
           </span>
-          <span
-            className={cn(
-              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] sm:text-[11px] font-black uppercase tracking-wide whitespace-nowrap shadow-xs",
-              item.badgeTone === "danger"
-                ? "border border-rose-500/50 bg-rose-500/20 text-rose-300"
-                : item.badgeTone === "urgent"
-                  ? "border border-amber-500/50 bg-amber-500/20 text-amber-300"
-                  : "border border-sky-500/40 bg-sky-500/15 text-sky-300",
-            )}
-          >
-            {item.badgeTone === "danger" ? (
-              <TriangleAlert className="size-3 shrink-0 text-rose-400 animate-pulse" />
-            ) : item.badgeTone === "urgent" ? (
-              <AlertCircle className="size-3 shrink-0 text-amber-400" />
-            ) : (
-              <Clock className="size-3 shrink-0 text-sky-400" />
-            )}
-            <span>{item.badgeLabel}</span>
-          </span>
+          <StatusBadge status={item.status} />
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0">
-          <StatusBadge status={item.status} />
-          <Link
-            href={`/shared/booking_details?id=${item.id}`}
-            className="inline-flex items-center gap-1 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-bold text-foreground transition hover:border-[#ffcc00] hover:bg-[#ffcc00] hover:text-black min-h-[30px]"
-          >
-            Details &rarr;
-          </Link>
-        </div>
+        <Link
+          href={`/shared/booking_details?id=${item.id}`}
+          className="inline-flex items-center gap-1 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-bold text-foreground transition hover:border-[#ffcc00] hover:bg-[#ffcc00] hover:text-black min-h-[30px] shrink-0 whitespace-nowrap"
+        >
+          Details &rarr;
+        </Link>
       </div>
 
       {/* Row 2: Customer Name & Phone */}
       <div className="mt-2 pt-1.5 border-t border-border/40 flex items-center justify-between text-xs text-foreground">
         <span className="font-bold truncate">{item.customer_name}</span>
         {item.phone_number ? (
-          <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
+          <span className="shrink-0 font-mono text-[11px] text-muted-foreground ml-2">
             ☎ {item.phone_number}
           </span>
         ) : null}
       </div>
 
-      {/* Row 3: Vehicle & Notice message */}
-      <div className="mt-1 flex flex-col gap-0.5 text-xs">
+      {/* Row 3: Vehicle Info */}
+      <div className="mt-1 text-xs">
         <p className="text-muted-foreground font-medium truncate">
           🚗 {item.car_name} {item.plate_number ? `(${item.plate_number})` : ""}
         </p>
-        {item.message ? (
-          <p
-            className={cn(
-              "font-semibold text-[11px] truncate",
-              item.badgeTone === "danger"
-                ? "text-rose-400 dark:text-rose-300"
-                : item.badgeTone === "urgent"
-                  ? "text-amber-400 dark:text-amber-300"
-                  : "text-sky-400 dark:text-sky-300",
-            )}
-          >
-            ⚠ {item.message}
-          </p>
-        ) : (
-          <p className="text-muted-foreground text-[11px]">
-            {item.actionType === "release"
-              ? `Pickup: ${formatDate(item.start_date)}`
-              : `Return: ${formatDate(item.end_date)}`}
-          </p>
+      </div>
+
+      {/* Row 4: Dedicated Urgency Notice Strip */}
+      <div
+        className={cn(
+          "mt-2 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold",
+          item.badgeTone === "danger"
+            ? "border border-rose-500/30 bg-rose-500/10 text-rose-300"
+            : item.badgeTone === "urgent"
+              ? "border border-amber-500/30 bg-amber-500/10 text-amber-300"
+              : "border border-sky-500/30 bg-sky-500/10 text-sky-300",
         )}
+      >
+        {item.badgeTone === "danger" ? (
+          <TriangleAlert className="size-3.5 shrink-0 text-rose-400" />
+        ) : item.badgeTone === "urgent" ? (
+          <AlertCircle className="size-3.5 shrink-0 text-amber-400" />
+        ) : (
+          <Clock className="size-3.5 shrink-0 text-sky-400" />
+        )}
+        <span className="font-black uppercase tracking-wide text-[10px] sm:text-[11px] shrink-0">
+          {item.badgeLabel}
+        </span>
+        <span className="opacity-50 shrink-0">&bull;</span>
+        <span className="truncate text-[11px]">
+          {item.message ||
+            (item.actionType === "release"
+              ? `Pickup scheduled: ${formatDate(item.start_date)}`
+              : `Return scheduled: ${formatDate(item.end_date)}`)}
+        </span>
       </div>
     </div>
   );
@@ -169,7 +157,7 @@ export function ActionCheckCard({
             )}
           >
             {hasUrgent ? (
-              <TriangleAlert className="size-5 animate-pulse" />
+              <TriangleAlert className="size-5" />
             ) : hasTomorrow ? (
               <Clock className="size-5" />
             ) : (
@@ -186,7 +174,7 @@ export function ActionCheckCard({
           </div>
         </div>
 
-        {/* Clickable Header Badge */}
+        {/* Clickable Header Badge (without distracting blinking effect) */}
         <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
           {hasUrgent ? (
             <button
@@ -194,7 +182,6 @@ export function ActionCheckCard({
               onClick={() => setOpenAll(true)}
               className="inline-flex items-center gap-1.5 rounded-full border border-rose-500/50 bg-rose-500/20 px-3 py-1 text-xs font-black text-rose-400 hover:bg-rose-500/30 transition cursor-pointer shadow-xs active:scale-95"
             >
-              <span className="size-2 rounded-full bg-rose-500 animate-ping" />
               <span>{urgentItems.length} Urgent</span>
               <ChevronRight className="size-3.5 stroke-[3]" />
             </button>
@@ -234,20 +221,24 @@ export function ActionCheckCard({
             <button
               type="button"
               onClick={() => setOpenAll(true)}
-              className="w-full mt-2 inline-flex items-center justify-between rounded-xl border border-border/80 bg-muted/40 hover:bg-[#ffcc00]/15 hover:border-[#ffcc00] hover:text-[#b38a00] dark:hover:text-[#ffcc00] px-3.5 py-2.5 text-xs font-bold text-foreground transition-all cursor-pointer shadow-xs active:scale-[0.99] group"
+              className="w-full mt-2 flex items-center justify-between gap-3 rounded-xl border border-border/80 bg-muted/40 hover:bg-[#ffcc00]/15 hover:border-[#ffcc00] hover:text-[#b38a00] dark:hover:text-[#ffcc00] px-3.5 py-2.5 text-xs font-bold text-foreground transition-all cursor-pointer shadow-xs active:scale-[0.99] group"
             >
-              <span className="flex items-center gap-2">
-                <span className="flex size-5 items-center justify-center rounded-md bg-foreground/10 text-[11px] font-black group-hover:bg-[#ffcc00] group-hover:text-black transition-colors">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="flex size-5 shrink-0 items-center justify-center rounded-md bg-foreground/10 text-[11px] font-black group-hover:bg-[#ffcc00] group-hover:text-black transition-colors">
                   {items.length}
                 </span>
-                <span>
-                  {remainingCount > 0
-                    ? `View All ${items.length} Actions (+${remainingCount} more)`
-                    : `View Complete Action Checklist (${items.length})`}
+                <span className="truncate">
+                  View All {items.length} Actions
+                  {remainingCount > 0 && (
+                    <span className="text-muted-foreground font-normal ml-1">
+                      (+{remainingCount} more)
+                    </span>
+                  )}
                 </span>
-              </span>
-              <span className="flex items-center gap-1 text-[#b38a00] dark:text-[#ffcc00] font-black text-xs group-hover:translate-x-0.5 transition-transform">
-                Open Checklist &rarr;
+              </div>
+              <span className="shrink-0 whitespace-nowrap text-[#b38a00] dark:text-[#ffcc00] font-black text-xs flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                <span>Open Checklist</span>
+                <span>&rarr;</span>
               </span>
             </button>
           </>
