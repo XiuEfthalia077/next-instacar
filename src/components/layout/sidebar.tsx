@@ -102,32 +102,11 @@ export function Sidebar({
     }
   }, [groups, pathname, searchParams]);
 
-  const lastNavTimeRef = useRef<number>(0);
-  const navigatingHrefRef = useRef<string | null>(null);
-
   useEffect(() => {
-    navigatingHrefRef.current = null;
     setMobileOpen(false);
   }, [pathname, searchParams, setMobileOpen]);
 
-  const handleLinkClick = (e: React.MouseEvent, href: string, active: boolean) => {
-    const now = Date.now();
-
-    // 1. Guard against clicking the currently active page
-    if (active) {
-      e.preventDefault();
-      setMobileOpen(false);
-      return;
-    }
-
-    // 2. Debounce/throttle rapid spam clicks within 400ms or duplicate in-flight transition
-    if (navigatingHrefRef.current === href || now - lastNavTimeRef.current < 400) {
-      e.preventDefault();
-      return;
-    }
-
-    lastNavTimeRef.current = now;
-    navigatingHrefRef.current = href;
+  const handleLinkClick = () => {
     setMobileOpen(false);
   };
 
@@ -144,7 +123,7 @@ export function Sidebar({
         <Link
           href={child.href}
           prefetch={true}
-          onClick={(e) => handleLinkClick(e, child.href, active)}
+          onClick={handleLinkClick}
           className={cn(
             "flex items-center gap-2 rounded-lg px-3 py-2.5 min-h-[44px] text-[13px] transition-colors",
             active
@@ -207,7 +186,7 @@ export function Sidebar({
 
         {/* Admin Branch Switcher in Sidebar (Visible on mobile/tablet) */}
         {role === "admin" && branches && branches.length > 0 ? (
-          <div className="mb-4 rounded-xl border border-[#333] bg-[#141414] p-2.5">
+          <div className="mb-4 rounded-xl border border-[#333] bg-[#141414] p-2.5 w-full overflow-hidden">
             <label className="text-[10px] font-extrabold uppercase tracking-wider text-[#a1a1aa] block mb-1.5">
               Active Branch
             </label>
@@ -250,7 +229,7 @@ export function Sidebar({
                         <Link
                           href={entry.href}
                           prefetch={true}
-                          onClick={(e) => handleLinkClick(e, entry.href, active)}
+                          onClick={handleLinkClick}
                           className={cn(
                             "relative mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 min-h-[44px] text-[13px] transition-colors",
                             active

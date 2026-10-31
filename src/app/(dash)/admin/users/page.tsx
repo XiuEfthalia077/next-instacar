@@ -10,6 +10,7 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import {
   AddUserDialog,
@@ -94,6 +95,9 @@ export default async function AdminUsersPage({
   const flash = readFlash(params);
 
   const requestedRole = searchParam(params, "role");
+  if (requestedRole === "staff") {
+    redirect("/admin/staff_manager");
+  }
   const role: ManagedRole = ROLES.includes(requestedRole as ManagedRole)
     ? (requestedRole as ManagedRole)
     : "user";

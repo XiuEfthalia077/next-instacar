@@ -48,7 +48,7 @@ export default async function AdminBranchesPage({
 
       <Flash {...flash} />
 
-      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-4 sm:mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4 w-full">
         <StatCard label="Total Branches" value={totalBranches} icon={Store} />
         <StatCard label="Active" value={activeBranches} icon={CircleCheck} />
       </div>
@@ -61,7 +61,7 @@ export default async function AdminBranchesPage({
           className="rounded-2xl border border-border bg-card p-5 shadow-sm"
         />
       ) : (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {branches.map((branch) => (
             <div
               key={branch.id}
@@ -128,7 +128,7 @@ export default async function AdminBranchesPage({
                 </div>
               </div>
 
-              <div className="flex gap-2 border-t border-border pt-3">
+              <div className="flex flex-wrap sm:flex-nowrap gap-2 border-t border-border pt-3">
                 <EditBranchDialog
                   branch={{
                     id: branch.id,

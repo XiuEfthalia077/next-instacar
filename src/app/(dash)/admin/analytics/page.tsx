@@ -99,114 +99,56 @@ export default async function AdminAnalyticsDashboardPage({
       <Flash {...flash} />
 
       {/* ── 1. High-Level Summary Cards (Grand Totals) ── */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        {/* Total Gross Revenue */}
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:border-border/80">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
-              Total Gross Revenue
-            </span>
-            <div className="flex size-8 items-center justify-center rounded-xl bg-blue-500/15 text-blue-400">
-              <CircleDollarSign className="size-4" />
-            </div>
-          </div>
-          <p className="mt-2 text-xl font-black text-foreground">
-            <Money value={grandTotals.totalGrossRevenue} />
-          </p>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            Total paid across {grandTotals.totalTrips} completed booking{grandTotals.totalTrips === 1 ? "" : "s"}
-          </p>
-        </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 sm:gap-4 mb-4 sm:mb-6 w-full">
+        <StatCard
+          label="Total Gross Revenue"
+          value={<Money value={grandTotals.totalGrossRevenue} />}
+          hint={`Total paid across ${grandTotals.totalTrips} completed booking${grandTotals.totalTrips === 1 ? "" : "s"}`}
+          icon={CircleDollarSign}
+          tone="cyan"
+        />
 
-        {/* Total Company Net (Gross Profit) */}
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:border-border/80">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
-              Total Gross Profit
-            </span>
-            <div className="flex size-8 items-center justify-center rounded-xl bg-sky-500/15 text-sky-400">
-              <Building2 className="size-4" />
-            </div>
-          </div>
-          <p className="mt-2 text-xl font-black text-sky-400">
-            <Money value={grandTotals.totalCompanyNet} />
-          </p>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            Company profit before expenses
-          </p>
-        </div>
+        <StatCard
+          label="Total Gross Profit"
+          value={<Money value={grandTotals.totalCompanyNet} />}
+          hint="Company profit before expenses"
+          icon={Building2}
+          tone="info"
+        />
 
-        {/* Total Operator Payouts */}
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:border-border/80">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
-              Total Operator Payouts
-            </span>
-            <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400">
-              <UserCheck className="size-4" />
-            </div>
-          </div>
-          <p className="mt-2 text-xl font-black text-emerald-400">
-            <Money value={grandTotals.totalOperatorPayouts} />
-          </p>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            Remitted to {grandTotals.operatorCarsCount} operator car{grandTotals.operatorCarsCount === 1 ? "" : "s"}
-          </p>
-        </div>
+        <StatCard
+          label="Total Operator Payouts"
+          value={<Money value={grandTotals.totalOperatorPayouts} />}
+          hint={`Remitted to ${grandTotals.operatorCarsCount} operator car${grandTotals.operatorCarsCount === 1 ? "" : "s"}`}
+          icon={UserCheck}
+          tone="success"
+        />
 
-        {/* Total Operating Expenses */}
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:border-border/80">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
-              Total Expenses
-            </span>
-            <div className="flex size-8 items-center justify-center rounded-xl bg-rose-500/15 text-rose-400">
-              <Receipt className="size-4" />
-            </div>
-          </div>
-          <p className="mt-2 text-xl font-black text-rose-400">
-            -<Money value={grandTotals.totalExpenses} />
-          </p>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            Rent, utilities, loans &amp; ops
-          </p>
-        </div>
+        <StatCard
+          label="Total Expenses"
+          value={<>-<Money value={grandTotals.totalExpenses} /></>}
+          hint="Rent, utilities, loans & ops"
+          icon={Receipt}
+          tone="danger"
+        />
 
-        {/* True Net Profit (Company Net - Expenses) */}
-        <div className="rounded-2xl border-2 border-[#ffcc00]/60 bg-[#ffcc00]/10 p-5 shadow-sm transition hover:border-[#ffcc00]">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-wider text-[#ffcc00]">
-              True Net Profit
-            </span>
-            <div className="flex size-8 items-center justify-center rounded-xl bg-[#ffcc00] text-black shadow-xs">
-              <TrendingUp className="size-4" />
-            </div>
-          </div>
-          <p className={cn("mt-2 text-xl font-black", grandTotals.trueNetProfit >= 0 ? "text-[#ffcc00]" : "text-rose-400")}>
-            <Money value={grandTotals.trueNetProfit} />
-          </p>
-          <p className="mt-1 text-[11px] font-bold text-muted-foreground">
-            Total Gross Profit − Recorded Expenses
-          </p>
-        </div>
+        <StatCard
+          label="True Net Profit"
+          value={<Money value={grandTotals.trueNetProfit} />}
+          hint="Total Gross Profit − Recorded Expenses"
+          icon={TrendingUp}
+          tone={grandTotals.trueNetProfit >= 0 ? "primary" : "danger"}
+          valueClassName={grandTotals.trueNetProfit >= 0 ? "text-[#ffcc00]" : "text-rose-400"}
+          className="border-2 border-[#ffcc00]/60 bg-[#ffcc00]/10"
+        />
 
-        {/* Total Custodial Funds */}
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:border-border/80">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
-              Custodial Balance
-            </span>
-            <div className="flex size-8 items-center justify-center rounded-xl bg-purple-500/15 text-purple-400">
-              <ShieldCheck className="size-4" />
-            </div>
-          </div>
-          <p className="mt-2 text-xl font-black text-purple-400">
-            <Money value={grandTotals.totalCustodialFunds} />
-          </p>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            Fuel &amp; damage reserves for repairs
-          </p>
-        </div>
+        <StatCard
+          label="Custodial Balance"
+          value={<Money value={grandTotals.totalCustodialFunds} />}
+          hint="Fuel & damage reserves for repairs"
+          icon={ShieldCheck}
+          tone="purple"
+        />
       </div>
 
       {/* ── 2. Filter Bar (Date Range, Branch, Ownership, Search) ── */}

@@ -128,7 +128,7 @@ export default async function AdminDashboardPage({
       <NeedsAttentionPanel initialItems={attentionItems} />
 
       {/* KPI grid */}
-      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-4 sm:mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4 w-full">
         <StatCard
           label="Total Fleet"
           value={stats.totalCars}
@@ -190,168 +190,252 @@ export default async function AdminDashboardPage({
       {/* Action Check: Urgent actions today & warnings tomorrow */}
       <ActionCheckCard items={actionItems} />
 
-      <div className="grid gap-4 lg:grid-cols-12">
+      <div className="grid gap-4 lg:grid-cols-12 h-auto">
         {/* Recent bookings */}
-        <div className="lg:col-span-7">
+        <div className="lg:col-span-7 h-auto">
           <div className="mb-2 flex items-center justify-between px-1">
-            <h2 className="text-base font-bold text-foreground">Recent Bookings</h2>
+            <h2 className="text-sm sm:text-base font-bold text-foreground">Recent Bookings</h2>
             <Link href="/admin/bookings_online" className="text-xs font-semibold text-[#b38a00] hover:underline">
               View All →
             </Link>
           </div>
 
-          <SectionCard bodyClassName="overflow-x-auto">
+          <SectionCard bodyClassName="p-0">
             {recent.length === 0 ? (
               <p className="px-4 py-8 text-center text-sm text-muted-foreground">
                 No recent bookings found.
               </p>
             ) : (
-              <table className="w-full min-w-[580px] text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/60 text-[11px] uppercase tracking-wide text-muted-foreground">
-                    <th className="px-3 py-3 text-left font-bold">Customer</th>
-                    <th className="px-3 py-3 text-left font-bold">Vehicle</th>
-                    <th className="px-3 py-3 text-left font-bold">Dates</th>
-                    <th className="px-3 py-3 text-left font-bold">Total</th>
-                    <th className="px-3 py-3 text-center font-bold">Status</th>
-                    <th className="px-3 py-3 text-right font-bold">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <>
+                {/* Mobile Cards View (< md) */}
+                <div className="space-y-3 p-3 sm:p-4 md:hidden">
                   {recent.map((booking) => {
                     const customerName = booking.users?.name ?? booking.guest_name ?? "Guest";
                     const initial = customerName.charAt(0).toUpperCase();
                     const carTitle = [booking.cars?.brand, booking.cars?.model].filter(Boolean).join(" ") || "Vehicle";
 
                     return (
-                      <tr key={booking.id} className="border-b border-border last:border-0 hover:bg-muted/40 transition-colors">
-                        <td className="px-3 py-3">
-                          <div className="flex items-center gap-2.5">
-                            <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#ffcc00]/15 text-xs font-bold text-[#b38a00] dark:text-[#ffd700]">
-                              {initial}
+                      <div
+                        key={booking.id}
+                        className="rounded-2xl border border-border bg-card p-3.5 space-y-2.5 shadow-xs"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="font-mono text-xs font-black text-foreground bg-muted/80 px-2 py-0.5 rounded-md border border-border/40 shrink-0">
+                              #BK-{booking.id}
                             </span>
-                            <div>
-                              <p className="font-bold text-foreground text-xs sm:text-sm">
-                                {customerName}
-                              </p>
-                              <p className="text-[11px] text-muted-foreground">#BK-{booking.id}</p>
-                            </div>
+                            <StatusBadge status={booking.status} />
                           </div>
-                        </td>
-                        <td className="px-3 py-3">
-                          <p className="font-semibold text-xs sm:text-sm">
-                            {carTitle}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">{booking.cars?.plate_number ?? "—"}</p>
-                        </td>
-                        <td className="px-3 py-3">
-                          <p className="text-xs font-medium">
-                            {formatDate(booking.start_date)} - {formatDate(booking.end_date)}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">{formatTime(booking.pickup_time)}</p>
-                        </td>
-                        <td className="px-3 py-3 font-bold text-xs sm:text-sm">
-                          <Money value={booking.total_price} />
-                        </td>
-                        <td className="px-3 py-3 text-center">
-                          <StatusBadge status={booking.status} />
-                        </td>
-                        <td className="px-3 py-3 text-right">
                           <Link
                             href={`/shared/booking_details?id=${booking.id}`}
-                            className="inline-flex items-center rounded-lg border border-border px-2.5 py-1 text-xs font-semibold text-foreground transition hover:border-[#ffcc00] hover:text-[#b38a00]"
+                            className="text-xs font-bold text-[#ffcc00] hover:underline shrink-0"
                           >
-                            Details
+                            Details →
                           </Link>
-                        </td>
-                      </tr>
+                        </div>
+
+                        <div className="flex items-center gap-2.5 pt-0.5">
+                          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#ffcc00]/15 text-xs font-black text-[#ffcc00]">
+                            {initial}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-bold text-foreground text-sm truncate">{customerName}</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {carTitle} {booking.cars?.plate_number ? `(${booking.cars.plate_number})` : ""}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs pt-2 border-t border-border/40 text-muted-foreground">
+                          <span>{formatDate(booking.start_date)} - {formatDate(booking.end_date)}</span>
+                          <span className="font-black text-foreground text-sm">
+                            <Money value={booking.total_price} />
+                          </span>
+                        </div>
+                      </div>
                     );
                   })}
-                </tbody>
-              </table>
+                </div>
+
+                {/* Desktop Spreadsheet Table (>= md) */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/60 text-[11px] uppercase tracking-wide text-muted-foreground">
+                        <th className="px-3 py-3 text-left font-bold">Customer</th>
+                        <th className="px-3 py-3 text-left font-bold">Vehicle</th>
+                        <th className="px-3 py-3 text-left font-bold">Dates</th>
+                        <th className="px-3 py-3 text-left font-bold">Total</th>
+                        <th className="px-3 py-3 text-center font-bold">Status</th>
+                        <th className="px-3 py-3 text-right font-bold">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recent.map((booking) => {
+                        const customerName = booking.users?.name ?? booking.guest_name ?? "Guest";
+                        const initial = customerName.charAt(0).toUpperCase();
+                        const carTitle = [booking.cars?.brand, booking.cars?.model].filter(Boolean).join(" ") || "Vehicle";
+
+                        return (
+                          <tr key={booking.id} className="border-b border-border last:border-0 hover:bg-muted/40 transition-colors">
+                            <td className="px-3 py-3">
+                              <div className="flex items-center gap-2.5">
+                                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#ffcc00]/15 text-xs font-bold text-[#b38a00] dark:text-[#ffd700]">
+                                  {initial}
+                                </span>
+                                <div>
+                                  <p className="font-bold text-foreground text-xs sm:text-sm">
+                                    {customerName}
+                                  </p>
+                                  <p className="text-[11px] text-muted-foreground">#BK-{booking.id}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-3 py-3">
+                              <p className="font-semibold text-xs sm:text-sm">
+                                {carTitle}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground">{booking.cars?.plate_number ?? "—"}</p>
+                            </td>
+                            <td className="px-3 py-3">
+                              <p className="text-xs font-medium">
+                                {formatDate(booking.start_date)} - {formatDate(booking.end_date)}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground">{formatTime(booking.pickup_time)}</p>
+                            </td>
+                            <td className="px-3 py-3 font-bold text-xs sm:text-sm">
+                              <Money value={booking.total_price} />
+                            </td>
+                            <td className="px-3 py-3 text-center">
+                              <StatusBadge status={booking.status} />
+                            </td>
+                            <td className="px-3 py-3 text-right">
+                              <Link
+                                href={`/shared/booking_details?id=${booking.id}`}
+                                className="inline-flex items-center rounded-lg border border-border px-2.5 py-1 text-xs font-semibold text-foreground transition hover:border-[#ffcc00] hover:text-[#b38a00]"
+                              >
+                                Details
+                              </Link>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </SectionCard>
         </div>
 
         {/* Recent vehicles + priorities */}
-        <div className="lg:col-span-5">
-          <div className="mb-2 flex items-center justify-between px-1">
-            <h2 className="text-base font-bold text-foreground">Recent Vehicles</h2>
-            <Link href="/shared/cars" className="text-xs font-semibold text-[#b38a00] hover:underline">
-              View All →
-            </Link>
+        <div className="lg:col-span-5 h-auto space-y-4">
+          <div>
+            <div className="mb-2 flex items-center justify-between px-1">
+              <h2 className="text-sm sm:text-base font-bold text-foreground">Recent Vehicles</h2>
+              <Link href="/shared/cars" className="text-xs font-semibold text-[#b38a00] hover:underline">
+                View All →
+              </Link>
+            </div>
+
+            <SectionCard bodyClassName="p-0">
+              {recentCars.length === 0 ? (
+                <p className="px-4 py-6 text-center text-sm text-muted-foreground">No vehicles found.</p>
+              ) : (
+                <>
+                  {/* Mobile Cards View (< md) */}
+                  <div className="space-y-2.5 p-3 sm:p-4 md:hidden">
+                    {recentCars.map((car) => (
+                      <div
+                        key={car.id}
+                        className="rounded-xl border border-border bg-card p-3 flex items-center justify-between gap-2 shadow-xs"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-foreground text-xs sm:text-sm truncate">
+                            {[car.brand, car.model].filter(Boolean).join(" ") || "Vehicle"}
+                          </p>
+                          <code className="text-[11px] text-muted-foreground font-mono">
+                            {car.plate_number ?? "—"}
+                          </code>
+                        </div>
+                        <StatusBadge status={car.status} />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop Spreadsheet Table (>= md) */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border bg-muted/60 text-[11px] uppercase tracking-wide text-muted-foreground">
+                          <th className="px-3 py-3 text-left font-bold">Vehicle</th>
+                          <th className="px-3 py-3 text-left font-bold">Plate</th>
+                          <th className="px-3 py-3 text-center font-bold">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {recentCars.map((car) => (
+                          <tr key={car.id} className="border-b border-border last:border-0">
+                            <td className="px-3 py-3 font-semibold text-xs sm:text-sm">
+                              {[car.brand, car.model].filter(Boolean).join(" ") || "Vehicle"}
+                            </td>
+                            <td className="px-3 py-3">
+                              <code className="text-xs text-muted-foreground">{car.plate_number ?? "—"}</code>
+                            </td>
+                            <td className="px-3 py-3 text-center">
+                              <StatusBadge status={car.status} />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </SectionCard>
           </div>
 
-          <SectionCard className="mb-4" bodyClassName="overflow-x-auto">
-            {recentCars.length === 0 ? (
-              <p className="px-4 py-6 text-center text-sm text-muted-foreground">No vehicles found.</p>
-            ) : (
-              <table className="w-full min-w-[580px] text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/60 text-[11px] uppercase tracking-wide text-muted-foreground">
-                    <th className="px-3 py-3 text-left font-bold">Vehicle</th>
-                    <th className="px-3 py-3 text-left font-bold">Plate</th>
-                    <th className="px-3 py-3 text-center font-bold">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentCars.map((car) => (
-                    <tr key={car.id} className="border-b border-border last:border-0">
-                      <td className="px-3 py-3 font-semibold">
-                        {[car.brand, car.model].filter(Boolean).join(" ") || "Vehicle"}
-                      </td>
-                      <td className="px-3 py-3">
-                        <code className="text-xs text-muted-foreground">{car.plate_number ?? "—"}</code>
-                      </td>
-                      <td className="px-3 py-3 text-center">
-                        <StatusBadge status={car.status} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </SectionCard>
+          <div>
+            <h2 className="mb-2 px-1 text-sm sm:text-base font-bold text-foreground">System Priority</h2>
 
-          <h2 className="mb-2 px-1 text-base font-bold text-foreground">System Priority</h2>
-
-          <SectionCard bodyClassName="space-y-5 p-5">
-            <div className="flex gap-3">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300">
-                <Wrench className="size-4" />
-              </span>
-              <div>
-                <p className="text-sm font-bold text-foreground">Pending Bookings</p>
-                <p className="text-xs text-muted-foreground">
-                  {stats.pendingBookings} booking(s) awaiting confirmation.
-                </p>
+            <SectionCard bodyClassName="space-y-4 p-4 sm:p-5 h-auto">
+              <div className="flex gap-3 items-center">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-400">
+                  <Wrench className="size-4" />
+                </span>
+                <div>
+                  <p className="text-xs sm:text-sm font-bold text-foreground">Pending Bookings</p>
+                  <p className="text-xs text-muted-foreground">
+                    {stats.pendingBookings} booking(s) awaiting confirmation.
+                  </p>
+                </div>
               </div>
-            </div>
 
-            <div className="flex gap-3">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300">
-                <Wallet className="size-4" />
-              </span>
-              <div>
-                <p className="text-sm font-bold text-foreground">Revenue Overview</p>
-                <p className="text-xs text-muted-foreground">
-                  <Money value={stats.monthlyNet} /> earned this month.
-                </p>
+              <div className="flex gap-3 items-center border-t border-border/40 pt-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-sky-500/15 text-sky-400">
+                  <Wallet className="size-4" />
+                </span>
+                <div>
+                  <p className="text-xs sm:text-sm font-bold text-foreground">Revenue Overview</p>
+                  <p className="text-xs text-muted-foreground">
+                    <Money value={stats.monthlyNet} /> earned this month.
+                  </p>
+                </div>
               </div>
-            </div>
 
-            <div className="flex gap-3">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
-                <CarFront className="size-4" />
-              </span>
-              <div>
-                <p className="text-sm font-bold text-foreground">Fleet Status</p>
-                <p className="text-xs text-muted-foreground">
-                  {stats.availableCars} cars available for rent.
-                </p>
+              <div className="flex gap-3 items-center border-t border-border/40 pt-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400">
+                  <CarFront className="size-4" />
+                </span>
+                <div>
+                  <p className="text-xs sm:text-sm font-bold text-foreground">Fleet Status</p>
+                  <p className="text-xs text-muted-foreground">
+                    {stats.availableCars} cars available for rent.
+                  </p>
+                </div>
               </div>
-            </div>
-          </SectionCard>
+            </SectionCard>
+          </div>
         </div>
       </div>
     </>

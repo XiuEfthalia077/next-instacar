@@ -145,20 +145,13 @@ export const SIDEBAR_NAV: Record<UserRole, NavGroup[]> = {
       section: "Users",
       items: [
         {
-          label: "Users",
+          label: "Users Management",
           icon: Users,
           children: [
-            { label: "Staff", href: "/admin/users?role=staff", icon: BadgeCheck },
+            { label: "Staff", href: "/admin/staff_manager", icon: BadgeCheck },
             { label: "Admins", href: "/admin/users?role=admin", icon: Shield },
             { label: "Operators", href: "/admin/users?role=operator", icon: Wrench },
             { label: "Customers", href: "/admin/users?role=user", icon: Users },
-          ],
-        },
-        {
-          label: "Staff Management",
-          icon: BadgeCheck,
-          children: [
-            { label: "Staff", href: "/admin/staff_manager", icon: Grid3x2 },
           ],
         },
         {

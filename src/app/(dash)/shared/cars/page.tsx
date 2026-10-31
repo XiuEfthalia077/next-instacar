@@ -116,7 +116,7 @@ export default async function SharedCarsPage({
       <Flash {...flash} />
 
       {/* KPI Stats */}
-      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-4 sm:mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4 w-full">
         <StatCard
           label="Total Fleet"
           value={counters.total}
@@ -215,7 +215,7 @@ export default async function SharedCarsPage({
       </FilterBar>
 
       {/* Fleet Table (Matching Image 4 Layout) */}
-      <SectionCard title={`Fleet Inventory (${fleet.count} Vehicles)`} icon={CarFront}>
+      <SectionCard title={`Fleet Inventory (${fleet.count} Vehicles)`} icon={CarFront} bodyClassName="p-0">
         {fleet.rows.length === 0 ? (
           <EmptyState
             icon={CarFront}
@@ -223,8 +223,97 @@ export default async function SharedCarsPage({
             description="No vehicles matched your filter parameters."
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px] text-xs">
+          <>
+            {/* Mobile View: Stackable Vehicle Cards (< md) */}
+            <div className="space-y-3.5 p-3 sm:p-4 md:hidden">
+              {fleet.rows.map((car) => {
+                const carName = [car.brand, car.model].filter(Boolean).join(" ") || "Vehicle";
+                const imageList = car.image_path ? car.image_path.split(",").map((s) => s.trim()).filter(Boolean) : [];
+                const firstImg = imageList[0] || "default.png";
+                const imgUrl = carImageUrl(firstImg);
+                const isOwnerOrAdmin = canManage && (session.role === "admin" || car.user_id === session.userId);
+                const isAssignedToOperator = Boolean(car.user_id && car.users?.role === "operator");
+                const ownerName = isAssignedToOperator ? (car.users?.name || "Operator") : "Company";
+
+                return (
+                  <div
+                    key={car.id}
+                    className="rounded-2xl border border-border bg-card p-4 space-y-3 shadow-xs"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="relative size-16 shrink-0 overflow-hidden rounded-xl border border-border bg-muted/40">
+                        <img
+                          src={imgUrl}
+                          alt={carName}
+                          className="size-full object-cover"
+                          loading="lazy"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                          <p className="font-extrabold text-sm text-foreground truncate">{carName}</p>
+                          <StatusBadge status={car.status || "Available"} className="text-[10px] px-2 py-0.5" />
+                        </div>
+                        <p className="font-mono text-xs font-bold text-muted-foreground mt-0.5">
+                          {car.plate_number ?? "No Plate"}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Owner: <span className="font-semibold text-foreground">{ownerName}</span> &bull; {car.branches?.name || "All Branches"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 rounded-xl bg-muted/30 p-2.5 text-xs border border-border/40">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground block">Rates</span>
+                        <span className="font-bold text-foreground">
+                          <Money value={car.price_24_hours ?? 0} /> <span className="text-[10px] text-muted-foreground font-normal">/ 24h</span>
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground block">Specs</span>
+                        <span className="text-foreground">
+                          {car.type || "Sedan"} &bull; {car.transmission || "Auto"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/40">
+                      <Link
+                        href={`/shared/my_car_schedules?car_id=${car.id}`}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-[#ffcc00] hover:underline min-h-[36px]"
+                      >
+                        <CalendarClock className="size-3.5" />
+                        <span>Schedules</span>
+                      </Link>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <CarGalleryDialog
+                          carId={car.id}
+                          carName={carName}
+                          plateNumber={car.plate_number}
+                          type={car.type}
+                          imagePaths={imageList}
+                          canManage={isOwnerOrAdmin}
+                        />
+                        {isOwnerOrAdmin ? (
+                          <EditCarDialog
+                            car={car}
+                            branches={branches}
+                            operators={operators}
+                            isAdmin={session.role === "admin"}
+                          />
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop View: Full Spreadsheet Table (>= md) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full min-w-[700px] text-xs">
               <thead>
                 <tr className="border-b border-border bg-muted/60 text-[10px] uppercase tracking-wider text-muted-foreground">
                   <th className="px-3.5 py-3 text-left font-extrabold">Vehicle</th>
@@ -439,8 +528,9 @@ export default async function SharedCarsPage({
               </tbody>
             </table>
           </div>
-        )}
-      </SectionCard>
+        </>
+      )}
+    </SectionCard>
     </>
   );
 }

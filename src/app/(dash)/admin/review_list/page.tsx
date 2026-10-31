@@ -17,6 +17,7 @@ import { SectionCard } from "@/components/common/section-card";
 import { StatCard } from "@/components/common/stat-card";
 import { StatusBadge } from "@/components/common/status-badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { getSupabase, requireRole } from "@/lib/auth";
 import {
@@ -196,7 +197,7 @@ export default async function AdminReviewListPage({
 
       <Flash {...flash} />
 
-      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+      <div className="mb-4 sm:mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 sm:gap-4 w-full">
         <StatCard
           label="Total Reviews"
           value={totalReviews}
@@ -292,6 +293,67 @@ export default async function AdminReviewListPage({
           rows={rows}
           keyExtractor={(review) => String(review.id)}
           emptyMessage="No system records matches found."
+          renderMobileCard={(review) => {
+            const replied = Boolean(review.admin_reply);
+            return (
+              <Card className="rounded-2xl border border-border bg-card p-4 space-y-3 shadow-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="font-extrabold text-sm text-foreground">{review.customer_name ?? "Customer"}</p>
+                    <p className="text-[11px] text-muted-foreground font-mono">#BK-{review.booking_id ?? "—"}</p>
+                  </div>
+                  <StatusBadge
+                    status={replied ? "Replied" : "Pending"}
+                    className={
+                      replied
+                        ? "border-emerald-200 bg-emerald-100 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200"
+                        : "border-amber-200 bg-amber-100 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between gap-2 text-xs border-t border-border/40 pt-2">
+                  <span className="font-medium text-foreground truncate">
+                    {[review.brand, review.model].filter(Boolean).join(" ") || "Vehicle"}
+                    {review.plate_number ? ` (${review.plate_number})` : ""}
+                  </span>
+                  <span className="shrink-0 font-black text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md">
+                    {Number(review.rating ?? 0).toFixed(1)} ★
+                  </span>
+                </div>
+
+                <div className="text-xs space-y-1.5 bg-muted/30 p-2.5 rounded-xl border border-border/40">
+                  {review.review_title && (
+                    <p className="font-bold text-foreground text-xs">{review.review_title}</p>
+                  )}
+                  {review.review_text && (
+                    <p className="text-muted-foreground text-xs leading-relaxed">{review.review_text}</p>
+                  )}
+                  {review.admin_reply && (
+                    <div className="mt-2 rounded-lg border-l-2 border-[#ffcc00] bg-muted/60 p-2 text-[11px] text-muted-foreground">
+                      <span className="font-bold text-foreground">Admin: </span>
+                      {review.admin_reply}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between pt-1 border-t border-border/40">
+                  <span className="text-[11px] text-muted-foreground">
+                    {review.created_at ? new Date(review.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
+                  </span>
+                  <ReviewReplyDialog
+                    review={{
+                      id: review.id,
+                      rating: review.rating,
+                      review_title: review.review_title,
+                      review_text: review.review_text,
+                      admin_reply: review.admin_reply,
+                    }}
+                  />
+                </div>
+              </Card>
+            );
+          }}
         />
       </SectionCard>
     </>

@@ -53,31 +53,45 @@ export function DataTable<T>({
         className,
       )}
     >
-      {/* Mobile Card List: Rendered on mobile viewports (< md) when provided */}
-      {renderMobileCard ? (
-        <div className="space-y-4 p-3 sm:p-4 md:hidden">
-          {rows.length === 0 ? (
-            <div className="py-10 text-center text-sm text-muted-foreground">
-              {emptyMessage}
-            </div>
-          ) : (
-            rows.map((row, index) => (
-              <React.Fragment key={keyExtractor ? keyExtractor(row, index) : index}>
-                {renderMobileCard(row, index)}
-              </React.Fragment>
-            ))
-          )}
-        </div>
-      ) : null}
-
-      {/* Desktop / Large Screen Table (hidden on mobile if mobile cards are available) */}
-      <div
-        className={cn(
-          "overflow-x-auto",
-          renderMobileCard ? "hidden md:block" : "block",
+      {/* Mobile Card List: Rendered on mobile viewports (< md) for all tables */}
+      <div className="space-y-3 p-3 sm:p-4 md:hidden">
+        {rows.length === 0 ? (
+          <div className="py-10 text-center text-sm text-muted-foreground">
+            {emptyMessage}
+          </div>
+        ) : (
+          rows.map((row, index) => (
+            <React.Fragment key={keyExtractor ? keyExtractor(row, index) : index}>
+              {renderMobileCard ? (
+                renderMobileCard(row, index)
+              ) : (
+                <div className="rounded-2xl border border-border bg-card p-3.5 space-y-2 shadow-xs">
+                  {columns.map((col) => (
+                    <div
+                      key={col.key}
+                      className={cn(
+                        "flex items-center justify-between gap-2 text-xs",
+                        col.className,
+                      )}
+                    >
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground shrink-0">
+                        {col.header}:
+                      </span>
+                      <div className="text-right text-foreground font-medium min-w-0">
+                        {col.cell(row, index)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </React.Fragment>
+          ))
         )}
-      >
-        <Table className="min-w-[640px] sm:min-w-[720px] md:min-w-full">
+      </div>
+
+      {/* Desktop / Large Screen Table (hidden on mobile, visible on desktop/tablet) */}
+      <div className="hidden md:block overflow-x-auto">
+        <Table className="min-w-full">
           <TableHeader>
             <TableRow className="bg-muted/60 hover:bg-muted/60">
               {columns.map((column) => (
