@@ -6,7 +6,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronRight, X } from "lucide-react";
 
 import { SIDEBAR_NAV, isNavParent } from "@/lib/constants";
-import { switchBranchAction } from "@/lib/actions/auth";
 import { cn } from "@/lib/utils";
 import type { Branch, UserRole } from "@/lib/types";
 
@@ -46,8 +45,6 @@ function getActiveGroupLabels(
 
 export function Sidebar({
   role,
-  branches = [],
-  viewBranch,
   open: mobileOpen = false,
   tabletCollapsed = false,
   onClose,
@@ -67,7 +64,7 @@ export function Sidebar({
   // Because pathname and searchParams are identical on server and client,
   // this matches SSR without causing hydration mismatches.
   const [open, setOpen] = useState<string[]>(() =>
-    getActiveGroupLabels(groups, pathname, searchParams),
+    getActiveGroupLabels(groups, pathname, searchParams).slice(0, 1),
   );
 
   const setMobileOpen = useCallback((value: boolean) => {
@@ -79,7 +76,7 @@ export function Sidebar({
     try {
       const stored = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || "[]");
       if (Array.isArray(stored) && stored.length > 0) {
-        setOpen((prev) => Array.from(new Set([...prev, ...stored])));
+        setOpen((prev) => (prev.length > 0 ? prev : [stored[0]]));
       }
     } catch {
       /* ignore */
@@ -98,7 +95,7 @@ export function Sidebar({
   useEffect(() => {
     const active = getActiveGroupLabels(groups, pathname, searchParams);
     if (active.length > 0) {
-      setOpen((prev) => Array.from(new Set([...prev, ...active])));
+      setOpen([active[0]]);
     }
   }, [groups, pathname, searchParams]);
 
@@ -111,9 +108,7 @@ export function Sidebar({
   };
 
   const toggle = (label: string) =>
-    setOpen((prev) =>
-      prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label],
-    );
+    setOpen((prev) => (prev.includes(label) ? [] : [label]));
 
   const renderChild = (child: { label: string; href: string; icon: typeof ChevronRight }) => {
     const active = isHrefActive(pathname, searchParams, child.href);
@@ -183,28 +178,6 @@ export function Sidebar({
             {role} Portal
           </small>
         </div>
-
-        {/* Admin Branch Switcher in Sidebar (Visible on mobile/tablet) */}
-        {role === "admin" && branches && branches.length > 0 ? (
-          <div className="mb-4 rounded-xl border border-[#333] bg-[#141414] p-2.5 w-full overflow-hidden">
-            <label className="text-[10px] font-extrabold uppercase tracking-wider text-[#a1a1aa] block mb-1.5">
-              Active Branch
-            </label>
-            <form action={switchBranchAction}>
-              <select
-                name="branch"
-                defaultValue={viewBranch === "all" ? "all" : String(viewBranch)}
-                onChange={(e) => e.currentTarget.form?.requestSubmit()}
-                className="w-full h-10 rounded-lg border border-[#444] bg-black px-2.5 text-xs font-bold text-[#FFD700] outline-none cursor-pointer focus:border-[#FFD700]"
-              >
-                <option value="all">All Branches</option>
-                {branches.map((b) => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
-                ))}
-              </select>
-            </form>
-          </div>
-        ) : null}
 
         <nav className="flex-1">
           {groups.map((group) => (
