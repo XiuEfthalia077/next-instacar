@@ -42,6 +42,7 @@ import { StatCard } from "@/components/common/stat-card";
 import { StatusBadge } from "@/components/common/status-badge";
 import { BookingAttentionBadge } from "@/components/common/booking-attention-badge";
 import { ActionCheckCard } from "@/components/dashboard/action-check-card";
+import { BookingMobileCard } from "@/components/dashboard/booking-mobile-card";
 import { requireRole, getSupabase } from "@/lib/auth";
 import { autoCancelStaleBookings, listBookings, actionCheckOnlineList, type BookingRow } from "@/lib/data/bookings";
 import { branchFilter, fetchRows, readPage, readPerPage } from "@/lib/data/scope";
@@ -543,6 +544,22 @@ export default async function StaffBookingsPage({
               rows={rows}
               keyExtractor={(booking) => String(booking.id)}
               emptyMessage="No online bookings found."
+              renderMobileCard={(booking, index) => {
+                return (
+                  <BookingMobileCard
+                    booking={booking}
+                    documents={documents[index]}
+                    branchName={booking.branches?.name ?? "InstaCar Branch"}
+                    actions={
+                      <OnlineBookingActions
+                        booking={booking}
+                        filter={filter}
+                        documents={documents[index]}
+                      />
+                    }
+                  />
+                );
+              }}
             />
           </SectionCard>
 

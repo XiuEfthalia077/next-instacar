@@ -41,6 +41,7 @@ import { StatCard } from "@/components/common/stat-card";
 import { StatusBadge } from "@/components/common/status-badge";
 import { BookingAttentionBadge } from "@/components/common/booking-attention-badge";
 import { ActionCheckCard } from "@/components/dashboard/action-check-card";
+import { BookingMobileCard } from "@/components/dashboard/booking-mobile-card";
 import { requireRole, getSupabase } from "@/lib/auth";
 import { autoCancelStaleBookings, listBookings, actionCheckOnlineList, type BookingRow } from "@/lib/data/bookings";
 import { listBranches } from "@/lib/data/cars";
@@ -479,6 +480,26 @@ export default async function AdminBookingsOnlinePage({
               rows={rows}
               keyExtractor={(booking) => String(booking.id)}
               emptyMessage="No online bookings found."
+              renderMobileCard={(booking, index) => {
+                const branch =
+                  branchMap.get(booking.branch_id ?? 0) ??
+                  branchMap.get(booking.cars?.branch_id ?? 0);
+
+                return (
+                  <BookingMobileCard
+                    booking={booking}
+                    documents={documents[index]}
+                    branchName={branch?.name}
+                    actions={
+                      <OnlineBookingActions
+                        booking={booking}
+                        filter={filter}
+                        documents={documents[index]}
+                      />
+                    }
+                  />
+                );
+              }}
             />
           </SectionCard>
 

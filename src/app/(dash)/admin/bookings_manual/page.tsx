@@ -42,6 +42,7 @@ import { StatCard } from "@/components/common/stat-card";
 import { StatusBadge } from "@/components/common/status-badge";
 import { BookingAttentionBadge } from "@/components/common/booking-attention-badge";
 import { ActionCheckCard } from "@/components/dashboard/action-check-card";
+import { BookingMobileCard } from "@/components/dashboard/booking-mobile-card";
 import { getSupabase, requireRole } from "@/lib/auth";
 import { listBookings, actionCheckManualList, type BookingRow } from "@/lib/data/bookings";
 import { listBranches } from "@/lib/data/cars";
@@ -680,6 +681,38 @@ export default async function AdminBookingsManualPage({
               rows={rows}
               keyExtractor={(booking) => String(booking.id)}
               emptyMessage="No manual bookings found."
+              renderMobileCard={(booking, index) => {
+                const creator = booking.created_by
+                  ? auditUsers.get(booking.created_by)
+                  : undefined;
+                const actor = booking.last_action_by
+                  ? auditUsers.get(booking.last_action_by)
+                  : undefined;
+                const branch =
+                  branchMap.get(booking.branch_id ?? 0) ??
+                  branchMap.get(booking.cars?.branch_id ?? 0);
+
+                return (
+                  <BookingMobileCard
+                    booking={booking}
+                    documents={documents[index]}
+                    creatorName={creator?.name}
+                    actorName={actor?.name}
+                    actionType={booking.last_action_type ?? undefined}
+                    actionAt={booking.last_action_at}
+                    branchName={branch?.name}
+                    actions={
+                      <ManualBookingActions
+                        booking={booking}
+                        filter={filter}
+                        documents={documents[index]}
+                        customers={customersForDialog}
+                        cars={cars}
+                      />
+                    }
+                  />
+                );
+              }}
             />
           </SectionCard>
 

@@ -1,3 +1,4 @@
+import * as React from "react";
 import Link from "next/link";
 import {
   Table,
@@ -24,6 +25,9 @@ export type DataTableColumn<T> = {
  * The legacy app used DataTables with server side rendering; the new app
  * keeps the same look but relies on normal pagination links so the pages
  * stay fully server rendered.
+ *
+ * When `renderMobileCard` is provided, a touch-friendly card list is shown on
+ * mobile screens (< md), while the full table spreadsheet is kept on desktop (>= md).
  */
 export function DataTable<T>({
   columns,
@@ -32,6 +36,7 @@ export function DataTable<T>({
   emptyMessage = "No records found.",
   className,
   footer,
+  renderMobileCard,
 }: {
   columns: DataTableColumn<T>[];
   rows: T[];
@@ -39,6 +44,7 @@ export function DataTable<T>({
   emptyMessage?: string;
   className?: string;
   footer?: React.ReactNode;
+  renderMobileCard?: (row: T, index: number) => React.ReactNode;
 }) {
   return (
     <div
@@ -47,7 +53,30 @@ export function DataTable<T>({
         className,
       )}
     >
-      <div className="overflow-x-auto">
+      {/* Mobile Card List: Rendered on mobile viewports (< md) when provided */}
+      {renderMobileCard ? (
+        <div className="space-y-3 p-3 sm:p-4 md:hidden">
+          {rows.length === 0 ? (
+            <div className="py-10 text-center text-sm text-muted-foreground">
+              {emptyMessage}
+            </div>
+          ) : (
+            rows.map((row, index) => (
+              <React.Fragment key={keyExtractor ? keyExtractor(row, index) : index}>
+                {renderMobileCard(row, index)}
+              </React.Fragment>
+            ))
+          )}
+        </div>
+      ) : null}
+
+      {/* Desktop / Large Screen Table (hidden on mobile if mobile cards are available) */}
+      <div
+        className={cn(
+          "overflow-x-auto",
+          renderMobileCard ? "hidden md:block" : "block",
+        )}
+      >
         <Table className="min-w-[640px] sm:min-w-[720px] md:min-w-full">
           <TableHeader>
             <TableRow className="bg-muted/60 hover:bg-muted/60">
