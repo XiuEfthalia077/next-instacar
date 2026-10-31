@@ -55,7 +55,7 @@ export function DataTable<T>({
     >
       {/* Mobile Card List: Rendered on mobile viewports (< md) when provided */}
       {renderMobileCard ? (
-        <div className="space-y-3 p-3 sm:p-4 md:hidden">
+        <div className="space-y-4 p-3 sm:p-4 md:hidden">
           {rows.length === 0 ? (
             <div className="py-10 text-center text-sm text-muted-foreground">
               {emptyMessage}

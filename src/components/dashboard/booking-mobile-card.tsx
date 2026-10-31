@@ -79,115 +79,120 @@ export function BookingMobileCard({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-border/70 bg-card p-3.5 sm:p-4 shadow-xs transition-all hover:border-[#ffcc00]/50",
+        "rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-xs transition-all hover:border-[#ffcc00]/60 space-y-3.5",
         className,
       )}
     >
-      {/* Top Row: Customer Avatar, Name, Badges & Status */}
-      <div className="flex items-start justify-between gap-2.5 pb-2.5 border-b border-border/50">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted font-black text-xs text-muted-foreground ring-1 ring-border">
-            {initials(name)}
+      {/* Top Header Row: Booking ID & Badges on dedicated row to prevent customer name truncation */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="font-mono text-xs font-black text-foreground bg-muted/80 px-2.5 py-1 rounded-md border border-border/40 shrink-0">
+            #BK-{booking.id}
           </span>
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="font-bold text-sm text-foreground truncate">
-                {name}
-              </span>
-              {isGuest && (
-                <Badge
-                  variant="outline"
-                  className="border-border bg-secondary px-1.5 py-0 text-[9px] font-bold text-secondary-foreground shrink-0"
-                >
-                  WALK-IN
-                </Badge>
-              )}
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-              <span className="font-mono text-[11px] font-black text-foreground bg-muted/80 px-1.5 py-0.5 rounded shrink-0">
-                #BK-{booking.id}
-              </span>
-              <span className="truncate text-[11px]">
-                {email || phone || "No Email"}
-              </span>
-            </div>
-          </div>
+          {isGuest && (
+            <Badge
+              variant="outline"
+              className="border-border bg-secondary px-2 py-0.5 text-[10px] font-bold text-secondary-foreground shrink-0"
+            >
+              WALK-IN
+            </Badge>
+          )}
         </div>
 
-        <div className="flex flex-col items-end gap-1 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
           <StatusBadge status={booking.status} />
           <BookingAttentionBadge booking={booking} />
         </div>
       </div>
 
-      {/* Middle Grid: Vehicle, Schedule, Fulfillment, Pricing */}
-      <div className="mt-2.5 space-y-2 rounded-xl bg-muted/20 p-2.5 text-xs border border-border/40">
+      {/* Customer Info Row: Unconstrained full-width with generous avatar and typography */}
+      <div className="flex items-center gap-3 pt-0.5">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-muted font-black text-sm text-muted-foreground ring-1 ring-border shadow-xs">
+          {initials(name)}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="font-extrabold text-base text-foreground leading-snug break-words">
+            {name}
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5 truncate">
+            {email || phone || "No Email / Contact"}
+          </p>
+        </div>
+      </div>
+
+      {/* Details Box: Generous padding, crisp typography, and clear section dividers */}
+      <div className="space-y-2.5 rounded-xl bg-muted/25 p-3.5 sm:p-4 text-xs border border-border/50">
         {/* Vehicle */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 min-w-0 font-bold text-foreground">
-            <Car className="size-3.5 text-[#ffcc00] shrink-0" />
+        <div className="flex items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2 min-w-0 font-bold text-sm text-foreground">
+            <Car className="size-4 text-[#ffcc00] shrink-0" />
             <span className="truncate">
               {[booking.cars?.brand, booking.cars?.model].filter(Boolean).join(" ") || "Vehicle"}
             </span>
           </div>
-          <span className="font-mono text-[11px] font-semibold text-muted-foreground bg-card px-2 py-0.5 rounded border border-border shrink-0">
+          <span className="font-mono text-xs font-bold text-foreground bg-card px-2.5 py-1 rounded-md border border-border shrink-0 shadow-2xs">
             {booking.cars?.plate_number ?? "No plate"}
           </span>
         </div>
 
         {/* Schedule */}
-        <div className="flex items-center justify-between gap-2 text-muted-foreground text-[11px] border-t border-border/30 pt-1.5">
-          <div className="flex items-center gap-1.5 min-w-0">
+        <div className="flex items-center justify-between gap-2 text-xs border-t border-border/40 pt-2.5 text-muted-foreground">
+          <div className="flex items-center gap-2 min-w-0">
             <CalendarDays className="size-3.5 shrink-0 text-sky-400" />
-            <span className="text-foreground font-medium truncate">
+            <span className="text-foreground font-semibold truncate">
               {formatDate(booking.start_date)} &ndash; {formatDate(booking.end_date)}
             </span>
           </div>
-          <span className="shrink-0 font-mono text-[10px]">
+          <span className="shrink-0 font-mono text-[11px] font-medium text-foreground/85">
             {formatClock(booking.pickup_time)} &ndash; {formatClock(booking.return_time)}
           </span>
         </div>
 
         {/* Fulfillment */}
-        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground border-t border-border/30 pt-1.5">
+        <div className="flex items-start gap-2 text-xs border-t border-border/40 pt-2.5 text-muted-foreground">
           {isDelivery ? (
-            <Truck className="size-3.5 shrink-0 text-sky-400" />
+            <Truck className="size-3.5 shrink-0 text-sky-400 mt-0.5" />
           ) : (
-            <Store className="size-3.5 shrink-0 text-[#ffcc00]" />
+            <Store className="size-3.5 shrink-0 text-[#ffcc00] mt-0.5" />
           )}
-          <span className="font-bold text-foreground shrink-0">
-            {isDelivery ? "Delivery:" : "Pickup:"}
-          </span>
-          <span className="truncate text-muted-foreground">{address}</span>
+          <div className="min-w-0 flex-1">
+            <span className="font-bold text-foreground mr-1.5">
+              {isDelivery ? "Delivery:" : "Pickup:"}
+            </span>
+            <span className="text-muted-foreground break-words">{address}</span>
+          </div>
         </div>
 
         {/* Pricing */}
-        <div className="flex items-center justify-between gap-2 border-t border-border/30 pt-1.5">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-muted-foreground font-semibold">Total:</span>
-            <Money value={total} className="font-black text-sm text-foreground tabular-nums" />
-            {downPayment > 0 && (
-              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
-                (Paid: <Money value={downPayment} />)
-              </span>
-            )}
+        <div className="flex items-center justify-between gap-2 border-t border-border/40 pt-2.5">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground font-bold">Total:</span>
+            <Money value={total} className="font-black text-base text-foreground tabular-nums" />
           </div>
-          {balance > 0 && downPayment > 0 ? (
-            <span className="text-[10px] font-bold text-rose-500">
-              Bal: <Money value={balance} />
-            </span>
+
+          {downPayment > 0 ? (
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-emerald-500 font-bold">
+                Paid: <Money value={downPayment} />
+              </span>
+              {balance > 0 && (
+                <span className="text-rose-400 font-bold">
+                  Bal: <Money value={balance} />
+                </span>
+              )}
+            </div>
           ) : null}
         </div>
 
         {/* Audit (if creator or actor available) */}
         {creatorName || actorName ? (
-          <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground border-t border-border/30 pt-1.5">
-            <span className="flex items-center gap-1 truncate">
+          <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground/80 border-t border-border/40 pt-2.5">
+            <span className="flex items-center gap-1.5 truncate">
               <User className="size-3 shrink-0" />
               <span>Created by {creatorName ?? "System"}</span>
             </span>
             {actorName && (
-              <span className="truncate shrink-0 font-medium opacity-80">
+              <span className="truncate shrink-0 font-medium">
                 {actionType ?? "Updated"} by {actorName}
               </span>
             )}
@@ -195,16 +200,16 @@ export function BookingMobileCard({
         ) : null}
       </div>
 
-      {/* Bottom Footer: Files & Actions */}
-      <div className="mt-2.5 flex items-center justify-between gap-2 pt-1">
-        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+      {/* Bottom Footer: Verification Files & Actions with Touch-Friendly Targets */}
+      <div className="flex items-center justify-between gap-3 pt-1">
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
           {files.length > 0 ? (
             files.map((document) => (
               <DocumentPreviewButton key={document.key} document={document} compact />
             ))
           ) : (
-            <span className="flex items-center gap-1 text-[11px] text-muted-foreground italic">
-              <FileText className="size-3 opacity-60" />
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground italic">
+              <FileText className="size-3.5 opacity-50" />
               No documents
             </span>
           )}
