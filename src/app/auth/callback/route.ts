@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
   // 1. Look up profile by auth_id
   let { data: profile } = await supabase
     .from("users")
-    .select("id, role, auth_id, email")
+    .select("id, role, auth_id, email, terms_accepted_at, terms_version")
     .eq("auth_id", user.id)
     .maybeSingle();
 
@@ -87,23 +87,32 @@ export async function GET(request: NextRequest) {
   if (!profile) {
     const { data: existingByEmail } = await supabase
       .from("users")
-      .select("id, role, auth_id, email")
+      .select("id, role, auth_id, email, terms_accepted_at, terms_version")
       .eq("email", email)
       .maybeSingle();
 
+    const nowIso = new Date().toISOString();
+
     if (existingByEmail) {
-      // Link the existing account to this Google Auth ID
+      // Link the existing account to this Google Auth ID & stamp terms acceptance if not present
       await supabase
         .from("users")
         .update({
           auth_id: user.id,
           is_verified: 1,
+          terms_accepted_at: existingByEmail.terms_accepted_at || nowIso,
+          terms_version: existingByEmail.terms_version || "v1.0",
         })
         .eq("id", existingByEmail.id);
 
-      profile = { ...existingByEmail, auth_id: user.id };
+      profile = {
+        ...existingByEmail,
+        auth_id: user.id,
+        terms_accepted_at: existingByEmail.terms_accepted_at || nowIso,
+        terms_version: existingByEmail.terms_version || "v1.0",
+      };
     } else {
-      // 3. Brand new account: create a new profile with role "user"
+      // 3. Brand new account: create a new profile with role "user" and terms accepted via Google click
       const displayName =
         user.user_metadata?.full_name ||
         user.user_metadata?.name ||
@@ -119,8 +128,10 @@ export async function GET(request: NextRequest) {
           phone,
           role: "user",
           is_verified: 1,
+          terms_accepted_at: nowIso,
+          terms_version: "v1.0",
         })
-        .select("id, role, auth_id, email")
+        .select("id, role, auth_id, email, terms_accepted_at, terms_version")
         .maybeSingle();
 
       if (!insertError && newProfile) {

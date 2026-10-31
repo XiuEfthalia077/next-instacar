@@ -87,6 +87,12 @@ export async function proxy(request: NextRequest) {
   // Signed out
   // ---------------------------------------------------------------------
   if (!user) {
+    if (pathname === "/accept-terms") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
     if (isProtectedPath(pathname)) {
       const url = request.nextUrl.clone();
       url.pathname = "/login";
@@ -98,11 +104,11 @@ export async function proxy(request: NextRequest) {
   }
 
   // ---------------------------------------------------------------------
-  // Signed in — resolve the legacy `users` row that holds role + branch
+  // Signed in — resolve the legacy `users` row that holds role, branch & compliance
   // ---------------------------------------------------------------------
   const { data: profile } = await supabase
     .from("users")
-    .select("id, role, branch_id")
+    .select("id, role, branch_id, terms_accepted_at")
     .eq("auth_id", user.id)
     .maybeSingle();
 
@@ -115,6 +121,34 @@ export async function proxy(request: NextRequest) {
     url.pathname = "/login";
     url.search = "";
     url.searchParams.set("error", "no_profile");
+    return NextResponse.redirect(url);
+  }
+
+  const hasAcceptedTerms = Boolean(profile?.terms_accepted_at);
+
+  // ---------------------------------------------------------------------
+  // Terms Compliance Guard
+  // ---------------------------------------------------------------------
+  if (!hasAcceptedTerms) {
+    if (
+      pathname === "/accept-terms" ||
+      pathname === "/terms" ||
+      pathname === "/privacy" ||
+      pathname.startsWith("/auth/")
+    ) {
+      return response;
+    }
+    const url = request.nextUrl.clone();
+    url.pathname = "/accept-terms";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
+  // Already accepted terms, prevent staying on /accept-terms
+  if (pathname === "/accept-terms") {
+    const url = request.nextUrl.clone();
+    url.pathname = ROLE_HOME[role];
+    url.search = "";
     return NextResponse.redirect(url);
   }
 

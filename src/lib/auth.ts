@@ -61,7 +61,7 @@ export async function getSession(): Promise<AppSession | null> {
 
     const { data: profile } = await supabase
       .from("users")
-      .select("id, name, email, role, branch_id, is_verified")
+      .select("id, name, email, role, branch_id, is_verified, terms_accepted_at, terms_version")
       .eq("auth_id", user.id)
       .maybeSingle();
 
@@ -76,6 +76,8 @@ export async function getSession(): Promise<AppSession | null> {
       email: profile.email,
       role,
       branchId: profile.branch_id ?? null,
+      termsAcceptedAt: profile.terms_accepted_at ?? null,
+      termsVersion: profile.terms_version ?? null,
       // Admins may switch the branch they look at; everyone else is pinned
       // to the branch recorded on their own account.
       viewBranch:

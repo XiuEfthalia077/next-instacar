@@ -84,22 +84,22 @@ export function BookingMobileCard({
       )}
     >
       {/* Top Header Row: Booking ID & Badges on dedicated row to prevent customer name truncation */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="font-mono text-xs font-black text-foreground bg-muted/80 px-2.5 py-1 rounded-md border border-border/40 shrink-0">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+          <span className="font-mono text-xs font-black text-foreground bg-muted/80 px-2.5 py-1 rounded-md border border-border/40 shrink-0 whitespace-nowrap">
             #BK-{booking.id}
           </span>
           {isGuest && (
             <Badge
               variant="outline"
-              className="border-border bg-secondary px-2 py-0.5 text-[10px] font-bold text-secondary-foreground shrink-0"
+              className="border-border bg-secondary px-2 py-0.5 text-[10px] font-bold text-secondary-foreground shrink-0 whitespace-nowrap"
             >
               WALK-IN
             </Badge>
           )}
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+        <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
           <StatusBadge status={booking.status} />
           <BookingAttentionBadge booking={booking} />
         </div>

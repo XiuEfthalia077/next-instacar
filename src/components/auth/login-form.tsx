@@ -85,6 +85,28 @@ export function LoginForm() {
         Sign In
       </LoadingButton>
 
+      <p className="mt-2.5 text-center text-[11px] text-muted-foreground leading-normal">
+        By signing in, you agree to our{" "}
+        <Link
+          href="/terms"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline text-muted hover:text-[#ffcc00] transition-colors"
+        >
+          Terms of Service
+        </Link>{" "}
+        and{" "}
+        <Link
+          href="/privacy"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline text-muted hover:text-[#ffcc00] transition-colors"
+        >
+          Privacy Policy
+        </Link>
+        .
+      </p>
+
       <div className="divider">OR</div>
 
       <GoogleButton label="Continue with Google" />

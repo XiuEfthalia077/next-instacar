@@ -218,13 +218,29 @@ export async function signUpAction(
     return { error: validation.error.issues[0]?.message ?? "Invalid input." };
   }
 
+  const termsAccepted =
+    formData.get("terms_accepted") === "true" ||
+    formData.get("terms_accepted") === "on";
+
+  if (!termsAccepted) {
+    return {
+      error:
+        "You must agree to the Terms of Service and Privacy Policy to register.",
+    };
+  }
+
   const supabase = await getSupabase();
 
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      data: { name, phone },
+      data: {
+        name,
+        phone,
+        terms_accepted: true,
+        terms_version: "v1.0",
+      },
       emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/login`,
     },
   });
@@ -383,4 +399,40 @@ export async function switchBranchAction(formData: FormData): Promise<void> {
   });
 
   redirect("/admin/dashboard");
+}
+
+/**
+ * Accepts Terms of Service and Privacy Policy for existing/legacy accounts.
+ */
+export async function acceptTermsAction(
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  const supabase = await getSupabase();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    redirect("/login");
+  }
+
+  const nowIso = new Date().toISOString();
+  const { data: updated, error } = await supabase
+    .from("users")
+    .update({
+      terms_accepted_at: nowIso,
+      terms_version: "v1.0",
+    })
+    .eq("auth_id", user.id)
+    .select("role")
+    .maybeSingle();
+
+  if (error) {
+    return { error: "Failed to record terms acceptance. Please try again." };
+  }
+
+  const role = (updated?.role as UserRole) || "user";
+  redirect(ROLE_HOME[role] || "/user/dashboard");
 }

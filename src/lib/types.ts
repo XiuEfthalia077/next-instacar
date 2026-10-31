@@ -52,6 +52,8 @@ export interface User {
   token_expiry: string | null;
   verification_token: string | null;
   is_verified: boolean;
+  terms_accepted_at?: string | null;
+  terms_version?: string | null;
 }
 
 export interface Branch {
@@ -271,4 +273,6 @@ export interface AppSession {
   branchId: number | null;
   /** The branch the user is currently looking at. Admins may switch. */
   viewBranch: number | "all";
+  termsAcceptedAt?: string | null;
+  termsVersion?: string | null;
 }

@@ -24,6 +24,7 @@ export function RegisterForm() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   // Real-time email check state
   const [emailChecking, setEmailChecking] = useState(false);
@@ -79,6 +80,7 @@ export function RegisterForm() {
     !emailExists &&
     isPasswordValid &&
     passwordsMatch &&
+    termsAccepted &&
     name.trim().length >= 2 &&
     phone.trim().length >= 7;
 
@@ -255,6 +257,41 @@ export function RegisterForm() {
           {state.success}
         </p>
       ) : null}
+
+      <div className="mb-4">
+        <label className="flex items-start gap-2.5 cursor-pointer select-none">
+          <input
+            id="register-terms"
+            name="terms_accepted"
+            type="checkbox"
+            checked={termsAccepted}
+            onChange={(e) => setTermsAccepted(e.target.checked)}
+            className="mt-0.5 size-4 rounded border-[#444] bg-[#1a1a1a] text-[#ffcc00] focus:ring-[#ffcc00]/30 cursor-pointer accent-[#ffcc00]"
+            required
+          />
+          <span className="text-xs text-muted leading-relaxed">
+            I agree to the{" "}
+            <Link
+              href="/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold text-[#ffcc00] hover:underline"
+            >
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link
+              href="/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold text-[#ffcc00] hover:underline"
+            >
+              Privacy Policy
+            </Link>
+            .
+          </span>
+        </label>
+      </div>
 
       <LoadingButton
         type="submit"

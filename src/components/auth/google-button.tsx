@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import { createClient } from "@/utils/supabase/client";
@@ -29,13 +30,19 @@ function GoogleMark() {
 }
 
 /**
- * "Continue with Google" button.
+ * "Continue with Google" button with Terms and Privacy disclaimer copy.
  *
  * Port of `car-rental/process/auth/googlelogin.php`, which redirected the
  * visitor to Google's OAuth consent screen. Here the Supabase Auth OAuth
  * helper does the same job and returns to `/auth/callback`.
  */
-export function GoogleButton({ label }: { label: string }) {
+export function GoogleButton({
+  label,
+  showDisclaimer = true,
+}: {
+  label: string;
+  showDisclaimer?: boolean;
+}) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -82,8 +89,32 @@ export function GoogleButton({ label }: { label: string }) {
         <span>{busy ? "Redirecting..." : label}</span>
       </button>
 
+      {showDisclaimer ? (
+        <p className="mt-2 text-center text-[11px] text-muted-foreground leading-normal">
+          By continuing with Google, you agree to our{" "}
+          <Link
+            href="/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-foreground underline hover:text-[#ffcc00] transition-colors"
+          >
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link
+            href="/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-foreground underline hover:text-[#ffcc00] transition-colors"
+          >
+            Privacy Policy
+          </Link>
+          .
+        </p>
+      ) : null}
+
       {error ? (
-        <p role="alert" className="mt-2 text-xs text-red-400">
+        <p role="alert" className="mt-2 text-xs text-red-400 text-center">
           {error}
         </p>
       ) : null}
