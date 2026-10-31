@@ -35,6 +35,12 @@ export function DashboardFrame({
     }
   };
 
+  // Auto-close mobile sidebar and open modals on navigation
+  useEffect(() => {
+    setSidebarOpen(false);
+    window.dispatchEvent(new CustomEvent("instacar:close-modals"));
+  }, [pathname]);
+
   // Multi-tab session conflict protection:
   // If another tab changed the active session role (e.g. logging in as User in Tab 2 while Tab 1 is on Admin),
   // immediately reload to the correct role home to prevent router freezing or deadlocks.

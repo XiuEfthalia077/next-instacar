@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ClipboardList } from "lucide-react";
 
 import { DocumentPreviewButton, type BookingDocument } from "@/components/admin/document-preview";
@@ -10,7 +10,6 @@ import { LoadingButton } from "@/components/common/loading-button";
 import { AvailabilityCalendar } from "@/components/common/availability-calendar";
 import { PastDateConfirmDialog } from "@/components/common/past-date-confirm-dialog";
 import { TimePicker } from "@/components/common/time-picker";
-import { useSlowNetworkStatus, SlowNetworkFeedback } from "@/components/common/slow-network-feedback";
 import {
   Dialog,
   DialogClose,
@@ -138,9 +137,22 @@ export function EditManualBookingDialog({
   const [pastConfirmOpen, setPastConfirmOpen] = useState(false);
   const [pastUnlocked, setPastUnlocked] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const networkStatus = useSlowNetworkStatus(isSubmitting);
   const pastConfirmedRef = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
+
+  // Auto-close on navigation
+  useEffect(() => {
+    const handleClose = () => {
+      onOpenChange(false);
+      setIsSubmitting(false);
+    };
+    window.addEventListener("popstate", handleClose);
+    window.addEventListener("instacar:close-modals", handleClose);
+    return () => {
+      window.removeEventListener("popstate", handleClose);
+      window.removeEventListener("instacar:close-modals", handleClose);
+    };
+  }, [onOpenChange]);
 
   const selectedCar = useMemo(() => cars.find((car) => String(car.id) === carId) ?? null, [cars, carId]);
 
@@ -579,8 +591,6 @@ export function EditManualBookingDialog({
               </div>
             </div>
           </div>
-
-          <SlowNetworkFeedback status={networkStatus} className="w-full my-1.5" />
 
           <DialogFooter className="gap-2 border-t border-border pt-4">
             <DialogClose asChild>

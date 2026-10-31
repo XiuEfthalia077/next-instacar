@@ -14,11 +14,11 @@ import {
   X,
 } from "lucide-react";
 
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { LoadingButton } from "@/components/common/loading-button";
 import { AvailabilityCalendar } from "@/components/common/availability-calendar";
 import { PastDateConfirmDialog } from "@/components/common/past-date-confirm-dialog";
 import { TimePicker } from "@/components/common/time-picker";
-import { useSlowNetworkStatus, SlowNetworkFeedback } from "@/components/common/slow-network-feedback";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -138,7 +138,6 @@ export function ManualBookingDialog({
   const [memberSearch, setMemberSearch] = useState("");
   const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const networkStatus = useSlowNetworkStatus(isSubmitting);
   const [pastConfirmOpen, setPastConfirmOpen] = useState(false);
   const [pastUnlocked, setPastUnlocked] = useState(false);
   const [inputPastConfirmOpen, setInputPastConfirmOpen] = useState(false);
@@ -147,6 +146,43 @@ export function ManualBookingDialog({
   const pastConfirmedRef = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
   const memberDropdownRef = useRef<HTMLDivElement>(null);
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+
+  // Close modal and reset on navigation back/forward or programmatic navigation
+  useEffect(() => {
+    const handleNavigationClose = () => {
+      setOpen(false);
+      setIsSubmitting(false);
+    };
+
+    window.addEventListener("popstate", handleNavigationClose);
+    window.addEventListener("instacar:close-modals", handleNavigationClose);
+    return () => {
+      window.removeEventListener("popstate", handleNavigationClose);
+      window.removeEventListener("instacar:close-modals", handleNavigationClose);
+    };
+  }, []);
+
+  // When pathname changes, ensure modal is closed
+  useEffect(() => {
+    setOpen(false);
+    setIsSubmitting(false);
+  }, [pathname]);
+
+  // When action completes successfully (?success= query param present)
+  useEffect(() => {
+    if (searchParams.get("success")) {
+      setOpen(false);
+      setIsSubmitting(false);
+      handleResetForm();
+      router.refresh();
+    } else if (searchParams.get("error")) {
+      setIsSubmitting(false);
+    }
+  }, [searchParams, router]);
 
   // Restore draft from localStorage on initial render
   useEffect(() => {
@@ -1108,8 +1144,6 @@ export function ManualBookingDialog({
               </div>
             </div>
           </div>
-
-          <SlowNetworkFeedback status={networkStatus} className="w-full my-1" />
 
           <DialogFooter className="flex-col sm:flex-row items-center justify-between gap-2 border-t border-border pt-4">
             <Button

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ClipboardList, Trash2 } from "lucide-react";
 
 import { DeleteBookingDialog } from "@/components/admin/delete-booking-dialog";
@@ -10,7 +10,6 @@ import { LoadingButton } from "@/components/common/loading-button";
 import { AvailabilityCalendar } from "@/components/common/availability-calendar";
 import { PastDateConfirmDialog } from "@/components/common/past-date-confirm-dialog";
 import { TimePicker } from "@/components/common/time-picker";
-import { useSlowNetworkStatus, SlowNetworkFeedback } from "@/components/common/slow-network-feedback";
 import {
   Dialog,
   DialogClose,
@@ -69,9 +68,22 @@ export function EditReservationDialog({
   const [pastUnlocked, setPastUnlocked] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const networkStatus = useSlowNetworkStatus(isSubmitting);
   const pastConfirmedRef = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
+
+  // Auto-close on navigation
+  useEffect(() => {
+    const handleClose = () => {
+      onOpenChange(false);
+      setIsSubmitting(false);
+    };
+    window.addEventListener("popstate", handleClose);
+    window.addEventListener("instacar:close-modals", handleClose);
+    return () => {
+      window.removeEventListener("popstate", handleClose);
+      window.removeEventListener("instacar:close-modals", handleClose);
+    };
+  }, [onOpenChange]);
 
   const isDelivery = fulfillment === "delivery";
 
@@ -302,8 +314,6 @@ export function EditReservationDialog({
               />
             </div>
           </div>
-
-          <SlowNetworkFeedback status={networkStatus} className="w-full my-1.5" />
 
           <DialogFooter className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 border-t border-border pt-4">
             <Button
