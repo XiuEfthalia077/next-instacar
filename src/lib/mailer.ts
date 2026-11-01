@@ -39,6 +39,12 @@ function getTransporter() {
   return transporter;
 }
 
+/**
+ * Global toggle to disable all email dispatches (useful during heavy data input & testing).
+ * Set to false when ready to re-enable live email delivery.
+ */
+export const EMAILS_DISABLED = true;
+
 /** Sends an HTML mail. Returns `{ ok: false }` when SMTP fails. */
 export async function sendMail(options: {
   to: string;
@@ -47,6 +53,11 @@ export async function sendMail(options: {
   html: string;
   text?: string;
 }): Promise<MailResult> {
+  if (EMAILS_DISABLED || process.env.DISABLE_EMAIL === "true") {
+    console.info(`[Mailer] (Paused) Email suppressed to ${options.to}: "${options.subject}"`);
+    return { ok: true };
+  }
+
   if (!smtpConfigured()) {
     console.warn("[Mailer] SMTP credentials missing in environment variables.");
     return { ok: false, error: "SMTP is not configured." };

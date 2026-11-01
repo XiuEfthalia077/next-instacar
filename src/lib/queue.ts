@@ -7,6 +7,7 @@
 
 import { Client } from "@upstash/qstash";
 import { sendTransactionalEmail } from "@/lib/email-service";
+import { EMAILS_DISABLED } from "@/lib/mailer";
 import {
   buildWelcomeEmail,
   buildBookingClientEmail,
@@ -169,6 +170,11 @@ export async function queueEmail(payload: EmailJobPayload): Promise<{
   fallback?: boolean;
   error?: string;
 }> {
+  if (EMAILS_DISABLED) {
+    console.info(`[QStash] (Paused) Suppressed email job "${payload.type}" to ${payload.email}`);
+    return { queued: true };
+  }
+
   const client = getQStashClient();
   const workerEndpoint = `${resolveAppUrl()}/api/queues/send-email`;
 

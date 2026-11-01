@@ -36,7 +36,7 @@ import {
 } from "@/lib/emails/booking";
 import { flashRedirect } from "@/lib/flash";
 import { manilaNowTimestamp, wallClockTimestamp } from "@/lib/datetime";
-import { sendMail, adminInbox } from "@/lib/mailer";
+import { sendMail, adminInbox, EMAILS_DISABLED } from "@/lib/mailer";
 import { queueEmail, resolveAppUrl } from "@/lib/queue";
 import { BUCKETS, buildFileName, uploadFile, removeFile } from "@/lib/storage";
 import { bookingPhotoKey } from "@/lib/storage";
@@ -195,7 +195,7 @@ async function bookingContact(bookingId: number) {
  * Under no circumstance does the HTTP response await SMTP handshakes or third-party delivery inline.
  */
 function notifyAsync(to: string, mail: { subject: string; html: string }) {
-  if (!to) return;
+  if (!to || EMAILS_DISABLED) return;
   void (async () => {
     try {
       const qstashToken =

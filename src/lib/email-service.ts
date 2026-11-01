@@ -8,7 +8,7 @@
  */
 
 import { Resend } from "resend";
-import { sendMail } from "@/lib/mailer";
+import { sendMail, EMAILS_DISABLED } from "@/lib/mailer";
 
 export interface SendEmailOptions {
   to: string;
@@ -51,6 +51,12 @@ export async function sendTransactionalEmail(
   options: SendEmailOptions,
 ): Promise<EmailDeliveryResult> {
   const { to, subject, html, text, replyTo } = options;
+
+  if (EMAILS_DISABLED || process.env.DISABLE_EMAIL === "true") {
+    console.info(`[EmailService] (Paused) Email suppressed to ${to}: "${subject}"`);
+    return { ok: true, provider: "simulated" };
+  }
+
   const from = resolveFromAddress(options.from);
 
   // 1. Try Resend if configured
