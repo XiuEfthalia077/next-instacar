@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { CircleCheck, CircleX, Eye, Lock, Pencil } from "lucide-react";
+import { CircleX, Eye, Lock, Pencil } from "lucide-react";
 
 import { BookingStatusDialog } from "@/components/admin/booking-status-dialog";
 import {
@@ -95,13 +95,6 @@ export function ManualBookingActions({
             <Pencil className="size-4 text-sky-600" />
             Edit
           </DropdownMenuItem>
-
-          {booking.status === "Confirmed" ? (
-            <DropdownMenuItem className={ITEM_CLASS} onSelect={() => ask("Completed")}>
-              <CircleCheck className="size-4 text-emerald-600" />
-              Complete
-            </DropdownMenuItem>
-          ) : null}
 
           <DropdownMenuSeparator />
 

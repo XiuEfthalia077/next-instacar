@@ -72,6 +72,7 @@ export function BookingStatusDialog({
   status,
   filter,
   source,
+  redirectTo,
   onOptimisticConfirm,
   onError,
 }: {
@@ -81,6 +82,7 @@ export function BookingStatusDialog({
   status: StatusAction;
   filter: string;
   source: "online" | "manual";
+  redirectTo?: string;
   onOptimisticConfirm?: (bookingId: number, status: StatusAction) => void;
   onError?: (bookingId: number, error: string) => void;
 }) {
@@ -126,6 +128,7 @@ export function BookingStatusDialog({
           <input type="hidden" name="status" value={status} />
           <input type="hidden" name="source" value={source} />
           <input type="hidden" name="filter" value={filter} />
+          {redirectTo ? <input type="hidden" name="redirectTo" value={redirectTo} /> : null}
 
           <DialogFooter className="gap-2">
             <DialogClose asChild>

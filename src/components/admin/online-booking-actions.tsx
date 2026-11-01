@@ -132,16 +132,6 @@ export function OnlineBookingActions({
             </DropdownMenuItem>
           ) : null}
 
-          {booking.status === "Released" ? (
-            <DropdownMenuItem
-              className={ITEM_CLASS}
-              onSelect={() => ask("Completed")}
-            >
-              <Flag className="size-4 text-emerald-600" />
-              Complete Trip
-            </DropdownMenuItem>
-          ) : null}
-
           <DropdownMenuSeparator />
 
           <DropdownMenuItem

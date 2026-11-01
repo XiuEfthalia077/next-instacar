@@ -177,6 +177,7 @@ export function BookingActions({
             <input type="hidden" name="status" value={action ?? ""} />
             <input type="hidden" name="source" value={source} />
             <input type="hidden" name="filter" value={filter} />
+            <input type="hidden" name="redirectTo" value={`/shared/booking_details?id=${booking.id}`} />
             <DialogFooter className="gap-2">
               <DialogClose asChild>
                 <Button type="button" variant="outline" className="rounded-lg px-4 font-semibold" disabled={isSubmitting}>

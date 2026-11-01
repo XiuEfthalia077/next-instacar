@@ -344,9 +344,11 @@ export async function updateBookingStatusAction(formData: FormData) {
   const newStatus = str(formData, "status");
   const source = str(formData, "source", "online");
   const filter = str(formData, "filter", "All");
+  const redirectTo = str(formData, "redirectTo");
 
   const home = bookingsHome(session, source);
   const back = `${home}?filter=${encodeURIComponent(filter)}`;
+  const detailsUrl = `/shared/booking_details?id=${bookingId}`;
 
   const valid = ["Pending", "Confirmed", "Released", "Completed", "Cancelled"];
 
@@ -426,7 +428,7 @@ export async function updateBookingStatusAction(formData: FormData) {
     });
 
     refreshBookingViews(bookingId);
-    flashRedirect(back, "success", "Vehicle Released successfully.");
+    flashRedirect(redirectTo || detailsUrl, "success", "Vehicle Released successfully.");
   }
 
   /* ---------------- Completed ---------------- */
@@ -479,7 +481,7 @@ export async function updateBookingStatusAction(formData: FormData) {
 
       refreshBookingViews(bookingId);
       flashRedirect(
-        back,
+        redirectTo || detailsUrl,
         "warning",
         [
           "EXTENSION / LATE RETURN DETECTED!",
@@ -524,7 +526,7 @@ export async function updateBookingStatusAction(formData: FormData) {
 
     refreshBookingViews(bookingId);
     flashRedirect(
-      back,
+      redirectTo || detailsUrl,
       "success",
       `Booking completed! Review email sent to ${customerEmail || "the customer"}.`,
     );
@@ -579,7 +581,7 @@ export async function updateBookingStatusAction(formData: FormData) {
     });
 
     refreshBookingViews(bookingId);
-    flashRedirect(back, "success", `Booking confirmed! Notification sent to ${customerEmail || "the customer"}.`);
+    flashRedirect(redirectTo || back, "success", `Booking confirmed! Notification sent to ${customerEmail || "the customer"}.`);
   }
 
   /* ---------------- Cancelled ---------------- */
@@ -611,11 +613,11 @@ export async function updateBookingStatusAction(formData: FormData) {
     });
 
     refreshBookingViews(bookingId);
-    flashRedirect(back, "success", "Booking cancelled and email sent.");
+    flashRedirect(redirectTo || back, "success", "Booking cancelled and email sent.");
   }
 
   refreshBookingViews(bookingId);
-  flashRedirect(back, "success", `Booking status updated to ${newStatus}.`);
+  flashRedirect(redirectTo || back, "success", `Booking status updated to ${newStatus}.`);
 }
 
 /* ------------------------------------------------------------------ */
