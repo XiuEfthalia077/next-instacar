@@ -23,6 +23,7 @@
  */
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 
 import { getSession, getSupabase, requireRole } from "@/lib/auth";
 import { calculatePriceByHours } from "@/lib/pricing";
@@ -413,10 +414,16 @@ export async function updateBookingStatusAction(formData: FormData) {
 
     if (bookingUpdate.error) flashRedirect(back, "error", `Failed to update booking: ${bookingUpdate.error.message}`);
 
-    notifyAsync(
-      customerEmail,
-      vehicleReleasedEmail(customerName, siteUrl("/user/dashboard")),
-    );
+    after(async () => {
+      try {
+        notifyAsync(
+          customerEmail,
+          vehicleReleasedEmail(customerName, siteUrl("/user/dashboard")),
+        );
+      } catch (err) {
+        console.error("[bookings:after] Released email error:", err);
+      }
+    });
 
     refreshBookingViews(bookingId);
     flashRedirect(back, "success", "Vehicle Released successfully.");
@@ -504,10 +511,16 @@ export async function updateBookingStatusAction(formData: FormData) {
 
     if (bookingUpdate.error) flashRedirect(back, "error", `Failed to update booking: ${bookingUpdate.error.message}`);
 
-    notifyAsync(
-      customerEmail,
-      tripCompletedEmail(customerName, siteUrl(`/leave_review?booking_id=${bookingId}`)),
-    );
+    after(async () => {
+      try {
+        notifyAsync(
+          customerEmail,
+          tripCompletedEmail(customerName, siteUrl(`/leave_review?booking_id=${bookingId}`)),
+        );
+      } catch (err) {
+        console.error("[bookings:after] Completed email error:", err);
+      }
+    });
 
     refreshBookingViews(bookingId);
     flashRedirect(
@@ -556,8 +569,14 @@ export async function updateBookingStatusAction(formData: FormData) {
       }
     }
 
-    // 3. Decoupled non-blocking email dispatch - NEVER awaited inline
-    notifyAsync(customerEmail, bookingConfirmedEmail(customerName, siteUrl("/user/dashboard")));
+    // 3. Decoupled background email dispatch using Next.js after()
+    after(async () => {
+      try {
+        notifyAsync(customerEmail, bookingConfirmedEmail(customerName, siteUrl("/user/dashboard")));
+      } catch (err) {
+        console.error("[bookings:after] Confirmed email error:", err);
+      }
+    });
 
     refreshBookingViews(bookingId);
     flashRedirect(back, "success", `Booking confirmed! Notification sent to ${customerEmail || "the customer"}.`);
@@ -583,7 +602,13 @@ export async function updateBookingStatusAction(formData: FormData) {
 
     if (bookingUpdate.error) flashRedirect(back, "error", `Failed to update booking: ${bookingUpdate.error.message}`);
 
-    notifyAsync(customerEmail, bookingCancelledEmail(customerName, siteUrl("/user/dashboard")));
+    after(async () => {
+      try {
+        notifyAsync(customerEmail, bookingCancelledEmail(customerName, siteUrl("/user/dashboard")));
+      } catch (err) {
+        console.error("[bookings:after] Cancelled email error:", err);
+      }
+    });
 
     refreshBookingViews(bookingId);
     flashRedirect(back, "success", "Booking cancelled and email sent.");

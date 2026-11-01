@@ -86,15 +86,17 @@ export function BookingActions({
   isAdmin?: boolean;
 }) {
   const [action, setAction] = useState<StatusAction | null>(null);
+  const [optimisticStatus, setOptimisticStatus] = useState<StatusAction | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const source = booking.booking_type === "manual" ? "manual" : "online";
+  const currentStatus = optimisticStatus ?? booking.status;
 
   const actions: StatusAction[] = [];
-  if (booking.status === "Pending") actions.push("Confirmed");
-  if (booking.status === "Confirmed") actions.push("Released");
-  if (booking.status === "Released") actions.push("Completed");
-  if (booking.status !== "Cancelled" && booking.status !== "Completed") {
+  if (currentStatus === "Pending") actions.push("Confirmed");
+  if (currentStatus === "Confirmed") actions.push("Released");
+  if (currentStatus === "Released") actions.push("Completed");
+  if (currentStatus !== "Cancelled" && currentStatus !== "Completed") {
     actions.push("Cancelled");
   }
 
@@ -163,14 +165,12 @@ export function BookingActions({
           ) : null}
 
           <form
-            action={async (formData) => {
-              if (isSubmitting) return;
+            action={updateBookingStatusAction}
+            onSubmit={() => {
+              if (isSubmitting || !action) return;
               setIsSubmitting(true);
-              try {
-                await updateBookingStatusAction(formData);
-              } finally {
-                setIsSubmitting(false);
-              }
+              setOptimisticStatus(action);
+              setAction(null);
             }}
           >
             <input type="hidden" name="id" value={booking.id} />
