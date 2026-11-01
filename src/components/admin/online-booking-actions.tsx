@@ -48,10 +48,14 @@ export function OnlineBookingActions({
   booking,
   filter,
   documents,
+  onOptimisticConfirm,
+  onError,
 }: {
   booking: OnlineBooking;
   filter: string;
   documents: BookingDocument[];
+  onOptimisticConfirm?: (id: number, status: StatusTarget) => void;
+  onError?: (id: number, error: string) => void;
 }) {
   const [editOpen, setEditOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
@@ -184,6 +188,8 @@ export function OnlineBookingActions({
         status={target}
         filter={filter}
         source="online"
+        onOptimisticConfirm={(id, status) => onOptimisticConfirm?.(id, status)}
+        onError={(id, err) => onError?.(id, err)}
       />
     </div>
   );

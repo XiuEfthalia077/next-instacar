@@ -14,6 +14,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 
 import { OnlineBookingActions } from "@/components/admin/online-booking-actions";
+import { OnlineBookingsTable } from "@/components/admin/online-bookings-table";
 import {
   DocumentPreviewButton,
   type BookingDocument,
@@ -473,45 +474,15 @@ export default async function AdminBookingsOnlinePage({
           />
         </SectionCard>
       ) : (
-        <>
-          <SectionCard bodyClassName="p-0">
-            <DataTable
-              columns={columns}
-              rows={rows}
-              keyExtractor={(booking) => String(booking.id)}
-              emptyMessage="No online bookings found."
-              renderMobileCard={(booking, index) => {
-                const branch =
-                  branchMap.get(booking.branch_id ?? 0) ??
-                  branchMap.get(booking.cars?.branch_id ?? 0);
-
-                return (
-                  <BookingMobileCard
-                    booking={booking}
-                    documents={documents[index]}
-                    branchName={branch?.name}
-                    actions={
-                      <OnlineBookingActions
-                        booking={booking}
-                        filter={filter}
-                        documents={documents[index]}
-                      />
-                    }
-                  />
-                );
-              }}
-            />
-          </SectionCard>
-
-          <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-card">
-            <TablePagination
-              page={page}
-              pageSize={perPage}
-              total={count}
-              buildHref={buildHref}
-            />
-          </div>
-        </>
+        <OnlineBookingsTable
+          rows={rows}
+          documents={documents}
+          branches={branches.map((b) => ({ id: b.id, name: b.name, address: b.address }))}
+          filter={filter}
+          page={page}
+          perPage={perPage}
+          count={count}
+        />
       )}
     </>
   );

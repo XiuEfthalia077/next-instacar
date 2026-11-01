@@ -53,6 +53,8 @@ const PARTS = [
   "migrations/20260101001400_fix_bookings_insert_and_read_rls.sql",
   "migrations/20260101001500_allow_staff_bookings_read_and_past_dates.sql",
   "migrations/20260101001600_concurrency_and_performance_hardening.sql",
+  "migrations/20260101001700_terms_and_privacy_compliance.sql",
+  "migrations/20260101001800_confirm_booking_rpc_and_indexes.sql",
   "seed.sql",
   "seed-car-images.sql",
   "migrations/20260101000700_auth_users_sync.sql",

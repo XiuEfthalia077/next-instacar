@@ -72,6 +72,8 @@ export function BookingStatusDialog({
   status,
   filter,
   source,
+  onOptimisticConfirm,
+  onError,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -79,6 +81,8 @@ export function BookingStatusDialog({
   status: StatusAction;
   filter: string;
   source: "online" | "manual";
+  onOptimisticConfirm?: (bookingId: number, status: StatusAction) => void;
+  onError?: (bookingId: number, error: string) => void;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const copy = COPY[status];
@@ -109,12 +113,13 @@ export function BookingStatusDialog({
 
         <form
           action={updateBookingStatusAction}
-          onSubmit={(e) => {
-            if (isSubmitting) {
-              e.preventDefault();
-              return;
-            }
+          onSubmit={() => {
+            if (isSubmitting) return;
             setIsSubmitting(true);
+            // 1. Immediately provide optimistic visual feedback
+            onOptimisticConfirm?.(bookingId, status);
+            // 2. Immediately close dialog so user interaction is never blocked
+            onOpenChange(false);
           }}
         >
           <input type="hidden" name="id" value={bookingId} />

@@ -189,14 +189,35 @@ async function bookingContact(bookingId: number) {
   };
 }
 
-async function notify(to: string, mail: { subject: string; html: string }) {
+/**
+ * Non-blocking asynchronous background notification.
+ * Under no circumstance does the HTTP response await SMTP handshakes or third-party delivery inline.
+ */
+function notifyAsync(to: string, mail: { subject: string; html: string }) {
   if (!to) return;
-  try {
-    await sendMail({ to, subject: mail.subject, html: mail.html });
-  } catch (error) {
-    // E-mail delivery must never break the booking flow (legacy behaviour).
-    console.error("[instacar] booking e-mail failed:", error);
-  }
+  void (async () => {
+    try {
+      const qstashToken =
+        process.env.QSTASH_TOKEN ||
+        process.env.UPSTASH_TOKEN ||
+        process.env.UPSTASH_QSTASH_TOKEN;
+
+      if (qstashToken) {
+        await queueEmail({
+          type: "booking_client_confirmation",
+          email: to,
+          data: {
+            subject: mail.subject,
+            html: mail.html,
+          },
+        });
+      } else {
+        await sendMail({ to, subject: mail.subject, html: mail.html });
+      }
+    } catch (error) {
+      console.error("[instacar][async-email-error] Background email delivery failed:", error);
+    }
+  })();
 }
 
 /**
@@ -337,18 +358,24 @@ export async function updateBookingStatusAction(formData: FormData) {
   const { data: current } = await supabase
     .from("bookings")
     .select(
-      "id, car_id, status, start_date, end_date, pickup_time, return_time, total_price, user_id, guest_name, gmail, branch_id",
+      "id, car_id, status, start_date, end_date, pickup_time, return_time, total_price, user_id, guest_name, gmail, branch_id, users!bookings_user_id_fkey ( name, email )",
     )
     .eq("id", bookingId)
     .maybeSingle();
 
-  const booking = current as BookingRow | null;
+  const booking = current as (BookingRow & {
+    users?: { name: string | null; email: string | null } | { name: string | null; email: string | null }[] | null;
+  }) | null;
 
   if (!booking) {
     flashRedirect(back, "error", "Booking not found.");
   }
 
   assertBranchAccess(session, booking.branch_id, back);
+
+  const rawUser = Array.isArray(booking.users) ? booking.users[0] : booking.users;
+  const customerName = rawUser?.name ?? booking.guest_name ?? "Customer";
+  const customerEmail = rawUser?.email ?? booking.gmail ?? "";
 
   const oldStatus = booking.status;
 
@@ -369,26 +396,26 @@ export async function updateBookingStatusAction(formData: FormData) {
 
   /* ---------------- Released ---------------- */
   if (newStatus === "Released") {
-    const { error } = await supabase
-      .from("bookings")
-      .update({
-        status: "Released",
-        last_action_by: actor,
-        last_action_at: now,
-        last_action_type: "Released",
-      })
-      .eq("id", bookingId);
+    const [bookingUpdate] = await Promise.all([
+      supabase
+        .from("bookings")
+        .update({
+          status: "Released",
+          last_action_by: actor,
+          last_action_at: now,
+          last_action_type: "Released",
+        })
+        .eq("id", bookingId),
+      booking.car_id
+        ? supabase.from("cars").update({ status: "Active" }).eq("id", booking.car_id)
+        : Promise.resolve({ error: null }),
+    ]);
 
-    if (error) flashRedirect(back, "error", `Failed to update booking: ${error.message}`);
+    if (bookingUpdate.error) flashRedirect(back, "error", `Failed to update booking: ${bookingUpdate.error.message}`);
 
-    if (booking.car_id) {
-      await supabase.from("cars").update({ status: "Active" }).eq("id", booking.car_id);
-    }
-
-    const contact = await bookingContact(bookingId);
-    await notify(
-      contact.email,
-      vehicleReleasedEmail(contact.name, siteUrl("/user/dashboard")),
+    notifyAsync(
+      customerEmail,
+      vehicleReleasedEmail(customerName, siteUrl("/user/dashboard")),
     );
 
     refreshBookingViews(bookingId);
@@ -423,24 +450,25 @@ export async function updateBookingStatusAction(formData: FormData) {
       const newTotal = priceFor(car, actualHours);
       const additionalFee = newTotal - originalTotal;
 
-      const { error } = await supabase
-        .from("bookings")
-        .update({
-          status: "Completed",
-          extension_hours: extensionHours,
-          extension_price: additionalFee,
-          total_price: newTotal,
-          last_action_by: actor,
-          last_action_at: now,
-          last_action_type: "Completed",
-        })
-        .eq("id", bookingId);
+      const [extUpdate] = await Promise.all([
+        supabase
+          .from("bookings")
+          .update({
+            status: "Completed",
+            extension_hours: extensionHours,
+            extension_price: additionalFee,
+            total_price: newTotal,
+            last_action_by: actor,
+            last_action_at: now,
+            last_action_type: "Completed",
+          })
+          .eq("id", bookingId),
+        booking.car_id
+          ? supabase.from("cars").update({ status: "Available" }).eq("id", booking.car_id)
+          : Promise.resolve({ error: null }),
+      ]);
 
-      if (error) flashRedirect(back, "error", `Failed to update booking: ${error.message}`);
-
-      if (booking.car_id) {
-        await supabase.from("cars").update({ status: "Available" }).eq("id", booking.car_id);
-      }
+      if (extUpdate.error) flashRedirect(back, "error", `Failed to update booking: ${extUpdate.error.message}`);
 
       refreshBookingViews(bookingId);
       flashRedirect(
@@ -459,82 +487,103 @@ export async function updateBookingStatusAction(formData: FormData) {
       );
     }
 
-    const { error } = await supabase
-      .from("bookings")
-      .update({
-        status: "Completed",
-        last_action_by: actor,
-        last_action_at: now,
-        last_action_type: "Completed",
-      })
-      .eq("id", bookingId);
+    const [bookingUpdate] = await Promise.all([
+      supabase
+        .from("bookings")
+        .update({
+          status: "Completed",
+          last_action_by: actor,
+          last_action_at: now,
+          last_action_type: "Completed",
+        })
+        .eq("id", bookingId),
+      booking.car_id
+        ? supabase.from("cars").update({ status: "Available" }).eq("id", booking.car_id)
+        : Promise.resolve({ error: null }),
+    ]);
 
-    if (error) flashRedirect(back, "error", `Failed to update booking: ${error.message}`);
+    if (bookingUpdate.error) flashRedirect(back, "error", `Failed to update booking: ${bookingUpdate.error.message}`);
 
-    if (booking.car_id) {
-      await supabase.from("cars").update({ status: "Available" }).eq("id", booking.car_id);
-    }
-
-    const contact = await bookingContact(bookingId);
-    await notify(
-      contact.email,
-      tripCompletedEmail(contact.name, siteUrl(`/leave_review?booking_id=${bookingId}`)),
+    notifyAsync(
+      customerEmail,
+      tripCompletedEmail(customerName, siteUrl(`/leave_review?booking_id=${bookingId}`)),
     );
 
     refreshBookingViews(bookingId);
     flashRedirect(
       back,
       "success",
-      `Booking completed! Review email sent to ${contact.email || "the customer"}.`,
+      `Booking completed! Review email sent to ${customerEmail || "the customer"}.`,
     );
   }
 
   /* ---------------- Confirmed ---------------- */
   if (newStatus === "Confirmed") {
-    const { error } = await supabase
-      .from("bookings")
-      .update({
-        status: "Confirmed",
-        last_action_by: actor,
-        last_action_at: now,
-        last_action_type: "Confirmed",
-      })
-      .eq("id", bookingId);
+    // 1. Try atomic PostgreSQL RPC function first
+    let rpcHandled = false;
+    try {
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc("confirm_booking_transaction", {
+        p_booking_id: bookingId,
+        p_actor_id: actor,
+      });
 
-    if (error) flashRedirect(back, "error", `Failed to update booking: ${error.message}`);
-
-    if (booking.car_id) {
-      await supabase.from("cars").update({ status: "Active" }).eq("id", booking.car_id);
+      if (!rpcErr && rpcRes && (rpcRes as { success?: boolean }).success) {
+        rpcHandled = true;
+      }
+    } catch {
+      // Fall through to parallel execution
     }
 
-    const contact = await bookingContact(bookingId);
-    await notify(contact.email, bookingConfirmedEmail(contact.name, siteUrl("/user/dashboard")));
+    if (!rpcHandled) {
+      // 2. Optimized parallel database mutation (single network roundtrip)
+      const [bookingUpdate] = await Promise.all([
+        supabase
+          .from("bookings")
+          .update({
+            status: "Confirmed",
+            last_action_by: actor,
+            last_action_at: now,
+            last_action_type: "Confirmed",
+          })
+          .eq("id", bookingId),
+        booking.car_id
+          ? supabase.from("cars").update({ status: "Active" }).eq("id", booking.car_id)
+          : Promise.resolve({ error: null }),
+      ]);
+
+      if (bookingUpdate.error) {
+        flashRedirect(back, "error", `Failed to update booking: ${bookingUpdate.error.message}`);
+      }
+    }
+
+    // 3. Decoupled non-blocking email dispatch - NEVER awaited inline
+    notifyAsync(customerEmail, bookingConfirmedEmail(customerName, siteUrl("/user/dashboard")));
 
     refreshBookingViews(bookingId);
-    flashRedirect(back, "success", `Booking confirmed! Notification sent to ${contact.email || "the customer"}.`);
+    flashRedirect(back, "success", `Booking confirmed! Notification sent to ${customerEmail || "the customer"}.`);
   }
 
   /* ---------------- Cancelled ---------------- */
   if (newStatus === "Cancelled") {
-    const { error } = await supabase
-      .from("bookings")
-      .update({
-        status: "Cancelled",
-        total_price: 500,
-        last_action_by: actor,
-        last_action_at: now,
-        last_action_type: "Cancelled",
-      })
-      .eq("id", bookingId);
+    const [bookingUpdate] = await Promise.all([
+      supabase
+        .from("bookings")
+        .update({
+          status: "Cancelled",
+          total_price: 500,
+          last_action_by: actor,
+          last_action_at: now,
+          last_action_type: "Cancelled",
+        })
+        .eq("id", bookingId),
+      booking.car_id
+        ? supabase.from("cars").update({ status: "Available" }).eq("id", booking.car_id)
+        : Promise.resolve({ error: null }),
+    ]);
 
-    if (error) flashRedirect(back, "error", `Failed to update booking: ${error.message}`);
+    if (bookingUpdate.error) flashRedirect(back, "error", `Failed to update booking: ${bookingUpdate.error.message}`);
 
-    if (booking.car_id) {
-      await supabase.from("cars").update({ status: "Available" }).eq("id", booking.car_id);
-    }
-
-    const contact = await bookingContact(bookingId);
-    await notify(contact.email, bookingCancelledEmail(contact.name, siteUrl("/user/dashboard")));
+    notifyAsync(customerEmail, bookingCancelledEmail(customerName, siteUrl("/user/dashboard")));
 
     refreshBookingViews(bookingId);
     flashRedirect(back, "success", "Booking cancelled and email sent.");
