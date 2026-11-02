@@ -101,7 +101,7 @@ export default async function StaffDashboardPage({
         </Link>
       </div>
 
-      <SectionCard bodyClassName="overflow-x-auto">
+      <SectionCard bodyClassName="p-0">
         {recent.length === 0 ? (
           <EmptyState icon={ClipboardList} title="No bookings yet." className="py-12" />
         ) : (

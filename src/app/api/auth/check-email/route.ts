@@ -11,7 +11,8 @@ export async function GET(request: Request) {
   }
 
   // Rate limiting to prevent email scraping
-  const ip = request.headers.get("x-forwarded-for") ?? "anonymous";
+  const rawIp = request.headers.get("x-forwarded-for") ?? "anonymous";
+  const ip = rawIp.split(",")[0].trim();
   const rateLimit = checkRateLimit(`check_email_${ip}`, {
     interval: 60_000,
     maxRequests: 30,

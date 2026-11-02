@@ -220,6 +220,77 @@ export function ContactMessagesTable({
         rows={messages}
         keyExtractor={(row) => String(row.id)}
         emptyMessage="No inquiries match the current filters."
+        renderMobileCard={(row) => (
+          <div className="rounded-2xl border border-border bg-card p-4 space-y-3 shadow-xs">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-[#ffcc00]/30 bg-[#ffcc00]/15 text-xs font-bold text-[#b38a00] dark:text-[#ffd700]">
+                  {initials(row.name)}
+                </span>
+                <div className="min-w-0">
+                  <p className={cn("text-xs truncate text-foreground", row.is_read ? "font-semibold" : "font-extrabold")}>
+                    {row.name ?? "—"}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground truncate">{row.email ?? "No email"}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {!row.is_read ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#ffcc00]/15 px-2 py-0.5 text-[9px] font-extrabold uppercase text-[#b38a00] dark:text-[#ffd700]">
+                    <span className="size-1.5 rounded-full bg-[#ffcc00]" />
+                    New
+                  </span>
+                ) : null}
+                <span className="font-mono text-xs text-muted-foreground">#{row.id}</span>
+              </div>
+            </div>
+
+            <div className="rounded-xl bg-muted/30 p-2.5 text-xs border border-border/40 space-y-1">
+              <p className="font-bold text-foreground truncate">{row.subject ?? "No Subject"}</p>
+              <p className="text-muted-foreground line-clamp-2 text-[11px] leading-relaxed">
+                {row.message ?? "No message content."}
+              </p>
+              <p className="text-[10px] text-muted-foreground/75 pt-1 border-t border-border/30">
+                {stamp(row.created_at)}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-xs font-bold"
+                onClick={() => setViewing(row)}
+              >
+                <Eye className="size-3.5" />
+                View
+              </Button>
+
+              <Button asChild size="sm" variant="outline" className="gap-1.5 text-xs font-bold">
+                <a
+                  href={`mailto:${encodeURIComponent(row.email ?? "")}?subject=${encodeURIComponent(
+                    `Re: ${row.subject ?? ""}`,
+                  )}`}
+                >
+                  <Reply className="size-3.5" />
+                  Reply
+                </a>
+              </Button>
+
+              <Button
+                type="button"
+                size="icon-sm"
+                variant="outline"
+                className="text-rose-600 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-950/40"
+                onClick={() => setDeleting(row)}
+              >
+                <Trash className="size-4" />
+                <span className="sr-only">Delete</span>
+              </Button>
+            </div>
+          </div>
+        )}
       />
 
       {/* Message Detail Modal — legacy `#viewModal` */}

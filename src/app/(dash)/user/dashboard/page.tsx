@@ -136,7 +136,7 @@ export default async function UserDashboardPage({
             </Link>
           </div>
 
-          <SectionCard bodyClassName="overflow-x-auto">
+          <SectionCard bodyClassName="p-0">
             {recent.length === 0 ? (
               <div className="py-10 text-center">
                 <CarFront className="mx-auto size-10 text-muted-foreground/40" />

@@ -58,9 +58,102 @@ export function CustomerBookingsTable({
     );
   }
 
-  return (
+    return (
     <>
-      <div className="overflow-x-auto">
+      {/* Mobile Card Layout (< md) */}
+      <div className="space-y-3 md:hidden">
+        {bookings.map((booking) => {
+          const carName =
+            [booking.cars?.brand, booking.cars?.model].filter(Boolean).join(" ") || "Vehicle";
+          const isDelivery =
+            booking.fulfillment_type?.toLowerCase() === "delivery" ||
+            Boolean(booking.delivery_address);
+
+          return (
+            <div
+              key={booking.id}
+              className="rounded-2xl border border-border bg-card p-4 space-y-3 shadow-xs"
+            >
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="font-mono text-xs font-black text-foreground bg-muted/80 px-2 py-0.5 rounded-md border border-border/40">
+                    #BK-{booking.id}
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[10px] font-semibold text-foreground">
+                    <Truck className="size-3 text-amber-600 dark:text-[#ffcc00]" />
+                    {isDelivery ? "Delivery" : "Pickup"}
+                  </span>
+                </div>
+                <StatusBadge status={booking.status} />
+              </div>
+
+              <div>
+                <p className="font-extrabold text-base text-foreground leading-snug">{carName}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {booking.cars?.type || "Standard Vehicle"}
+                </p>
+              </div>
+
+              <div className="space-y-1.5 rounded-xl bg-muted/30 p-3 text-xs border border-border/50">
+                <div className="flex items-center gap-2 text-foreground font-medium">
+                  <CalendarDays className="size-3.5 text-[#ffcc00] shrink-0" />
+                  <span>
+                    {formatDate(booking.start_date)} – {formatDate(booking.end_date)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground text-[11px]">
+                  <Clock className="size-3 shrink-0" />
+                  <span>
+                    {formatTime(booking.pickup_time)} – {formatTime(booking.return_time)}
+                  </span>
+                </div>
+                {booking.delivery_address ? (
+                  <p className="text-[11px] text-muted-foreground truncate pt-1 border-t border-border/30">
+                    Location: {booking.delivery_address}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/40">
+                <div>
+                  <span className="text-xs text-muted-foreground font-bold mr-1.5">Total:</span>
+                  <Money value={booking.total_price} className="font-black text-base text-foreground" />
+                  {booking.down_payment ? (
+                    <span className="text-[10px] text-emerald-500 font-bold ml-1.5">
+                      (Paid: <Money value={booking.down_payment} />)
+                    </span>
+                  ) : null}
+                </div>
+
+                <div>
+                  {booking.status === "Completed" ? (
+                    <button
+                      type="button"
+                      onClick={() => setReviewBooking(booking)}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-[#ffcc00]/60 bg-[#ffcc00]/15 px-3 py-1.5 text-xs font-bold text-[#b38a00] dark:text-[#ffcc00] hover:bg-[#ffcc00] hover:text-black transition shadow-xs cursor-pointer"
+                    >
+                      <Star className="size-3.5 fill-current" />
+                      <span>Review</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleTrackStage(booking)}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-[#ffcc00]/60 bg-[#ffcc00]/10 px-3 py-1.5 text-xs font-bold text-[#b38a00] dark:text-[#ffcc00] hover:bg-[#ffcc00] hover:text-black transition shadow-xs cursor-pointer"
+                    >
+                      <Truck className="size-3.5" />
+                      <span>Track Trip</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop Spreadsheet View (>= md) */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full min-w-[650px] text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/60 text-[11px] uppercase tracking-wide text-muted-foreground">

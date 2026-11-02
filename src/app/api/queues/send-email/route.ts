@@ -62,8 +62,15 @@ export async function POST(req: NextRequest) {
         );
       }
     } else {
+      if (process.env.NODE_ENV === "production") {
+        console.error("[QStash Worker] Rejected: QSTASH_CURRENT_SIGNING_KEY is required in production.");
+        return NextResponse.json(
+          { error: "Unauthorized: Missing queue signing configuration" },
+          { status: 401 },
+        );
+      }
       console.warn(
-        "[QStash Worker] QSTASH_CURRENT_SIGNING_KEY is not configured. Processing without signature verification.",
+        "[QStash Worker] QSTASH_CURRENT_SIGNING_KEY is not configured. Processing in dev mode without signature verification.",
       );
     }
 

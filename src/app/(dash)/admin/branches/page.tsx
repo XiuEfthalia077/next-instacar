@@ -1,4 +1,4 @@
-import { CircleCheck, Store } from "lucide-react";
+import { CircleAlert, CircleCheck, Store, TrendingUp } from "lucide-react";
 
 import {
   BranchToggleDialog,

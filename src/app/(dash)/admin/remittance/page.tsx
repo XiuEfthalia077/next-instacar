@@ -193,7 +193,7 @@ export default async function AdminRemittancePage({
             />
           </div>
 
-          <div className="mt-auto flex flex-wrap items-center justify-between gap-2 bg-[#fffbe6] p-3 dark:bg-[#1a1600]">
+          <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-border bg-muted/40 p-3">
             <RemittanceRecordDialog
               kind="staff"
               targetId={branch.branchId}
