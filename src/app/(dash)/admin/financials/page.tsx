@@ -85,6 +85,21 @@ const FINANCIAL_TABS = [
 
 type FinancialTab = (typeof FINANCIAL_TABS)[number]["id"];
 
+
+function buildTabHref(tabId: string, currentParams: Record<string, string | string[] | undefined>) {
+  const p = new URLSearchParams();
+  p.set("tab", tabId);
+  for (const [key, val] of Object.entries(currentParams)) {
+    if (key === "tab" || !val) continue;
+    if (typeof val === "string") {
+      p.set(key, val);
+    } else if (Array.isArray(val) && val[0]) {
+      p.set(key, val[0]);
+    }
+  }
+  return `/admin/financials?${p.toString()}`;
+}
+
 function shortCurrency(amount: number): string {
   if (amount === 0) return "—";
   if (amount >= 1_000_000) return `₱${(amount / 1_000_000).toFixed(1)}M`;
@@ -207,7 +222,7 @@ export default async function FinancialIntelligenceCenterPage({
             return (
               <Link
                 key={tab.id}
-                href={`/admin/financials?tab=${tab.id}`}
+                href={buildTabHref(tab.id, params)}
                 className={cn(
                   "flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all",
                   isActive
@@ -722,7 +737,6 @@ export default async function FinancialIntelligenceCenterPage({
               <select
                 name="year"
                 defaultValue={selectedYear}
-                onChange={(e) => e.currentTarget.form?.submit()}
                 className={cn(filterControlClass, "text-xs font-semibold min-w-[140px]")}
               >
                 {Array.from({ length: 5 }, (_, i) => currentYear() - i).map((y) => (
@@ -731,9 +745,20 @@ export default async function FinancialIntelligenceCenterPage({
                   </option>
                 ))}
               </select>
+              <Button type="submit" size="sm" className="bg-[#ffcc00] text-black font-bold hover:bg-[#ffd700]">
+                Apply
+              </Button>
             </form>
 
-            <PrintButton />
+            <div className="flex items-center gap-2">
+              <Button asChild variant="outline" size="sm" className="gap-2 font-bold text-xs">
+                <a href="/api/financials/export-excel" download>
+                  <FileSpreadsheet className="size-4 text-emerald-500" />
+                  Export Excel
+                </a>
+              </Button>
+              <PrintButton />
+            </div>
           </div>
 
           <div className="rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-xs overflow-x-auto">
