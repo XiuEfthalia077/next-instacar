@@ -38,6 +38,35 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: "/admin/analytics",
+        destination: "/admin/financials?tab=overview",
+        permanent: true,
+      },
+      {
+        source: "/admin/admin_revenue",
+        destination: "/admin/financials?tab=revenue",
+        permanent: true,
+      },
+      {
+        source: "/admin/expenses",
+        destination: "/admin/financials?tab=expenses",
+        permanent: true,
+      },
+      {
+        source: "/admin/income",
+        destination: "/admin/financials?tab=income",
+        permanent: true,
+      },
+      {
+        source: "/admin/staff_manager",
+        destination: "/admin/staff",
+        permanent: true,
+      },
+    ];
+  },
   experimental: {
     agentFeedback: true,
     serverActions: {

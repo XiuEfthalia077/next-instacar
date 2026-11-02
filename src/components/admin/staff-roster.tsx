@@ -4,15 +4,8 @@ import { useMemo, useState } from "react";
 import { Clock, Search } from "lucide-react";
 
 import { filterControlClass } from "@/components/common/filter-bar";
+import { EditUserDialog, DeleteUserDialog, type BranchOption } from "@/components/admin/user-dialogs";
 import { cn } from "@/lib/utils";
-
-/**
- * The Team Roster of `car-rental/pages/admin/staff_manager.php`.
- *
- * The legacy page filtered and sorted the rendered cards with plain JS; this
- * client component keeps that behaviour (search, status pills, sort select)
- * while the aggregate numbers are computed on the server.
- */
 
 export type StaffRosterRow = {
   id: number;
@@ -20,6 +13,8 @@ export type StaffRosterRow = {
   email: string;
   phone: string;
   initials: string;
+  branchId: number | null;
+  branchName?: string | null;
   status: "active" | "idle" | "inactive";
   statusLabel: string;
   totalCreated: number;
@@ -31,11 +26,9 @@ export type StaffRosterRow = {
 };
 
 const STATUS_CLASSES: Record<StaffRosterRow["status"], string> = {
-  active:
-    "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+  active: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
   idle: "bg-slate-100 text-slate-500 dark:bg-[#1f1f23] dark:text-slate-400",
-  inactive:
-    "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300",
+  inactive: "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300",
 };
 
 const PILLS = [
@@ -45,7 +38,13 @@ const PILLS = [
   { value: "inactive", label: "Inactive" },
 ] as const;
 
-export function StaffRoster({ rows }: { rows: StaffRosterRow[] }) {
+export function StaffRoster({
+  rows,
+  branches = [],
+}: {
+  rows: StaffRosterRow[];
+  branches?: BranchOption[];
+}) {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<string>("all");
   const [sortBy, setSortBy] = useState("name");
@@ -58,7 +57,8 @@ export function StaffRoster({ rows }: { rows: StaffRosterRow[] }) {
         !needle ||
         row.name.toLowerCase().includes(needle) ||
         row.email.toLowerCase().includes(needle) ||
-        row.phone.toLowerCase().includes(needle);
+        row.phone.toLowerCase().includes(needle) ||
+        (row.branchName && row.branchName.toLowerCase().includes(needle));
       const matchesStatus = status === "all" || row.status === status;
       return matchesQuery && matchesStatus;
     });
@@ -81,7 +81,7 @@ export function StaffRoster({ rows }: { rows: StaffRosterRow[] }) {
             type="text"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search name, email, or phone..."
+            placeholder="Search staff name, email, or branch..."
             className={cn(filterControlClass, "pl-9")}
           />
         </div>
@@ -126,68 +126,100 @@ export function StaffRoster({ rows }: { rows: StaffRosterRow[] }) {
           {visible.map((row) => (
             <div
               key={row.id}
-              className="flex h-full flex-col gap-4 rounded-2xl border border-border bg-card p-5 transition-all hover:border-[#ffcc00] hover:shadow-[0_12px_20px_-8px_rgba(255,204,0,0.25)]"
+              className="flex h-full flex-col justify-between gap-4 rounded-2xl border border-border bg-card p-4 sm:p-5 transition-all hover:border-[#ffcc00] hover:shadow-[0_12px_20px_-8px_rgba(255,204,0,0.25)]"
             >
-              <div className="flex items-center gap-3">
-                <div className="flex size-[52px] shrink-0 items-center justify-center rounded-[14px] bg-gradient-to-br from-[#ffcc00] to-[#ffe066] text-lg font-extrabold text-black shadow-[0_4px_12px_rgba(255,204,0,0.3)]">
-                  {row.initials}
+              <div>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="flex size-[48px] sm:size-[52px] shrink-0 items-center justify-center rounded-[14px] bg-gradient-to-br from-[#ffcc00] to-[#ffe066] text-lg font-extrabold text-black shadow-[0_4px_12px_rgba(255,204,0,0.3)]">
+                      {row.initials}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="truncate text-base sm:text-[1.05rem] font-extrabold leading-tight text-foreground">
+                          {row.name}
+                        </h3>
+                      </div>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {row.email}
+                      </p>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-[2px] text-[0.68rem] font-bold",
+                            STATUS_CLASSES[row.status],
+                          )}
+                        >
+                          <span className="size-1.5 rounded-full bg-current" />
+                          {row.statusLabel}
+                        </span>
+                        {row.branchName && (
+                          <span className="inline-flex items-center rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                            {row.branchName}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions: Edit & Delete buttons */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    <EditUserDialog
+                      user={{
+                        id: row.id,
+                        name: row.name,
+                        email: row.email,
+                        phone: row.phone,
+                        branchId: row.branchId,
+                      }}
+                      role="staff"
+                      branches={branches}
+                    />
+                    <DeleteUserDialog
+                      user={{ id: row.id, name: row.name }}
+                      role="staff"
+                    />
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="truncate text-[1.05rem] font-extrabold leading-tight text-foreground">
-                    {row.name}
-                  </h3>
-                  <p className="truncate text-[0.78rem] text-muted-foreground">
-                    {row.email}
-                  </p>
-                  <span
-                    className={cn(
-                      "mt-1 inline-flex items-center gap-1.5 rounded-full px-2.5 py-[3px] text-[0.68rem] font-bold",
-                      STATUS_CLASSES[row.status],
-                    )}
-                  >
-                    <span className="size-1.5 rounded-full bg-current" />
-                    {row.statusLabel}
-                  </span>
+
+                <div className="mt-4 grid grid-cols-2 gap-2.5 border-t border-border pt-3.5">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[0.62rem] font-bold uppercase tracking-[0.06em] text-muted-foreground">
+                      Bookings Created
+                    </span>
+                    <span className="text-[1.15rem] font-extrabold leading-none text-foreground">
+                      {row.totalCreated.toLocaleString("en-PH")}
+                    </span>
+                    <span
+                      className={cn(
+                        "text-[0.68rem] font-semibold text-muted-foreground",
+                        row.monthCreated > 0 && "font-bold text-emerald-600 dark:text-emerald-400",
+                      )}
+                    >
+                      {row.monthCreated.toLocaleString("en-PH")} this month
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[0.62rem] font-bold uppercase tracking-[0.06em] text-muted-foreground">
+                      Actions Taken
+                    </span>
+                    <span className="text-[1.15rem] font-extrabold leading-none text-foreground">
+                      {row.totalActions.toLocaleString("en-PH")}
+                    </span>
+                    <span
+                      className={cn(
+                        "text-[0.68rem] font-semibold text-muted-foreground",
+                        row.monthActions > 0 && "font-bold text-emerald-600 dark:text-emerald-400",
+                      )}
+                    >
+                      {row.monthActions.toLocaleString("en-PH")} this month
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2.5 border-t border-border pt-3.5">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-[0.62rem] font-bold uppercase tracking-[0.06em] text-muted-foreground">
-                    Bookings Created
-                  </span>
-                  <span className="text-[1.15rem] font-extrabold leading-none text-foreground">
-                    {row.totalCreated.toLocaleString("en-PH")}
-                  </span>
-                  <span
-                    className={cn(
-                      "text-[0.68rem] font-semibold text-muted-foreground",
-                      row.monthCreated > 0 && "font-bold text-emerald-600 dark:text-emerald-400",
-                    )}
-                  >
-                    {row.monthCreated.toLocaleString("en-PH")} this month
-                  </span>
-                </div>
-
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-[0.62rem] font-bold uppercase tracking-[0.06em] text-muted-foreground">
-                    Actions Taken
-                  </span>
-                  <span className="text-[1.15rem] font-extrabold leading-none text-foreground">
-                    {row.totalActions.toLocaleString("en-PH")}
-                  </span>
-                  <span
-                    className={cn(
-                      "text-[0.68rem] font-semibold text-muted-foreground",
-                      row.monthActions > 0 && "font-bold text-emerald-600 dark:text-emerald-400",
-                    )}
-                  >
-                    {row.monthActions.toLocaleString("en-PH")} this month
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between border-t border-border pt-2 text-xs">
+              <div className="flex items-center justify-between border-t border-border pt-2.5 text-xs">
                 <span className="text-muted-foreground">
                   <Clock className="mr-1 inline size-3.5 align-[-2px]" />
                   Last activity

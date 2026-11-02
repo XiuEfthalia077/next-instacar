@@ -236,11 +236,18 @@ async function hasOverlap(options: {
   const supabase = await getSupabase();
   const db = getAdminClient() ?? supabase;
 
-  const { data } = await db
-    .from("bookings")
-    .select("id, start_date, end_date, pickup_time, return_time")
-    .eq("car_id", options.carId)
-    .not("status", "in", "(Cancelled,Completed)");
+  const [bookingsRes, schedulesRes] = await Promise.all([
+    db
+      .from("bookings")
+      .select("id, start_date, end_date, pickup_time, return_time")
+      .eq("car_id", options.carId)
+      .not("status", "in", "(Cancelled,Completed)"),
+    db
+      .from("car_schedules")
+      .select("id, start_date, end_date")
+      .eq("car_id", options.carId),
+  ]);
+  const data = bookingsRes.data;
 
   const requestedStart = wallClockTimestamp(options.start, "00:00:00");
   const requestedEnd = wallClockTimestamp(options.end, "23:59:59");

@@ -189,6 +189,7 @@ export async function getFleetAnalytics(
   for (const p of rawPayments) {
     const b = Array.isArray(p.bookings) ? p.bookings[0] : p.bookings;
     if (!b?.car_id) continue;
+    if (b.status === "Cancelled") continue;
 
     const row = vehicleMap.get(b.car_id);
     if (!row) continue; // Vehicle filtered out by ownership/search/branch

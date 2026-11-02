@@ -271,7 +271,12 @@ export async function incomeStatement(
     total_net: number | null;
     operator_share: number | null;
     created_at: string | null;
-  }>(supabase.from("booking_payments").select("total_gross, total_net, operator_share, created_at"));
+    bookings: { status: string | null } | null;
+  }>(
+    supabase
+      .from("booking_payments")
+      .select("total_gross, total_net, operator_share, created_at, bookings!booking_payments_booking_id_fkey ( status )")
+  );
 
   const expenses = await fetchRows<{
     amount: number | null;
@@ -297,6 +302,7 @@ export async function incomeStatement(
   };
 
   for (const payment of payments) {
+    if (payment.bookings?.status === "Cancelled") continue;
     if (yearOf(payment.created_at) !== year) continue;
     const row = bucket(monthOf(payment.created_at));
     const gross = num(payment.total_gross);

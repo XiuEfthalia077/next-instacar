@@ -148,7 +148,7 @@ export const SIDEBAR_NAV: Record<UserRole, NavGroup[]> = {
           label: "Users Management",
           icon: Users,
           children: [
-            { label: "Staff", href: "/admin/staff_manager", icon: BadgeCheck },
+            { label: "Staff Console", href: "/admin/staff", icon: BadgeCheck },
             { label: "Admins", href: "/admin/users?role=admin", icon: Shield },
             { label: "Operators", href: "/admin/users?role=operator", icon: Wrench },
             { label: "Customers", href: "/admin/users?role=user", icon: Users },
@@ -199,10 +199,10 @@ export const SIDEBAR_NAV: Record<UserRole, NavGroup[]> = {
           label: "Analytics",
           icon: BarChart3,
           children: [
-            { label: "Profit Analytics", href: "/admin/analytics", icon: TrendingUp },
-            { label: "Fleet Revenue", href: "/admin/admin_revenue", icon: Settings },
-            { label: "Fleet Breakdown", href: "/admin/expenses", icon: FileSpreadsheet },
-            { label: "Income Statement", href: "/admin/income", icon: BarChart3 },
+            { label: "Overview", href: "/admin/financials?tab=overview", icon: TrendingUp },
+            { label: "Fleet Revenue", href: "/admin/financials?tab=revenue", icon: Settings },
+            { label: "Fleet Breakdown", href: "/admin/financials?tab=expenses", icon: FileSpreadsheet },
+            { label: "Income Statement", href: "/admin/financials?tab=income", icon: BarChart3 },
           ],
         },
       ],

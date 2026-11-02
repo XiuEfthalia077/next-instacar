@@ -96,7 +96,7 @@ export default async function AdminUsersPage({
 
   const requestedRole = searchParam(params, "role");
   if (requestedRole === "staff") {
-    redirect("/admin/staff_manager");
+    redirect("/admin/staff");
   }
   const role: ManagedRole = ROLES.includes(requestedRole as ManagedRole)
     ? (requestedRole as ManagedRole)
