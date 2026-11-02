@@ -763,8 +763,8 @@ export function ManualBookingDialog({
             <div>
               <FileUploadDropzone
                 name="primary_id"
-                label="Primary ID"
-                required
+                label="Primary ID (optional)"
+                required={false}
                 accept="image/*,.pdf"
                 helperText="JPG, PNG, or PDF (Max 5MB)"
               />
@@ -783,8 +783,8 @@ export function ManualBookingDialog({
             <div className="sm:col-span-2">
               <FileUploadDropzone
                 name="proof_of_billing"
-                label="Proof of Billing"
-                required
+                label="Proof of Billing (optional)"
+                required={false}
                 accept="image/*,.pdf"
                 helperText="Utility bill, statement, etc. (Max 5MB)"
               />
