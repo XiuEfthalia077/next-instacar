@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronRight, X } from "lucide-react";
 
+import { triggerTopLoader } from "@/components/common/top-loader";
 import { SIDEBAR_NAV, isNavParent } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import type { Branch, UserRole } from "@/lib/types";
@@ -56,6 +57,7 @@ export function Sidebar({
   tabletCollapsed?: boolean;
   onClose?: () => void;
 }) {
+  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const groups = SIDEBAR_NAV[role];
@@ -103,8 +105,9 @@ export function Sidebar({
     setMobileOpen(false);
   }, [pathname, searchParams, setMobileOpen]);
 
-  const handleLinkClick = () => {
+  const handleLinkClick = (href?: string) => {
     setMobileOpen(false);
+    if (href) triggerTopLoader(href);
   };
 
   const toggle = (label: string) =>
@@ -118,7 +121,8 @@ export function Sidebar({
         <Link
           href={child.href}
           prefetch={true}
-          onClick={handleLinkClick}
+          onClick={() => handleLinkClick(child.href)}
+          onMouseEnter={() => router.prefetch(child.href)}
           className={cn(
             "flex items-center gap-2 rounded-lg px-3 py-2.5 min-h-[44px] text-[13px] transition-colors",
             active
@@ -202,7 +206,8 @@ export function Sidebar({
                         <Link
                           href={entry.href}
                           prefetch={true}
-                          onClick={handleLinkClick}
+                          onClick={() => handleLinkClick(entry.href)}
+                          onMouseEnter={() => router.prefetch(entry.href)}
                           className={cn(
                             "relative mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 min-h-[44px] text-[13px] transition-colors",
                             active

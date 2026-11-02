@@ -1,12 +1,5 @@
-import { CarLoadingScreen } from "@/components/common/car-loading-screen";
+import { AdminPageSkeleton } from "@/components/ui/admin-page-skeleton";
 
 export default function DashboardLoading() {
-  return (
-    <CarLoadingScreen
-      fullScreen={false}
-      message="Loading dashboard view..."
-      subtext="Syncing fleet metrics and live schedules"
-      className="my-8 min-h-[460px]"
-    />
-  );
+  return <AdminPageSkeleton titleWidth="w-56" showKpis={true} kpiCount={4} showToolbar={true} tableRows={6} />;
 }

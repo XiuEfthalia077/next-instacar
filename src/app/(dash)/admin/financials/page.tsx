@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import {
   Banknote,
   BarChart3,
@@ -17,10 +18,12 @@ import { connection } from "next/server";
 
 import { ExpenseManager } from "@/components/admin/expense-manager";
 import { FinancialTelemetryChart } from "@/components/admin/financial-chart";
+import { FinancialTabs } from "@/components/admin/financial-tabs";
 import { PrintButton } from "@/components/admin/print-button";
 import { filterControlClass } from "@/components/common/filter-bar";
 import { Flash } from "@/components/common/flash";
 import { StatCard } from "@/components/shared/StatCard";
+import { TabContentSkeleton } from "@/components/ui/tab-content-skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -215,30 +218,12 @@ export default async function FinancialIntelligenceCenterPage({
         </div>
 
         {/* Tab Navigation Controls */}
-        <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-border bg-card p-1">
-          {FINANCIAL_TABS.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <Link
-                key={tab.id}
-                href={buildTabHref(tab.id, params)}
-                className={cn(
-                  "flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all",
-                  isActive
-                    ? "bg-[#ffcc00] text-black shadow-xs"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground",
-                )}
-              >
-                <Icon className="size-3.5 shrink-0" />
-                <span>{tab.label}</span>
-              </Link>
-            );
-          })}
-        </div>
+        <FinancialTabs activeTab={activeTab} currentParams={params} />
       </div>
 
       <Flash {...flash} />
+
+      <Suspense fallback={<TabContentSkeleton showKpis={true} kpiCount={4} showToolbar={true} tableRows={6} />}>
 
       {/* ── TAB 1: OVERVIEW & ANALYTICS ── */}
       {activeTab === "overview" && analyticsData && (
@@ -853,6 +838,7 @@ export default async function FinancialIntelligenceCenterPage({
           </div>
         </div>
       )}
+      </Suspense>
     </div>
   );
 }

@@ -256,8 +256,10 @@ export async function signedFileUrl(
   return data?.signedUrl ?? "";
 }
 
+const signedUrlCache = new Map<string, { url: string; expiresAt: number }>();
+
 /**
- * Builds signed URLs for several files of the same bucket at once.
+ * Builds signed URLs for several files of the same bucket at once with in-memory caching.
  * Missing files simply resolve to an empty string.
  */
 export async function signedFileUrls(
@@ -266,14 +268,46 @@ export async function signedFileUrls(
   paths: string[],
   expiresIn = 60 * 30,
 ) {
-  const keys = paths.map((p) => normalizeStoragePath(p)).filter(Boolean);
-  if (!keys.length) return [] as string[];
+  const normalized = paths.map((p) => normalizeStoragePath(p));
+  const now = Date.now();
+  const results = new Array<string>(paths.length).fill("");
+  const missingIndices: number[] = [];
+  const missingKeys: string[] = [];
 
-  const { data, error } = await supabase.storage
-    .from(bucket)
-    .createSignedUrls(keys, expiresIn);
+  for (let i = 0; i < normalized.length; i++) {
+    const key = normalized[i];
+    if (!key) continue;
+    const cacheKey = `${bucket}:${key}`;
+    const cached = signedUrlCache.get(cacheKey);
+    // Reuse cached URL if it still has at least 5 minutes before expiration
+    if (cached && cached.expiresAt > now + 300_000) {
+      results[i] = cached.url;
+    } else {
+      missingIndices.push(i);
+      missingKeys.push(key);
+    }
+  }
 
-  if (error || !data) return keys.map(() => "");
+  if (missingKeys.length > 0) {
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .createSignedUrls(missingKeys, expiresIn);
 
-  return data.map((entry) => entry.signedUrl ?? "");
+    if (!error && data) {
+      for (let j = 0; j < data.length; j++) {
+        const url = data[j]?.signedUrl ?? "";
+        const originalIndex = missingIndices[j];
+        const key = missingKeys[j];
+        results[originalIndex] = url;
+        if (url) {
+          signedUrlCache.set(`${bucket}:${key}`, {
+            url,
+            expiresAt: now + expiresIn * 1000,
+          });
+        }
+      }
+    }
+  }
+
+  return results;
 }
