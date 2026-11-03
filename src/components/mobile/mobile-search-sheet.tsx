@@ -63,7 +63,10 @@ export function MobileSearchPill({
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={(e) => {
+        e.currentTarget.blur();
+        onClick?.();
+      }}
       className={cn(
         "flex w-full items-center gap-3 rounded-full border border-border bg-card/95 px-4 py-3 text-left shadow-md backdrop-blur-md transition-all hover:border-[#ffcc00] hover:shadow-lg active:scale-[0.98] cursor-pointer min-h-[48px]",
         className,

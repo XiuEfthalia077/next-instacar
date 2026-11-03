@@ -14,9 +14,19 @@ function Dialog({
 }
 
 function DialogTrigger({
+  onClick,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Trigger>) {
-  return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
+  return (
+    <DialogPrimitive.Trigger
+      data-slot="dialog-trigger"
+      onClick={(e) => {
+        e.currentTarget?.blur();
+        onClick?.(e);
+      }}
+      {...props}
+    />
+  )
 }
 
 function DialogPortal({
@@ -51,6 +61,8 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  onOpenAutoFocus,
+  onCloseAutoFocus,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
@@ -60,6 +72,20 @@ function DialogContent({
       <DialogOverlay />
       <DialogPrimitive.Content
         data-slot="dialog-content"
+        onOpenAutoFocus={(e) => {
+          if (onOpenAutoFocus) {
+            onOpenAutoFocus(e)
+          } else {
+            e.preventDefault()
+          }
+        }}
+        onCloseAutoFocus={(e) => {
+          if (onCloseAutoFocus) {
+            onCloseAutoFocus(e)
+          } else {
+            e.preventDefault()
+          }
+        }}
         className={cn(
           "fixed top-[50%] left-[50%] z-[101] grid w-[94vw] max-w-[calc(100%-1.5rem)] md:w-full max-w-lg max-h-[92vh] overflow-y-auto translate-x-[-50%] translate-y-[-50%] gap-5 rounded-2xl border bg-background p-4 sm:p-7 shadow-2xl duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
           className

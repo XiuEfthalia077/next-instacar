@@ -35,7 +35,10 @@ export function SiteNavbar() {
               {/* Search Shortcut Icon */}
               <button
                 type="button"
-                onClick={() => setSearchOpen(true)}
+                onClick={(e) => {
+                  e.currentTarget.blur();
+                  setSearchOpen(true);
+                }}
                 aria-label="Search vehicles"
                 className="flex size-10 items-center justify-center rounded-full border border-border bg-card text-foreground hover:bg-muted active:scale-95 transition-all shadow-xs cursor-pointer min-h-[40px] min-w-[40px]"
               >

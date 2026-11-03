@@ -71,7 +71,10 @@ export function MobileBottomBar() {
         {/* 2. Search / Filters */}
         <button
           type="button"
-          onClick={() => setSearchOpen(true)}
+          onClick={(e) => {
+            e.currentTarget.blur();
+            setSearchOpen(true);
+          }}
           className="relative flex flex-col items-center justify-center gap-1 px-3 py-1 text-center text-muted-foreground transition-colors hover:text-foreground min-w-[56px] min-h-[44px] cursor-pointer"
         >
           <SlidersHorizontal className="size-5 stroke-2" />
@@ -81,7 +84,10 @@ export function MobileBottomBar() {
         {/* 3. Saved / Favorites */}
         <button
           type="button"
-          onClick={() => setFavoritesOpen(true)}
+          onClick={(e) => {
+            e.currentTarget.blur();
+            setFavoritesOpen(true);
+          }}
           className="relative flex flex-col items-center justify-center gap-1 px-3 py-1 text-center text-muted-foreground transition-colors hover:text-foreground min-w-[56px] min-h-[44px] cursor-pointer"
         >
           <div className="relative">

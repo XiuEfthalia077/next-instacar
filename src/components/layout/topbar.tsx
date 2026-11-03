@@ -80,7 +80,10 @@ export function Topbar({
         <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
           <button
             type="button"
-            onClick={onToggleSidebar}
+            onClick={(e) => {
+              e.currentTarget.blur();
+              onToggleSidebar?.();
+            }}
             aria-label="Toggle navigation"
             className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#FFD700] p-2 text-black lg:hidden active:scale-95 transition-transform cursor-pointer shadow-xs"
           >
@@ -106,6 +109,7 @@ export function Topbar({
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
+                  onClick={(e) => e.currentTarget.blur()}
                   className="hidden sm:inline-flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-xl border-[1.5px] border-[#ffcc00] bg-[#fffbe6] px-3 py-2 text-xs font-bold text-[#8a6a00] min-h-[44px] transition-all hover:bg-[#fff3b0] dark:bg-[#1a1600] dark:text-[#ffcc00] dark:border-[rgba(255,204,0,0.4)] dark:hover:bg-[#262100] dark:hover:border-[#ffcc00]"
                   title="Switch Branch"
                 >
@@ -174,6 +178,7 @@ export function Topbar({
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
+                onClick={(e) => e.currentTarget.blur()}
                 className="flex size-11 sm:w-auto items-center justify-center sm:gap-2.5 rounded-xl border-[1.5px] border-black bg-white sm:px-3 sm:py-1.5 text-black transition-all hover:-translate-y-px hover:bg-[#f8fafc] hover:shadow-[0_4px_15px_rgba(0,0,0,0.12)] dark:border-[#facc15] dark:bg-[#18181b] dark:text-white dark:hover:bg-[#27272a] dark:hover:border-white dark:hover:shadow-[0_0_15px_rgba(255,255,255,0.35)] cursor-pointer"
               >
                 <span className="flex size-[34px] shrink-0 items-center justify-center rounded-lg bg-[#FFD700] text-sm font-extrabold text-black">
