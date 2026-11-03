@@ -50,7 +50,7 @@ export default async function UserDashboardPage({
   const recent = bookings.slice(0, 5);
 
   return (
-    <>
+    <div className="space-y-5 pb-28 md:pb-6 overflow-x-hidden">
       <PageHeader
         title="My Dashboard"
         subtitle="Customer Area"
@@ -257,6 +257,6 @@ export default async function UserDashboardPage({
           </SectionCard>
         </div>
       </div>
-    </>
+    </div>
   );
 }

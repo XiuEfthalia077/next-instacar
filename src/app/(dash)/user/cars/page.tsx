@@ -201,7 +201,7 @@ export default async function UserCarsPage({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-28 md:pb-6 overflow-x-hidden">
       <Flash {...flash} />
 
       {/* Strict Filter Layout Matching Attached Screenshot */}
@@ -236,7 +236,7 @@ export default async function UserCarsPage({
           }
         />
       ) : (
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 px-1 sm:px-0 md:grid-cols-2 lg:grid-cols-3">
           {paginatedCars.map((car) => (
             <UserCarCard
               key={car.id}

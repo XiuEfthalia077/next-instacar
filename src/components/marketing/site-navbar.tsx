@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Search, User, Sparkles } from "lucide-react";
 import { ThemeToggle } from "@/components/layout/topbar";
+import { MobileSearchSheet } from "@/components/mobile/mobile-search-sheet";
 
 export function SiteNavbar() {
-  const [open, setOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const links = [
     { label: "Services", href: "#features" },
@@ -15,67 +16,85 @@ export function SiteNavbar() {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-border/80 bg-background/90 text-foreground backdrop-blur-md transition-colors">
-      <div className="mx-auto w-full max-w-[1320px] px-4 py-3">
-        <div className="flex items-center justify-between">
-          <Link
-            href="/"
-            className="brand-gradient-text text-[1.8rem] sm:text-[1.9rem] font-black tracking-[-1px]"
-          >
-            Insta<span className="text-[#ffcc00]">Car</span>
-          </Link>
-
-          <div className="flex items-center gap-2 lg:hidden">
-            <ThemeToggle />
-            <button
-              type="button"
-              onClick={() => setOpen((value) => !value)}
-              aria-label="Toggle navigation"
-              aria-expanded={open}
-              className="rounded-lg border border-border p-2 text-foreground hover:bg-muted"
+    <>
+      <header className="sticky top-0 z-50 h-14 sm:h-16 border-b border-border/80 bg-background/90 text-foreground backdrop-blur-md transition-colors flex items-center">
+        <div className="mx-auto w-full max-w-[1320px] px-4">
+          <div className="flex items-center justify-between">
+            {/* Left: Crisp Brand Logo */}
+            <Link
+              href="/"
+              className="brand-gradient-text text-[1.6rem] sm:text-[1.85rem] font-black tracking-[-1px] flex items-center gap-1"
             >
-              {open ? <X className="size-5" /> : <Menu className="size-5" />}
-            </button>
-          </div>
+              <span>Insta</span>
+              <span className="text-[#ffcc00]">Car</span>
+              <span className="size-1.5 rounded-full bg-[#ffcc00] inline-block mb-1" />
+            </Link>
 
-          <div
-            className={`${open ? "block" : "hidden"} absolute inset-x-0 top-full border-b border-border bg-background px-4 pb-4 pt-2 shadow-lg lg:static lg:block lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none`}
-          >
-            <ul className="flex flex-col items-start gap-2 lg:ms-auto lg:flex-row lg:items-center">
-              {links.map((link) => (
-                <li key={link.href}>
-                  <a
-                    href={link.href}
-                    onClick={() => setOpen(false)}
-                    className="block rounded-lg px-3 py-1.5 text-xs sm:text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground hover:bg-muted/50 lg:hover:bg-transparent"
-                  >
-                    {link.label}
-                  </a>
-                </li>
-              ))}
-              <li className="hidden lg:block lg:ms-2">
+            {/* Mobile Header Actions (Inspired by modern native apps) */}
+            <div className="flex items-center gap-1.5 sm:gap-2 lg:hidden">
+              {/* Search Shortcut Icon */}
+              <button
+                type="button"
+                onClick={() => setSearchOpen(true)}
+                aria-label="Search vehicles"
+                className="flex size-10 items-center justify-center rounded-full border border-border bg-card text-foreground hover:bg-muted active:scale-95 transition-all shadow-xs cursor-pointer min-h-[40px] min-w-[40px]"
+              >
+                <Search className="size-4.5 stroke-[2.2]" />
+              </button>
+
+              {/* Theme Toggle */}
+              <ThemeToggle />
+
+              {/* User Profile / Sign In Shortcut */}
+              <Link
+                href="/login"
+                aria-label="User account or sign in"
+                className="flex size-10 items-center justify-center rounded-full bg-[#ffcc00] text-black hover:bg-[#ffd633] active:scale-95 transition-all shadow-xs cursor-pointer min-h-[40px] min-w-[40px]"
+              >
+                <User className="size-4.5 stroke-[2.5]" />
+              </Link>
+            </div>
+
+            {/* Desktop Navigation Links */}
+            <div className="hidden lg:flex lg:items-center lg:gap-6">
+              <ul className="flex items-center gap-6">
+                {links.map((link) => (
+                  <li key={link.href}>
+                    <a
+                      href={link.href}
+                      className="text-xs sm:text-sm font-bold text-muted-foreground transition-colors hover:text-[#ffcc00]"
+                    >
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="flex items-center gap-2.5 pl-2 border-l border-border/70">
                 <ThemeToggle />
-              </li>
-              <li className="mt-2 lg:mt-0 lg:ms-2 w-full lg:w-auto">
+
                 <Link
                   href="/login"
-                  className="inline-flex w-full lg:w-auto items-center justify-center rounded-xl border border-border bg-card px-4 py-2 text-xs sm:text-sm font-bold text-foreground transition hover:border-[#ffcc00]"
+                  className="inline-flex items-center justify-center rounded-xl border border-border bg-card px-4 py-2 text-xs sm:text-sm font-bold text-foreground transition hover:border-[#ffcc00]"
                 >
                   Sign In
                 </Link>
-              </li>
-              <li className="w-full lg:w-auto lg:ms-1.5">
+
                 <Link
                   href="/register"
-                  className="inline-flex w-full lg:w-auto items-center justify-center rounded-xl bg-[#ffcc00] px-4 py-2 text-xs sm:text-sm font-extrabold text-black shadow-sm transition hover:bg-[#ffd633]"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#ffcc00] px-4 py-2 text-xs sm:text-sm font-extrabold text-black shadow-sm transition hover:bg-[#ffd633]"
                 >
-                  Register →
+                  <span>Register</span>
+                  <span aria-hidden="true">→</span>
                 </Link>
-              </li>
-            </ul>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </nav>
+      </header>
+
+      {/* Mobile Search Bottom Sheet */}
+      <MobileSearchSheet open={searchOpen} onOpenChange={setSearchOpen} />
+    </>
   );
 }

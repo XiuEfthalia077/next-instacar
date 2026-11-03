@@ -3,6 +3,7 @@ import { Inter, Poppins } from "next/font/google";
 import { Suspense } from "react";
 
 import { TopLoader } from "@/components/common/top-loader";
+import { MobileBottomBar } from "@/components/mobile/mobile-bottom-bar";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -114,6 +115,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <TopLoader />
         </Suspense>
         {children}
+        <Suspense fallback={null}>
+          <MobileBottomBar />
+        </Suspense>
       </body>
     </html>
   );

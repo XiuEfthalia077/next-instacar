@@ -8,6 +8,7 @@ import {
   Sparkles,
   Truck,
 } from "lucide-react";
+import { HeroMobileSearch } from "@/components/mobile/hero-mobile-search";
 
 export function Hero() {
   return (
@@ -23,6 +24,9 @@ export function Hero() {
 
       <div className="relative mx-auto w-full max-w-[1320px] px-4">
         <div className="mx-auto max-w-[960px] text-center">
+          {/* Mobile Airbnb/Turo Search Pill Bar */}
+          <HeroMobileSearch />
+
           {/* Top Badge */}
           <div className="mb-5 inline-flex">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-[#ffcc00]/50 bg-[#ffcc00]/10 px-4 py-1.5 text-xs font-bold text-amber-700 dark:text-[#ffcc00] shadow-xs">

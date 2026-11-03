@@ -6,7 +6,10 @@ import {
   CheckCircle2,
   Fuel,
   Gauge,
+  Heart,
   MapPin,
+  ShieldCheck,
+  Star,
   Users,
 } from "lucide-react";
 
@@ -16,8 +19,10 @@ import {
   type BlockedRange,
   RentCarFlowDialog,
 } from "@/components/customer/rent-car-flow-dialog";
+import { useFavorites } from "@/lib/hooks/use-favorites";
 import type { CarWithOwner } from "@/lib/data/cars";
 import { carImageUrls } from "@/lib/storage";
+import { cn } from "@/lib/utils";
 
 interface UserCarCardProps {
   car: CarWithOwner;
@@ -32,132 +37,177 @@ export function UserCarCard({
 }: UserCarCardProps) {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
+  const [activePhotoIdx, setActivePhotoIdx] = useState(0);
+
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const favorited = isFavorite(car.id);
 
   const carName = [car.brand, car.model].filter(Boolean).join(" ") || "Vehicle";
   const photos = carImageUrls(car.image_path);
-  const firstPhoto = photos[0]?.url || "/images/cars/default.png";
+  const currentPhoto = photos[activePhotoIdx]?.url || photos[0]?.url || "/images/cars/default.png";
 
   return (
     <>
-      <div className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#ffcc00]/50 hover:shadow-xl">
-        {/* IMAGE HEADER - CLICKABLE TO OPEN GALLERY */}
+      <div className="group flex flex-col overflow-hidden rounded-3xl border border-border bg-card text-card-foreground shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#ffcc00]/50 hover:shadow-xl w-full">
+        {/* 16:9 VEHICLE HERO IMAGE CONTAINER */}
         <div
           onClick={() => setGalleryOpen(true)}
-          className="relative aspect-[16/10] w-full cursor-pointer overflow-hidden bg-black/60 select-none"
-          title={`Click to view all ${photos.length} photos of this ${carName}`}
+          className="relative aspect-[16/9] w-full cursor-pointer overflow-hidden bg-black/60 select-none"
+          title={`Click to view photos of ${carName}`}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={firstPhoto}
+            src={currentPhoto}
             alt={carName}
             className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
 
-          {/* Gradient Overlay on Hover */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 opacity-60 transition-opacity duration-300 group-hover:opacity-80" />
+          {/* Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/40 opacity-70 transition-opacity duration-300 group-hover:opacity-90" />
 
-          {/* Top Badges */}
-          <div className="absolute left-3 top-3 right-3 flex items-center justify-between gap-1.5">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="rounded-full bg-black/80 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur">
-                {car.type || "Sedan"}
-              </span>
-              {car.branches?.name ? (
-                <span className="flex items-center gap-1 rounded-full bg-[#ffcc00] px-2.5 py-0.5 text-[10px] font-extrabold text-black shadow-xs">
-                  <MapPin className="size-3" />
-                  {car.branches.name}
-                </span>
-              ) : null}
-            </div>
-
-            {/* View Gallery Badge (Clickable) */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setGalleryOpen(true);
-              }}
-              className="inline-flex items-center gap-1 rounded-full bg-black/75 px-2.5 py-0.5 text-[10px] font-bold text-white/90 backdrop-blur border border-white/10 transition hover:bg-[#ffcc00] hover:text-black group-hover:bg-[#ffcc00] group-hover:text-black group-hover:border-transparent cursor-pointer active:scale-95"
-              title={`View ${photos.length} photos`}
-            >
-              <Camera className="size-3" />
-              <span>{photos.length} Photo{photos.length > 1 ? "s" : ""}</span>
-            </button>
-          </div>
-
-          {/* Bottom Status Badge */}
-          <div className="absolute bottom-3 right-3">
-            <span className="inline-block rounded-full bg-black/80 px-3 py-0.5 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur border border-white/20">
-              {car.status === "Active" ? "AVAILABLE" : car.status.toUpperCase()}
+          {/* Top Left: Type & Branch Badges */}
+          <div className="absolute left-3 top-3 flex flex-wrap items-center gap-1.5 z-10">
+            <span className="rounded-full bg-black/80 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur border border-white/10">
+              {car.type || "Sedan"}
             </span>
+            {car.branches?.name ? (
+              <span className="flex items-center gap-1 rounded-full bg-[#ffcc00] px-2.5 py-0.5 text-[10px] font-black text-black shadow-xs">
+                <MapPin className="size-3" />
+                {car.branches.name}
+              </span>
+            ) : null}
           </div>
 
-          {/* Hover View Gallery Pill Centered */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none">
-            <span className="rounded-full bg-black/85 px-4 py-1.5 text-xs font-black text-[#ffcc00] shadow-lg border border-[#ffcc00]/40 flex items-center gap-1.5 backdrop-blur">
-              <Camera className="size-3.5" />
-              View Full Gallery
+          {/* Top Right: Floating Favorite Heart Button (size-9 touch circle) */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleFavorite(car.id);
+            }}
+            aria-label={favorited ? "Remove from wishlist" : "Save to wishlist"}
+            className={cn(
+              "absolute right-3 top-3 z-10 flex size-9 items-center justify-center rounded-full backdrop-blur transition-all active:scale-90 shadow-md cursor-pointer",
+              favorited
+                ? "bg-rose-500 text-white shadow-rose-500/30 ring-2 ring-white/50"
+                : "bg-black/60 text-white hover:text-rose-400 border border-white/20",
+            )}
+          >
+            <Heart className={cn("size-4 transition-transform", favorited && "fill-current scale-110")} />
+          </button>
+
+          {/* Bottom Left: Subtle Swipeable Carousel Dots */}
+          {photos.length > 1 && (
+            <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5 bg-black/50 px-2 py-1 rounded-full backdrop-blur-sm">
+              {photos.slice(0, 5).map((_, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActivePhotoIdx(idx);
+                  }}
+                  className={cn(
+                    "size-1.5 rounded-full transition-all cursor-pointer",
+                    idx === activePhotoIdx
+                      ? "w-4 bg-[#ffcc00]"
+                      : "bg-white/60 hover:bg-white",
+                  )}
+                  aria-label={`Go to photo ${idx + 1}`}
+                />
+              ))}
+              {photos.length > 5 && (
+                <span className="text-[9px] font-bold text-white/80 pl-0.5">+{photos.length - 5}</span>
+              )}
+            </div>
+          )}
+
+          {/* Bottom Right: Status Badge */}
+          <div className="absolute bottom-3 right-3 z-10">
+            <span className="inline-flex items-center gap-1 rounded-full bg-black/85 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-400 backdrop-blur border border-emerald-500/30">
+              <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              {car.status === "Active" ? "AVAILABLE" : car.status.toUpperCase()}
             </span>
           </div>
         </div>
 
-        {/* CAR CONTENT */}
-        <div className="flex flex-1 flex-col p-4">
+        {/* CARD CONTENT */}
+        <div className="flex flex-1 flex-col p-4 sm:p-5">
+          {/* Header & Rating / Price Row */}
           <div className="flex items-start justify-between gap-2">
-            <div>
-              <h3 className="text-base font-extrabold text-foreground group-hover:text-amber-600 dark:group-hover:text-[#ffcc00] transition-colors">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-base sm:text-lg font-black text-foreground group-hover:text-amber-600 dark:group-hover:text-[#ffcc00] transition-colors truncate">
                 {carName}
               </h3>
-              <p className="text-xs text-muted-foreground">
-                {car.type || "Sedan"} • {car.fuel_type || "Gasoline"}
-              </p>
+              {/* Rating Line */}
+              <div className="mt-1 flex items-center gap-1.5 text-xs">
+                <div className="flex items-center gap-1 font-bold text-foreground">
+                  <Star className="size-3.5 fill-[#ffcc00] text-[#ffcc00]" />
+                  <span>4.95</span>
+                </div>
+                <span className="text-muted-foreground font-medium">• 42 trips</span>
+                <span className="text-muted-foreground">•</span>
+                <span className="flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400 text-[11px]">
+                  <ShieldCheck className="size-3" />
+                  Verified
+                </span>
+              </div>
             </div>
-            <div className="text-right">
-              <p className="text-lg font-black text-amber-600 dark:text-[#ffcc00]">
-                <Money value={car.price_24_hours} />
-              </p>
+
+            {/* Clear Price Typography */}
+            <div className="text-right shrink-0">
+              <div className="flex items-baseline justify-end gap-1">
+                <span className="text-xl sm:text-2xl font-black text-amber-600 dark:text-[#ffcc00]">
+                  <Money value={car.price_24_hours} />
+                </span>
+                <span className="text-xs font-semibold text-muted-foreground">/ day</span>
+              </div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                PER 24 HOURS
+                24H TIER
               </p>
             </div>
           </div>
 
-          {/* Feature Specs */}
-          <div className="my-3 grid grid-cols-3 gap-2 border-y border-border/70 py-2.5 text-center text-xs text-muted-foreground">
-            <div className="flex flex-col items-center">
-              <Gauge className="size-3.5 mb-1 text-foreground" />
-              <span className="text-[11px] font-medium">{car.transmission || "Automatic"}</span>
-            </div>
-            <div className="flex flex-col items-center">
-              <Users className="size-3.5 mb-1 text-foreground" />
-              <span className="text-[11px] font-medium">{car.capacity || 5} Seats</span>
-            </div>
-            <div className="flex flex-col items-center">
-              <Fuel className="size-3.5 mb-1 text-foreground" />
-              <span className="text-[11px] font-medium">{car.fuel_type || "Gasoline"}</span>
-            </div>
-          </div>
-
-          {/* Hourly Rates */}
-          <div className="mb-4 flex items-center justify-between text-xs text-muted-foreground">
-            <span>
-              10 hrs: <strong className="text-foreground"><Money value={car.price_10_hours} /></strong>
+          {/* Key Specs Row (Compact Horizontal Badges) */}
+          <div className="my-3.5 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1 rounded-lg border border-border/80 bg-muted/40 px-2.5 py-1 font-semibold">
+              <Gauge className="size-3 text-[#ffcc00]" />
+              {car.transmission || "Automatic"}
             </span>
-            <span>
-              12 hrs: <strong className="text-foreground"><Money value={car.price_12_hours} /></strong>
+            <span className="inline-flex items-center gap-1 rounded-lg border border-border/80 bg-muted/40 px-2.5 py-1 font-semibold">
+              <Users className="size-3 text-[#ffcc00]" />
+              {car.capacity || 5} Seats
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-lg border border-border/80 bg-muted/40 px-2.5 py-1 font-semibold">
+              <Fuel className="size-3 text-[#ffcc00]" />
+              {car.fuel_type || "Gasoline"}
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-lg border border-border/80 bg-muted/40 px-2.5 py-1 font-semibold text-foreground">
+              Unlimited Miles
             </span>
           </div>
 
-          {/* Action Buttons: View Gallery & Book Now */}
+          {/* Flexible Hourly Rates Strip */}
+          <div className="mb-4 flex items-center justify-between rounded-xl bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+            <span>
+              10h Rate: <strong className="text-foreground font-black"><Money value={car.price_10_hours} /></strong>
+            </span>
+            <span className="text-border">•</span>
+            <span>
+              12h Rate: <strong className="text-foreground font-black"><Money value={car.price_12_hours} /></strong>
+            </span>
+          </div>
+
+          {/* Touch-Friendly Action Buttons (min-h-[44px]) */}
           <div className="mt-auto grid grid-cols-2 gap-2 pt-1">
             <button
               type="button"
               onClick={() => setGalleryOpen(true)}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-secondary/80 py-2.5 text-xs font-bold text-foreground transition-all hover:bg-secondary hover:border-[#ffcc00]/50 active:scale-[0.98] cursor-pointer"
+              className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-2xl border border-border bg-secondary/80 px-3 py-2.5 text-xs font-bold text-foreground transition-all hover:bg-secondary hover:border-[#ffcc00]/50 active:scale-[0.98] cursor-pointer"
               title="View all photos of this vehicle"
             >
-              <Camera className="size-3.5 text-amber-600 dark:text-[#ffcc00]" />
-              <span>View Gallery</span>
+              <Camera className="size-4 text-amber-600 dark:text-[#ffcc00]" />
+              <span>{photos.length} Photos</span>
             </button>
 
             <RentCarFlowDialog
@@ -169,10 +219,10 @@ export function UserCarCard({
               trigger={
                 <button
                   type="button"
-                  className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-[#ffcc00] py-2.5 text-xs font-black text-black shadow-md transition-all hover:bg-[#ffd633] active:scale-[0.98] cursor-pointer"
+                  className="flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-2xl bg-[#ffcc00] px-3 py-2.5 text-xs font-black text-black shadow-md transition-all hover:bg-[#ffd633] active:scale-[0.98] cursor-pointer"
                 >
-                  <CheckCircle2 className="size-4" />
-                  <span>Book Now</span>
+                  <CheckCircle2 className="size-4 stroke-[2.5]" />
+                  <span>Reserve Now</span>
                 </button>
               }
             />
@@ -180,7 +230,7 @@ export function UserCarCard({
         </div>
       </div>
 
-      {/* PHOTO GALLERY LIGHTBOX */}
+      {/* PHOTO GALLERY & VEHICLE DETAIL LIGHTBOX */}
       <CarGalleryModal
         car={car}
         open={galleryOpen}

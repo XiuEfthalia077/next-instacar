@@ -65,6 +65,11 @@ const nextConfig: NextConfig = {
         destination: "/admin/staff",
         permanent: true,
       },
+      {
+        source: "/cars",
+        destination: "/user/cars",
+        permanent: true,
+      },
     ];
   },
   experimental: {

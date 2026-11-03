@@ -29,7 +29,7 @@ export default async function HomePage() {
     <div className="min-h-screen bg-background font-sans text-foreground transition-colors selection:bg-[#ffcc00] selection:text-black">
       <SiteNavbar />
 
-      <main>
+      <main className="overflow-x-hidden pb-24 md:pb-0">
         <Hero />
         <Features />
         <FleetSection cars={stats.popular_cars} />

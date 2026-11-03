@@ -76,7 +76,7 @@ export default async function UserMyBookingsPage({
   });
 
   return (
-    <>
+    <div className="space-y-4 pb-28 md:pb-6 overflow-x-hidden">
       <PageHeader
         title="My Bookings"
         subtitle="Trips & Reservations"
@@ -200,6 +200,6 @@ export default async function UserMyBookingsPage({
       <SectionCard>
         <CustomerBookingsTable bookings={filtered} />
       </SectionCard>
-    </>
+    </div>
   );
 }

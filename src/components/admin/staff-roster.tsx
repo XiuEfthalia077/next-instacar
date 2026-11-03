@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Clock, Search } from "lucide-react";
+import { Clock, Pencil, Search, Trash2 } from "lucide-react";
 
 import { filterControlClass } from "@/components/common/filter-bar";
 import { EditUserDialog, DeleteUserDialog, type BranchOption } from "@/components/admin/user-dialogs";
@@ -129,24 +129,27 @@ export function StaffRoster({
               className="flex h-full flex-col justify-between gap-4 rounded-2xl border border-border bg-card p-4 sm:p-5 transition-all hover:border-[#ffcc00] hover:shadow-[0_12px_20px_-8px_rgba(255,204,0,0.25)]"
             >
               <div>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="flex size-[48px] sm:size-[52px] shrink-0 items-center justify-center rounded-[14px] bg-gradient-to-br from-[#ffcc00] to-[#ffe066] text-lg font-extrabold text-black shadow-[0_4px_12px_rgba(255,204,0,0.3)]">
+                {/* Header Row: Responsive wrap on mobile to prevent clipping */}
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-4 border-b border-border/80">
+                  {/* Left: Avatar + Staff Info */}
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                    <div className="flex size-12 sm:size-[52px] shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#ffcc00] to-[#ffe066] text-base sm:text-lg font-black text-black shadow-sm">
                       {row.initials}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="truncate text-base sm:text-[1.05rem] font-extrabold leading-tight text-foreground">
-                          {row.name}
-                        </h3>
-                      </div>
+
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <h3 className="truncate text-base sm:text-lg font-bold leading-tight text-foreground">
+                        {row.name}
+                      </h3>
                       <p className="truncate text-xs text-muted-foreground">
                         {row.email}
                       </p>
-                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+
+                      {/* Badges Stack */}
+                      <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                         <span
                           className={cn(
-                            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-[2px] text-[0.68rem] font-bold",
+                            "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold",
                             STATUS_CLASSES[row.status],
                           )}
                         >
@@ -154,7 +157,7 @@ export function StaffRoster({
                           {row.statusLabel}
                         </span>
                         {row.branchName && (
-                          <span className="inline-flex items-center rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                          <span className="inline-flex items-center rounded-md border border-border bg-muted/60 px-2 py-0.5 text-[10px] font-medium text-muted-foreground truncate max-w-[200px]">
                             {row.branchName}
                           </span>
                         )}
@@ -162,8 +165,8 @@ export function StaffRoster({
                     </div>
                   </div>
 
-                  {/* Actions: Edit & Delete buttons */}
-                  <div className="flex items-center gap-1 shrink-0">
+                  {/* Right: Actions Group (Never cut off) */}
+                  <div className="flex items-center gap-2 self-end sm:self-start shrink-0 pt-1 sm:pt-0">
                     <EditUserDialog
                       user={{
                         id: row.id,
@@ -174,25 +177,44 @@ export function StaffRoster({
                       }}
                       role="staff"
                       branches={branches}
+                      trigger={
+                        <button
+                          type="button"
+                          className="h-9 px-3.5 rounded-xl border border-border bg-muted/80 hover:bg-muted text-xs font-semibold flex items-center gap-1.5 text-foreground transition-colors cursor-pointer"
+                        >
+                          <Pencil className="size-3.5" />
+                          <span>Edit</span>
+                        </button>
+                      }
                     />
                     <DeleteUserDialog
                       user={{ id: row.id, name: row.name }}
                       role="staff"
+                      trigger={
+                        <button
+                          type="button"
+                          aria-label="Delete staff"
+                          className="size-9 rounded-xl border border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 dark:text-rose-400 flex items-center justify-center transition-colors shrink-0 cursor-pointer"
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      }
                     />
                   </div>
                 </div>
 
-                <div className="mt-4 grid grid-cols-2 gap-2.5 border-t border-border pt-3.5">
+                {/* Metrics Grid */}
+                <div className="pt-4 grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-[0.62rem] font-bold uppercase tracking-[0.06em] text-muted-foreground">
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
                       Bookings Created
                     </span>
-                    <span className="text-[1.15rem] font-extrabold leading-none text-foreground">
+                    <span className="text-2xl font-black text-foreground mt-0.5">
                       {row.totalCreated.toLocaleString("en-PH")}
                     </span>
                     <span
                       className={cn(
-                        "text-[0.68rem] font-semibold text-muted-foreground",
+                        "text-[11px] text-muted-foreground",
                         row.monthCreated > 0 && "font-bold text-emerald-600 dark:text-emerald-400",
                       )}
                     >
@@ -201,15 +223,15 @@ export function StaffRoster({
                   </div>
 
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-[0.62rem] font-bold uppercase tracking-[0.06em] text-muted-foreground">
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
                       Actions Taken
                     </span>
-                    <span className="text-[1.15rem] font-extrabold leading-none text-foreground">
+                    <span className="text-2xl font-black text-foreground mt-0.5">
                       {row.totalActions.toLocaleString("en-PH")}
                     </span>
                     <span
                       className={cn(
-                        "text-[0.68rem] font-semibold text-muted-foreground",
+                        "text-[11px] text-muted-foreground",
                         row.monthActions > 0 && "font-bold text-emerald-600 dark:text-emerald-400",
                       )}
                     >
@@ -219,10 +241,11 @@ export function StaffRoster({
                 </div>
               </div>
 
-              <div className="flex items-center justify-between border-t border-border pt-2.5 text-xs">
-                <span className="text-muted-foreground">
-                  <Clock className="mr-1 inline size-3.5 align-[-2px]" />
-                  Last activity
+              {/* Footer: Last Activity */}
+              <div className="mt-4 pt-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <Clock className="size-3.5 text-muted-foreground" />
+                  <span>Last activity</span>
                 </span>
                 <span className="font-bold text-foreground">
                   {row.lastActivityLabel}

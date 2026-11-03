@@ -236,25 +236,29 @@ export function EditUserDialog({
   role,
   user,
   branches,
+  trigger,
 }: {
   role: string;
   user: UserFormValues;
   branches: BranchOption[];
+  trigger?: React.ReactNode;
 }) {
   const roleLabel = capitalize(role);
 
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          className="rounded-lg border-border bg-slate-100 px-3 font-semibold text-slate-700 hover:bg-slate-200 dark:bg-muted dark:text-foreground dark:hover:bg-muted/80"
-        >
-          <Pencil className="size-3.5" />
-          Edit
-        </Button>
+        {trigger ?? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="rounded-lg border-border bg-slate-100 px-3 font-semibold text-slate-700 hover:bg-slate-200 dark:bg-muted dark:text-foreground dark:hover:bg-muted/80"
+          >
+            <Pencil className="size-3.5" />
+            Edit
+          </Button>
+        )}
       </DialogTrigger>
 
       <DialogContent className="rounded-2xl p-6 sm:p-8 sm:max-w-lg">
@@ -342,25 +346,29 @@ export function EditUserDialog({
 export function DeleteUserDialog({
   role,
   user,
+  trigger,
 }: {
   role: string;
   user: { id: number; name: string };
+  trigger?: React.ReactNode;
 }) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          className={cn(
-            "rounded-lg border-rose-200 px-3 font-semibold text-rose-600 hover:bg-rose-50 hover:text-rose-700",
-            "dark:border-rose-900 dark:text-rose-400 dark:hover:bg-rose-950/40",
-          )}
-        >
-          <Trash className="size-3.5" />
-          Delete
-        </Button>
+        {trigger ?? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className={cn(
+              "rounded-lg border-rose-200 px-3 font-semibold text-rose-600 hover:bg-rose-50 hover:text-rose-700",
+              "dark:border-rose-900 dark:text-rose-400 dark:hover:bg-rose-950/40",
+            )}
+          >
+            <Trash className="size-3.5" />
+            Delete
+          </Button>
+        )}
       </DialogTrigger>
 
       <DialogContent className="rounded-2xl p-6 sm:p-8 sm:max-w-md">

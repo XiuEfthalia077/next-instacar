@@ -98,7 +98,7 @@ export default async function SharedCarsPage({
   const canManage = session.role === "admin" || session.role === "operator";
 
   return (
-    <>
+    <div className="space-y-4 pb-28 md:pb-6 overflow-x-hidden">
       <PageHeader
         title="Fleet Management"
         subtitle="Vehicles & Inventory"
@@ -531,6 +531,6 @@ export default async function SharedCarsPage({
         </>
       )}
     </SectionCard>
-    </>
+    </div>
   );
 }
