@@ -597,24 +597,24 @@ export function PublicAvailabilityView({
                     <span>Log In to Book</span>
                   </Link>
 
-                  <Link
-                    href="/register"
-                    className="flex h-10 items-center justify-center gap-1.5 rounded-xl border border-border bg-background px-3 text-xs font-bold text-foreground hover:bg-muted transition-all active:scale-95"
+                  <a
+                    href="https://m.me/103496555339512"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex h-10 items-center justify-center gap-1.5 rounded-xl border border-border bg-background px-3 text-xs font-bold text-foreground hover:bg-muted transition-all active:scale-95 cursor-pointer"
                   >
-                    <span>Create Account</span>
-                  </Link>
+                    <MessageCircle className="size-3.5 text-[#ffcc00]" />
+                    <span>Chat on Messenger</span>
+                  </a>
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3 text-[11px] text-muted-foreground">
-                  <a
-                    href="https://m.me/InstacarRental"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-foreground hover:text-amber-500 dark:hover:text-[#ffcc00] font-semibold"
+                  <Link
+                    href="/register"
+                    className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground font-semibold"
                   >
-                    <MessageCircle className="size-3.5" />
-                    <span>Chat on Messenger</span>
-                  </a>
+                    <span>Create Free Account →</span>
+                  </Link>
 
                   <a
                     href="tel:09175540394"
