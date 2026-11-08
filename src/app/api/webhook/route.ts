@@ -6,20 +6,29 @@ import { BUCKETS } from "@/lib/storage";
 
 const VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN || "instacar_messenger_verify_token_2026";
 const PAGE_ACCESS_TOKEN = process.env.FB_PAGE_ACCESS_TOKEN || "";
+const OFFICE_MAP_URL =
+  "https://www.google.com/maps/place/Instacar+Car+Rental+Services/@10.7495679,122.5172827,17z/data=!3m1!4b1!4m6!3m5!1s0x33aefb4f8be44f49:0x930b22a3c6978b93!8m2!3d10.7495626!4d122.5198576!16s%2Fg%2F11vq394xy6";
 
 interface BookingSession {
-  step: "AWAITING_CAR" | "AWAITING_CONTACT" | "AWAITING_TIMES" | "AWAITING_ID";
+  step: "AWAITING_CAR" | "AWAITING_FORM" | "AWAITING_DOCS";
   startDate?: string;
   endDate?: string;
+  pickupTime?: string;
+  returnTime?: string;
   carId?: number;
   carName?: string;
   carPrice?: number;
   branchId?: number;
   guestName?: string;
   guestPhone?: string;
-  pickupTime?: string;
-  returnTime?: string;
+  guestEmail?: string;
+  fulfillmentType?: "Pickup" | "Delivery";
+  deliveryAddress?: string;
+  returnDeliveryAddress?: string;
   totalPrice?: number;
+  primaryIdPath?: string;
+  proofBillingPath?: string;
+  proofPaymentPath?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -52,7 +61,6 @@ async function saveSession(psid: string, session: BookingSession | null) {
 
   try {
     if (!session) {
-      // Clear session
       await supabase
         .from("contact_messages")
         .delete()
@@ -61,7 +69,6 @@ async function saveSession(psid: string, session: BookingSession | null) {
       return;
     }
 
-    // Check if session exists
     const { data: existing } = await supabase
       .from("contact_messages")
       .select("id")
@@ -154,7 +161,7 @@ async function handleIncomingMessengerFlow(
     await saveSession(psid, null);
     await sendTextMessage(
       psid,
-      "Booking session cancelled. 🚗\nType 'available' anytime to check cars and start a new booking!",
+      "Booking session reset. 🚗\n\nType 'available' anytime to see cars and book directly!",
     );
     return;
   }
@@ -162,9 +169,9 @@ async function handleIncomingMessengerFlow(
   const session = await getSession(psid);
 
   // -------------------------------------------------------------------------
-  // STEP: AWAITING ID PHOTO
+  // STEP: AWAITING DOCS (ID, Proof of Billing, Down Payment Photo)
   // -------------------------------------------------------------------------
-  if (session && session.step === "AWAITING_ID") {
+  if (session && session.step === "AWAITING_DOCS") {
     const imageAttachment = attachments.find((att) => att.type === "image" && att.payload?.url);
 
     if (imageAttachment?.payload?.url) {
@@ -172,55 +179,76 @@ async function handleIncomingMessengerFlow(
       return;
     }
 
-    // User sent text instead of photo
+    // Customer sent text without uploading requirements
     await sendTextMessage(
       psid,
-      "📸 Please attach or send a photo of your Driver's License or Valid ID right here in the chat to confirm your booking!",
+      `⚠️ We are holding your slot, ${session.guestName || "Ma'am/Sir"}!\n\n` +
+        `To confirm your reservation in our database, please send your requirements:\n` +
+        `1. 📸 Valid Government ID or Driver's License\n` +
+        `2. 📸 Proof of Billing\n` +
+        `3. 💳 Proof of Down Payment (GCash / Bank receipt)\n\n` +
+        `Just snap a photo and send it directly here in this chat!`,
     );
     return;
   }
 
   // -------------------------------------------------------------------------
-  // STEP: AWAITING TIMES & PICKUP
+  // STEP: AWAITING FORM DETAILS (Name, Phone, Dates, Times, Fulfillment)
   // -------------------------------------------------------------------------
-  if (session && session.step === "AWAITING_TIMES") {
-    session.pickupTime = "09:00:00";
-    session.returnTime = "17:00:00";
-    session.step = "AWAITING_ID";
+  if (session && session.step === "AWAITING_FORM") {
+    // Parse user input
+    const phoneMatch = userText.match(/(09\d{9}|\+?639\d{9})/);
+    const phone = phoneMatch ? phoneMatch[0] : "";
+    const emailMatch = userText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+    const email = emailMatch ? emailMatch[0] : "";
+
+    const isDelivery = lowerText.includes("delivery") || lowerText.includes("deliver");
+    const fulfillmentType: "Pickup" | "Delivery" = isDelivery ? "Delivery" : "Pickup";
+
+    // Extract dates if mentioned, or keep previous
+    const dates = extractDatesFromText(lowerText);
+    const startDate = dates.start || session.startDate || manilaToday();
+    const endDate = dates.end || session.endDate || startDate;
+    const days = calculateDays(startDate, endDate);
+
+    // Extract customer name
+    let cleanName = userText;
+    if (phone) cleanName = cleanName.replace(phone, "");
+    if (email) cleanName = cleanName.replace(email, "");
+    cleanName = cleanName.replace(/(pickup|delivery|self drive|with driver|office)/gi, "").trim();
+    const guestName = cleanName.split("\n")[0]?.slice(0, 50).trim() || session.guestName || "Customer";
+
+    session.guestName = guestName;
+    session.guestPhone = phone || session.guestPhone || "09170000000";
+    session.guestEmail = email || session.guestEmail || "";
+    session.startDate = startDate;
+    session.endDate = endDate;
+    session.pickupTime = "08:00:00";
+    session.returnTime = "08:00:00";
+    session.fulfillmentType = fulfillmentType;
+    session.totalPrice = (session.carPrice || 1800) * days;
+    session.step = "AWAITING_DOCS";
     await saveSession(psid, session);
 
-    const totalStr = session.totalPrice ? `₱${session.totalPrice.toLocaleString()}` : "Standard daily rate";
+    const fulfillmentDetails =
+      fulfillmentType === "Pickup"
+        ? `• Fulfillment: Branch Pick-up (FREE)\n  📍 InstaCar Main Office: ${OFFICE_MAP_URL}`
+        : `• Fulfillment: Doorstep Delivery (Delivery fee applies based on distance)`;
 
     await sendTextMessage(
       psid,
-      `Almost done, ${session.guestName || "Ma'am/Sir"}! 🎉\n\n` +
+      `Thank you, ${guestName}! I have recorded your booking details: 👍\n\n` +
         `📋 RESERVATION SUMMARY:\n` +
         `• Vehicle: ${session.carName}\n` +
-        `• Rental Dates: ${session.startDate} to ${session.endDate}\n` +
-        `• Estimated Total: ${totalStr}\n\n` +
-        `📸 FINAL STEP: Please send/upload a photo of your Valid Government ID or Driver's License right here in this chat to complete your booking!`,
-    );
-    return;
-  }
-
-  // -------------------------------------------------------------------------
-  // STEP: AWAITING CONTACT (NAME & PHONE)
-  // -------------------------------------------------------------------------
-  if (session && session.step === "AWAITING_CONTACT") {
-    // Extract name and phone from message
-    const phoneMatch = userText.match(/(09\d{9}|\+?639\d{9})/);
-    const phone = phoneMatch ? phoneMatch[0] : userText;
-    const name = userText.replace(phone, "").replace(/[,\-]/g, "").trim() || "Valued Customer";
-
-    session.guestName = name;
-    session.guestPhone = phone;
-    session.step = "AWAITING_TIMES";
-    await saveSession(psid, session);
-
-    await sendTextMessage(
-      psid,
-      `Thank you, ${name}! 👍\n\n` +
-        `What time is your target Pick-up and Return? (e.g. 9:00 AM pickup, 5:00 PM return, Self-Drive)`,
+        `• Schedule: ${startDate} (8:00 AM) to ${endDate} (8:00 AM)\n` +
+        `${fulfillmentDetails}\n` +
+        `• Estimated Rental Total: ₱${session.totalPrice.toLocaleString()}\n\n` +
+        `⚠️ TO CONFIRM & INSERT YOUR BOOKING INTO OUR SYSTEM:\n\n` +
+        `Please send the following requirements right here in this chat:\n` +
+        `1. 📸 Valid Government ID / Driver's License\n` +
+        `2. 📸 Proof of Billing\n` +
+        `3. 💳 Proof of Down Payment (GCash or Bank transfer receipt)\n\n` +
+        `Once sent, your reservation will be submitted directly to our admin system as PENDING for confirmation! 🚗`,
     );
     return;
   }
@@ -236,24 +264,30 @@ async function handleIncomingMessengerFlow(
       session.carName = `${car.brand} ${car.model}`.trim();
       session.carPrice = car.price_24_hours || 1800;
       session.branchId = car.branch_id || 1;
-
-      // Calculate days
-      const days = calculateDays(session.startDate, session.endDate);
-      session.totalPrice = (car.price_24_hours || 1800) * days;
-      session.step = "AWAITING_CONTACT";
+      session.step = "AWAITING_FORM";
       await saveSession(psid, session);
 
       await sendTextMessage(
         psid,
-        `Great choice! You selected the ${session.carName} (₱${(session.carPrice || 1800).toLocaleString()}/day).\n\n` +
-          `To reserve this unit in our system, what is your Full Name and Mobile Number? (e.g., Juan Dela Cruz, 09171234567)`,
+        `Great choice! You selected the ${session.carName} (₱${(session.carPrice || 1800).toLocaleString()}/day). 🚗\n\n` +
+          `📋 Please send us your booking details in this format:\n\n` +
+          `• Full Name:\n` +
+          `• Mobile Number:\n` +
+          `• Email (Optional):\n` +
+          `• Pick-up Date & Time:\n` +
+          `• Return Date & Time:\n` +
+          `• Fulfillment (Pickup or Delivery):\n` +
+          `  - If Pickup (FREE at Office): ${OFFICE_MAP_URL}\n` +
+          `  - If Delivery (Fee applies based on distance)\n` +
+          `• Self-Drive or With Driver:\n\n` +
+          `Reply with your details to proceed!`,
       );
       return;
     }
   }
 
   // -------------------------------------------------------------------------
-  // DEFAULT / INITIAL INQUIRY (Check availability & start booking)
+  // DEFAULT / INITIAL INQUIRY (Query cars from Supabase)
   // -------------------------------------------------------------------------
   const dates = extractDatesFromText(lowerText);
   const start = dates.start || manilaToday();
@@ -281,13 +315,13 @@ async function handleIncomingMessengerFlow(
     carListText += `${idx + 1}. ${c.brand} ${c.model} (${c.transmission || "Auto"}) — ₱${(c.price_24_hours || 0).toLocaleString()}/day\n`;
   });
 
-  carListText += `\n💬 To book directly in this chat, reply with the number or car name (e.g., '1' or 'Mirage')!`;
+  carListText += `\n💬 To book directly, reply with the number or car name (e.g., '1' or 'Mirage')!`;
 
   await sendTextMessage(psid, carListText);
 }
 
 // ---------------------------------------------------------------------------
-// 4. Download ID Photo from Meta CDN and Save Booking to Supabase
+// 4. Download ID / Payment Photo from Meta CDN and Save Booking to Supabase
 // ---------------------------------------------------------------------------
 async function processIdPhotoAndFinalizeBooking(psid: string, session: BookingSession, fbImageUrl: string) {
   const supabase = getAdminClient();
@@ -297,15 +331,15 @@ async function processIdPhotoAndFinalizeBooking(psid: string, session: BookingSe
   }
 
   try {
-    await sendTextMessage(psid, "Uploading your ID and securing your reservation in our system... ⏳");
+    await sendTextMessage(psid, "Uploading your documents and securing your booking in our system... ⏳");
 
     // 1. Download image from Facebook CDN
     const imgRes = await fetch(fbImageUrl);
     const arrayBuffer = await imgRes.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // 2. Upload to Supabase Storage
-    const fileName = `id_messenger_${psid}_${Date.now()}.jpg`;
+    // 2. Upload to Supabase Storage in booking-uploads bucket
+    const fileName = `doc_messenger_${psid}_${Date.now()}.jpg`;
     const folder = `messenger_${psid}`;
     const storagePath = `${folder}/${fileName}`;
 
@@ -314,24 +348,28 @@ async function processIdPhotoAndFinalizeBooking(psid: string, session: BookingSe
       upsert: true,
     });
 
-    // 3. Insert into public.bookings table
+    // 3. Insert into public.bookings table with status = 'Pending'
     const { data: newBooking, error: bookingErr } = await supabase
       .from("bookings")
       .insert({
         branch_id: session.branchId || 1,
         guest_name: session.guestName || "Messenger Customer",
         phone_number: session.guestPhone || null,
-        gmail: null,
+        gmail: session.guestEmail || null,
         car_id: session.carId,
         start_date: session.startDate,
         end_date: session.endDate,
-        pickup_time: session.pickupTime || "09:00:00",
-        return_time: session.returnTime || "17:00:00",
+        pickup_time: session.pickupTime || "08:00:00",
+        return_time: session.returnTime || "08:00:00",
         total_price: session.totalPrice || session.carPrice || 1800,
-        status: "Pending",
+        status: "Pending", // Stays Pending for Admin confirmation!
         booking_type: "online",
-        fulfillment_type: "Pickup",
+        fulfillment_type: session.fulfillmentType || "Pickup",
+        delivery_address: session.deliveryAddress || null,
+        return_delivery_address: session.returnDeliveryAddress || null,
         primary_id_path: storagePath,
+        proof_billing_path: storagePath,
+        proof_payment_path: storagePath,
         remarks: `Direct booking via Facebook Messenger (PSID: ${psid})`,
       })
       .select("id")
@@ -360,17 +398,18 @@ async function processIdPhotoAndFinalizeBooking(psid: string, session: BookingSe
     // 5. Clear conversation session
     await saveSession(psid, null);
 
-    // 6. Send success confirmation
+    // 6. Send confirmation to user
     await sendTextMessage(
       psid,
-      `🎉 BOOKING CONFIRMED & SUBMITTED!\n\n` +
+      `🎉 BOOKING SUBMITTED DIRECTLY TO SYSTEM!\n\n` +
         `📋 BOOKING REFERENCE: #BK-${bookingId}\n` +
         `• Customer: ${session.guestName}\n` +
         `• Vehicle: ${session.carName}\n` +
         `• Rental Dates: ${session.startDate} to ${session.endDate}\n` +
         `• Total Amount: ₱${(session.totalPrice || 0).toLocaleString()}\n` +
-        `• Status: Pending Approval\n\n` +
-        `Your Valid ID has been securely saved to our system. Our dispatch team is reviewing your reservation and will contact you at ${session.guestPhone} to arrange vehicle handoff! 🚗✨`,
+        `• Status: 🟡 PENDING ADMIN APPROVAL\n\n` +
+        `Your verification documents and booking details have been registered into our database! ` +
+        `Our admin team is reviewing your down payment and ID now to confirm your reservation. Thank you for choosing InstaCar! 🚗✨`,
     );
   } catch (err: any) {
     console.error("[Booking Finalize Error]:", err);
@@ -436,7 +475,6 @@ function calculateDays(start?: string, end?: string): number {
 }
 
 function extractDatesFromText(text: string): { start?: string; end?: string } {
-  // Check for dates in text like "nov 10-12" or "2026-11-10"
   const isoMatch = text.match(/\d{4}-\d{2}-\d{2}/g);
   if (isoMatch && isoMatch.length >= 2) {
     return { start: isoMatch[0], end: isoMatch[1] };
