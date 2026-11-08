@@ -17,6 +17,8 @@ export const metadata: Metadata = {
     "Check real-time car rental availability, browse our fleet, and view vehicle calendar schedules before booking.",
 };
 
+export const instant = false;
+
 export default async function PublicAvailabilityPage({
   searchParams,
 }: {

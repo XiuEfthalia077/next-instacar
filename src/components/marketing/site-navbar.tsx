@@ -64,12 +64,12 @@ export function SiteNavbar() {
               <ul className="flex items-center gap-6">
                 {links.map((link) => (
                   <li key={link.href}>
-                    <a
+                    <Link
                       href={link.href}
                       className="text-xs sm:text-sm font-bold text-muted-foreground transition-colors hover:text-[#ffcc00]"
                     >
                       {link.label}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>
