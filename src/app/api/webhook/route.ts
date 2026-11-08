@@ -8,6 +8,7 @@ const VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN || "instacar_messenger_verify_t
 const PAGE_ACCESS_TOKEN = process.env.FB_PAGE_ACCESS_TOKEN || "";
 const OFFICE_MAP_URL =
   "https://www.google.com/maps/place/Instacar+Car+Rental+Services/@10.7495679,122.5172827,17z/data=!3m1!4b1!4m6!3m5!1s0x33aefb4f8be44f49:0x930b22a3c6978b93!8m2!3d10.7495626!4d122.5198576!16s%2Fg%2F11vq394xy6";
+const PUBLIC_AVAILABILITY_URL = "https://instacar.vercel.app/availability";
 
 interface BookingSession {
   step: "AWAITING_CAR" | "AWAITING_FORM" | "AWAITING_CONFIRMATION" | "BOOKED";
@@ -123,7 +124,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    // 1. Direct testing payload support (e.g. { text: "...", senderPsid: "..." })
+    // Direct testing payload support (e.g. { text: "...", senderPsid: "..." })
     if (body.text && (body.senderPsid || body.sender_id)) {
       const psid = String(body.senderPsid || body.sender_id);
       const text = String(body.text).trim();
@@ -131,7 +132,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ status: "SUCCESS", result }, { status: 200 });
     }
 
-    // 2. Standard Meta Webhook payload (Page messaging and standby)
+    // Standard Meta Webhook payload (Page messaging and standby channels)
     if (body.object === "page") {
       for (const entry of body.entry ?? []) {
         const events = [...(entry.messaging || []), ...(entry.standby || [])];
@@ -172,7 +173,7 @@ async function handleIncomingMessengerFlow(
     await saveSession(psid, null);
     await sendTextMessage(
       psid,
-      "Booking session reset. 🚗\n\nType 'available' or tell us your rental dates and preferred car anytime!",
+      `Booking session reset. 🚗\n\nYou can inspect our live availability calendar anytime here:\n👉 ${PUBLIC_AVAILABILITY_URL}\n\nOr tell us your rental dates and preferred car anytime!`,
     );
     return { action: "RESET" };
   }
@@ -180,7 +181,7 @@ async function handleIncomingMessengerFlow(
   const session = await getSession(psid);
 
   // -------------------------------------------------------------------------
-  // ATTACHMENT FLOW: Photo of ID, Proof of Billing, or Down Payment
+  // ATTACHMENT FLOW: Photo of ID, Proof of Billing, or Down Payment Receipt
   // -------------------------------------------------------------------------
   const imageAttachment = attachments.find((att) => att.type === "image" && att.payload?.url);
   if (imageAttachment?.payload?.url) {
@@ -298,12 +299,12 @@ async function handleIncomingMessengerFlow(
         `• Rental Duration: ${days} day(s)\n` +
         `• Total Amount: ₱${totalPrice.toLocaleString()}\n` +
         `${fulfillmentDetails}\n\n` +
-        `📸 NEXT STEP - SUBMIT YOUR REQUIREMENTS:\n` +
+        `📸 NEXT STEP - LOCK IN YOUR RESERVATION:\n` +
         `Please send photos of the following right here in this chat:\n` +
         `1. 🪪 Valid Government ID or Driver's License\n` +
         `2. 📄 Proof of Billing (electric, water, or credit card bill)\n` +
-        `3. 💳 Proof of Down Payment (GCash or Bank transfer receipt)\n\n` +
-        `Our admin team is reviewing your reservation now and will finalize your confirmation once documents are checked! 🚗✨`,
+        `3. 💳 Proof of Down Payment (GCash or Bank transfer receipt — ₱500)\n\n` +
+        `Our dispatch team is reviewing your booking now and will verify your documents to confirm! 🚗✨`,
     );
 
     return {
@@ -321,7 +322,7 @@ async function handleIncomingMessengerFlow(
   // -------------------------------------------------------------------------
   const parsed = parseBookingDetails(userText);
 
-  // If the user provided booking details (phone, dates, or car):
+  // If customer provided booking details (phone, dates, or car):
   const hasBookingDetails =
     Boolean(parsed.phone && (parsed.startDate || parsed.vehicleQuery)) ||
     Boolean(session && session.step === "AWAITING_FORM" && (parsed.phone || userText.length > 5));
@@ -339,32 +340,92 @@ async function handleIncomingMessengerFlow(
     const fulfillmentType = parsed.fulfillmentType || session?.fulfillmentType || "Pickup";
     const guestName = parsed.name || session?.guestName || "Messenger Customer";
 
-    // Resolve vehicle
-    let car = null;
-    if (session?.carId) {
-      const { data: c } = await supabase
-        .from("cars")
-        .select("id, brand, model, type, transmission, price_24_hours, branch_id")
-        .eq("id", session.carId)
-        .maybeSingle();
-      car = c;
+    // Check complete fleet availability for these exact dates (bookings + schedules)
+    const { available, busy } = await checkFleetAvailability(startDate, endDate);
+
+    // Resolve vehicle choice against the requested text or session
+    const carChoice = await resolveCarChoice(parsed.vehicleQuery || userText, startDate, endDate);
+
+    let selectedCar = carChoice?.car || null;
+    const isSelectedCarBusy = Boolean(carChoice && !carChoice.isAvailable);
+
+    // If requested vehicle is BOOKED or IN MAINTENANCE for these dates:
+    if (selectedCar && isSelectedCarBusy) {
+      const busyCarName = `${selectedCar.brand} ${selectedCar.model} (${selectedCar.type || "Vehicle"})`;
+      const conflictRange = carChoice?.conflictRange
+        ? `${carChoice.conflictRange.start} to ${carChoice.conflictRange.end}`
+        : `${startDate} to ${endDate}`;
+
+      // Check if we have an available alternative of the same body type
+      const sameTypeAlternative = available.find(
+        (item) => item.car.type?.toLowerCase() === selectedCar?.type?.toLowerCase(),
+      );
+
+      let conflictReply = `⚠️ NOTICE: The ${busyCarName} is already RESERVED/BOOKED for ${conflictRange}! 🚗❌\n\n`;
+
+      if (sameTypeAlternative) {
+        const altName = `${sameTypeAlternative.car.brand} ${sameTypeAlternative.car.model} (${sameTypeAlternative.car.type}, ${sameTypeAlternative.car.transmission || "Auto"})`;
+        conflictReply +=
+          `🟢 Good news! We have an identical available ${selectedCar.type || "vehicle"} ready for you:\n` +
+          `👉 ${altName} — ₱${(sameTypeAlternative.car.price_24_hours || 1500).toLocaleString()}/day\n\n` +
+          `Would you like to reserve the ${altName} instead?\n` +
+          `Reply "YES" to proceed with this car, or choose from our open units:\n\n`;
+      } else {
+        conflictReply += `Here are our available vehicles for ${startDate} to ${endDate}:\n\n`;
+      }
+
+      available.slice(0, 4).forEach((item, idx) => {
+        conflictReply += `${idx + 1}. ${item.car.brand} ${item.car.model} (${item.car.type || "Car"}, ${item.car.transmission || "Auto"}) — ₱${(item.car.price_24_hours || 0).toLocaleString()}/day\n`;
+      });
+
+      conflictReply += `\n🌐 View our real-time interactive availability calendar:\n👉 ${PUBLIC_AVAILABILITY_URL}\n\n`;
+      conflictReply += `Reply with your preferred available car to proceed!`;
+
+      // Save session with alternative car if available so customer can reply "YES"
+      if (sameTypeAlternative) {
+        const altDailyPrice = sameTypeAlternative.car.price_24_hours || 1500;
+        const altDays = calculateDays(startDate, endDate);
+        await saveSession(psid, {
+          step: "AWAITING_CONFIRMATION",
+          guestName,
+          guestPhone: phone,
+          guestEmail: email || undefined,
+          carId: sameTypeAlternative.car.id,
+          carName: `${sameTypeAlternative.car.brand} ${sameTypeAlternative.car.model} (${sameTypeAlternative.car.type || "Car"})`,
+          carPrice: altDailyPrice,
+          branchId: sameTypeAlternative.car.branch_id || 1,
+          startDate,
+          endDate,
+          pickupTime,
+          returnTime,
+          totalPrice: altDailyPrice * altDays,
+          fulfillmentType,
+        });
+      }
+
+      await sendTextMessage(psid, conflictReply);
+      return { action: "CAR_UNAVAILABLE_ALTERNATIVES_OFFERED" };
     }
 
-    if (!car) {
-      car = await resolveCarChoice(parsed.vehicleQuery || userText, startDate, endDate);
+    // If no car matched or car is null, take the first available car
+    if (!selectedCar && available.length > 0) {
+      selectedCar = available[0].car;
     }
 
-    if (!car) {
-      const available = await fetchAvailableCars(startDate, endDate);
-      car = available[0] || null;
+    if (!selectedCar) {
+      await sendTextMessage(
+        psid,
+        `Hello Ma'am/Sir! We currently have no open units for ${startDate} to ${endDate}. 🚗❌\n\n` +
+          `👉 Check open calendar slots here:\n${PUBLIC_AVAILABILITY_URL}\n\n` +
+          `Or call our dispatch team directly at 0917 554 0394!`,
+      );
+      return { action: "ALL_CARS_UNAVAILABLE" };
     }
 
-    const carId = car?.id || 14;
-    const carName = car
-      ? `${car.brand} ${car.model} (${car.type || "Car"}, ${car.transmission || "Auto"})`
-      : "Toyota Wigo 2025 (Hatchback, Auto)";
-    const dailyPrice = car?.price_24_hours || 1500;
-    const branchId = car?.branch_id || 1;
+    const carId = selectedCar.id;
+    const carName = `${selectedCar.brand} ${selectedCar.model} (${selectedCar.type || "Car"}, ${selectedCar.transmission || "Auto"})`;
+    const dailyPrice = selectedCar.price_24_hours || 1500;
+    const branchId = selectedCar.branch_id || 1;
     const days = calculateDays(startDate, endDate);
     const totalPrice = dailyPrice * days;
 
@@ -421,10 +482,22 @@ async function handleIncomingMessengerFlow(
   // STEP: AWAITING CAR SELECTION
   // -------------------------------------------------------------------------
   if (session && session.step === "AWAITING_CAR") {
-    const car = await resolveCarChoice(userText, session.startDate, session.endDate);
+    const choice = await resolveCarChoice(userText, session.startDate, session.endDate);
 
-    if (car) {
+    if (choice?.car) {
+      const car = choice.car;
       const fullCarName = `${car.brand} ${car.model} (${car.type || "Car"}, ${car.transmission || "Auto"})`;
+
+      if (!choice.isAvailable) {
+        await sendTextMessage(
+          psid,
+          `⚠️ Notice: ${fullCarName} is already RESERVED for your dates (${session.startDate} to ${session.endDate}). 🚗❌\n\n` +
+            `👉 Please check live open dates on our calendar:\n${PUBLIC_AVAILABILITY_URL}\n\n` +
+            `Or reply with another vehicle model to check availability!`,
+        );
+        return { action: "CHOSEN_CAR_BUSY" };
+      }
+
       session.carId = car.id;
       session.carName = fullCarName;
       session.carPrice = car.price_24_hours || 1500;
@@ -435,11 +508,10 @@ async function handleIncomingMessengerFlow(
       await sendTextMessage(
         psid,
         `Great choice! You selected: 🚗\n` +
-          `• ${fullCarName} — ₱${(session.carPrice || 1500).toLocaleString()} / 24 hours\n\n` +
+          `• ${fullCarName} — ₱${(session.carPrice || 1500).toLocaleString()} / 24 hours (AVAILABLE 🟢)\n\n` +
           `📋 Please provide your booking details:\n` +
           `• Full Name:\n` +
           `• Contact Number:\n` +
-          `• Rental Dates (e.g. Nov 20 to Nov 21):\n` +
           `• Pick-up at Office or Doorstep Delivery:\n\n` +
           `Reply with your details so we can summarize and prepare your reservation!`,
       );
@@ -448,17 +520,20 @@ async function handleIncomingMessengerFlow(
   }
 
   // -------------------------------------------------------------------------
-  // DEFAULT / INITIAL INQUIRY: Show complete active fleet for the dates
+  // DEFAULT / INITIAL INQUIRY: Live Fleet Availability for the requested dates
   // -------------------------------------------------------------------------
   const start = parsed.startDate || manilaToday();
   const end = parsed.endDate || start;
 
-  const availableCars = await fetchAvailableCars(start, end);
+  // Query live availability comparing active bookings and maintenance schedules
+  const { available, busy } = await checkFleetAvailability(start, end);
 
-  if (availableCars.length === 0) {
+  if (available.length === 0) {
     await sendTextMessage(
       psid,
-      `Hello Ma'am/Sir! We currently have no open units for ${start} to ${end}. Please try different dates or contact our hotline directly at 0917 554 0394!`,
+      `Hello Ma'am/Sir! We currently have no open units for ${start} to ${end}. All vehicles are fully booked. 🚗❌\n\n` +
+        `👉 Check open dates and live fleet calendar anytime here:\n${PUBLIC_AVAILABILITY_URL}\n\n` +
+        `Or call dispatch at 0917 554 0394!`,
     );
     return { action: "NO_CARS" };
   }
@@ -470,13 +545,22 @@ async function handleIncomingMessengerFlow(
   });
 
   let carListText = `Hello! Welcome to InstaCar Rental Services 🚗✨\n`;
-  carListText += `Here are our available vehicles for ${start} to ${end} with complete specs & daily rates:\n\n`;
+  carListText += `Here is our real-time fleet availability for ${start} to ${end}:\n\n`;
 
-  availableCars.slice(0, 8).forEach((c, idx) => {
-    carListText += `${idx + 1}. ${c.brand} ${c.model} (${c.type || "Car"}, ${c.transmission || "Auto"}) — ₱${(c.price_24_hours || 0).toLocaleString()} / 24 hrs\n`;
+  carListText += `🟢 AVAILABLE UNITS:\n`;
+  available.slice(0, 7).forEach((item, idx) => {
+    carListText += `${idx + 1}. ${item.car.brand} ${item.car.model} (${item.car.type || "Car"}, ${item.car.transmission || "Auto"}) — ₱${(item.car.price_24_hours || 0).toLocaleString()} / 24 hrs\n`;
   });
 
-  carListText += `\n💬 To proceed, simply reply with the vehicle name or send your details in this format:\n\n`;
+  if (busy.length > 0) {
+    carListText += `\n🔴 CURRENTLY RESERVED / BOOKED:\n`;
+    busy.slice(0, 3).forEach((item) => {
+      carListText += `• ${item.car.brand} ${item.car.model} (${item.car.type || "Car"}) — Reserved\n`;
+    });
+  }
+
+  carListText += `\n🌐 View our complete real-time interactive calendar:\n👉 ${PUBLIC_AVAILABILITY_URL}\n\n`;
+  carListText += `💬 To book, reply with the car name or send your details in this format:\n\n`;
   carListText += `Full Name:\n`;
   carListText += `Mobile Number:\n`;
   carListText += `Preferred Vehicle:\n`;
@@ -484,7 +568,7 @@ async function handleIncomingMessengerFlow(
   carListText += `Pick-up or Delivery:`;
 
   await sendTextMessage(psid, carListText);
-  return { action: "LISTED_CARS" };
+  return { action: "LISTED_CARS", availableCount: available.length, busyCount: busy.length };
 }
 
 // ---------------------------------------------------------------------------
@@ -547,8 +631,6 @@ async function processIdPhotoAndAttachToBooking(
     }
 
     if (targetBookingId) {
-      // Fetch current booking doc paths to attach in sequence:
-      // 1. primary_id_path -> 2. proof_billing_path -> 3. secondary_id_path -> 4. proof_payment_path
       const { data: currentBooking } = await supabase
         .from("bookings")
         .select("primary_id_path, secondary_id_path, proof_billing_path, proof_payment_path")
@@ -569,15 +651,15 @@ async function processIdPhotoAndAttachToBooking(
         docLabel = "Secondary ID";
       } else {
         updateData.proof_payment_path = storagePath;
-        docLabel = "Proof of Down Payment";
+        docLabel = "Proof of Down Payment (₱500)";
       }
 
       await supabase.from("bookings").update(updateData).eq("id", targetBookingId);
 
       await sendTextMessage(
         psid,
-        `📸 Document received! Your ${docLabel} has been successfully uploaded and attached to Booking #BK-${targetBookingId}.\n\n` +
-          `Status: 🟡 PENDING ADMIN APPROVAL\nOur team is reviewing your documents and will contact you to finalize confirmation! 🚗✨`,
+        `📸 Document received! Your ${docLabel} has been uploaded and linked to Booking #BK-${targetBookingId}.\n\n` +
+          `Status: 🟡 PENDING ADMIN APPROVAL\nOur dispatch team is verifying your files and will contact you shortly to confirm! 🚗✨`,
       );
 
       return { action: "DOC_ATTACHED", bookingId: targetBookingId, docLabel };
@@ -602,7 +684,136 @@ async function processIdPhotoAndAttachToBooking(
 }
 
 // ---------------------------------------------------------------------------
-// 5. Robust Natural Language Booking Parsing
+// 5. Unified Fleet Availability Checker (Matching User-Side Logic)
+// ---------------------------------------------------------------------------
+interface CarAvailabilityInfo {
+  car: {
+    id: number;
+    brand: string | null;
+    model: string | null;
+    type: string | null;
+    transmission: string | null;
+    price_24_hours: number | null;
+    branch_id: number | null;
+    status: string;
+  };
+  isAvailable: boolean;
+  conflictReason?: string;
+  conflictRange?: { start: string; end: string };
+}
+
+async function checkFleetAvailability(startDate: string, endDate: string): Promise<{
+  all: CarAvailabilityInfo[];
+  available: CarAvailabilityInfo[];
+  busy: CarAvailabilityInfo[];
+}> {
+  const supabase = getAdminClient();
+  if (!supabase) return { all: [], available: [], busy: [] };
+
+  // 1. Fetch active cars
+  const { data: cars } = await supabase
+    .from("cars")
+    .select("id, brand, model, type, transmission, price_24_hours, branch_id, status")
+    .in("status", ACTIVE_CAR_STATUSES)
+    .order("price_24_hours", { ascending: true });
+
+  if (!cars || cars.length === 0) return { all: [], available: [], busy: [] };
+
+  const carIds = cars.map((c) => c.id);
+
+  // 2. Query overlapping bookings (Pending, Confirmed, Released)
+  const { data: overlappingBookings } = await supabase
+    .from("bookings")
+    .select("car_id, start_date, end_date, status")
+    .in("car_id", carIds)
+    .in("status", OPEN_BOOKING_STATUSES)
+    .lte("start_date", endDate)
+    .gte("end_date", startDate);
+
+  // 3. Query overlapping maintenance schedules
+  const { data: overlappingSchedules } = await supabase
+    .from("car_schedules")
+    .select("car_id, start_date, end_date, reason")
+    .in("car_id", carIds)
+    .lte("start_date", endDate)
+    .gte("end_date", startDate);
+
+  const busyMap = new Map<number, { reason: string; start: string; end: string }>();
+
+  for (const b of overlappingBookings || []) {
+    if (b.car_id && b.start_date && b.end_date) {
+      busyMap.set(b.car_id, {
+        reason: "Booked",
+        start: b.start_date,
+        end: b.end_date,
+      });
+    }
+  }
+
+  for (const s of overlappingSchedules || []) {
+    if (s.car_id && s.start_date && s.end_date && !busyMap.has(s.car_id)) {
+      busyMap.set(s.car_id, {
+        reason: s.reason || "Maintenance",
+        start: s.start_date,
+        end: s.end_date,
+      });
+    }
+  }
+
+  const all: CarAvailabilityInfo[] = cars.map((car) => {
+    const conflict = busyMap.get(car.id);
+    return {
+      car,
+      isAvailable: !conflict,
+      conflictReason: conflict?.reason,
+      conflictRange: conflict ? { start: conflict.start, end: conflict.end } : undefined,
+    };
+  });
+
+  return {
+    all,
+    available: all.filter((c) => c.isAvailable),
+    busy: all.filter((c) => !c.isAvailable),
+  };
+}
+
+async function resolveCarChoice(text: string, startDate?: string, endDate?: string) {
+  const start = startDate || manilaToday();
+  const end = endDate || start;
+
+  const { all, available } = await checkFleetAvailability(start, end);
+  if (all.length === 0) return null;
+
+  const num = parseInt(text.trim(), 10);
+  if (!isNaN(num) && num >= 1 && num <= available.length) {
+    return available[num - 1];
+  }
+
+  const query = text.toLowerCase().trim();
+
+  // Try matching against available cars first
+  const availableMatch = available.find(
+    (item) =>
+      item.car.model?.toLowerCase().includes(query) ||
+      item.car.brand?.toLowerCase().includes(query) ||
+      item.car.type?.toLowerCase().includes(query),
+  );
+
+  if (availableMatch) return availableMatch;
+
+  // If not available, check if user specifically asked for a car that is busy
+  const busyMatch = all.find(
+    (item) =>
+      item.car.model?.toLowerCase().includes(query) ||
+      item.car.brand?.toLowerCase().includes(query) ||
+      item.car.type?.toLowerCase().includes(query),
+  );
+
+  return busyMatch || null;
+}
+
+// ---------------------------------------------------------------------------
+// 6. Natural Language Booking Parsing
 // ---------------------------------------------------------------------------
 function parseBookingDetails(text: string) {
   const segments = text.split(/[\r\n,]+/).map((s) => s.trim()).filter(Boolean);
@@ -778,71 +989,6 @@ function parseBookingDetails(text: string) {
     returnTime,
     name,
   };
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-async function fetchAvailableCars(startDate: string, endDate: string) {
-  const supabase = getAdminClient();
-  if (!supabase) return [];
-
-  const { data: cars } = await supabase
-    .from("cars")
-    .select("id, brand, model, type, transmission, price_24_hours, branch_id, status")
-    .in("status", ACTIVE_CAR_STATUSES)
-    .order("price_24_hours", { ascending: true });
-
-  if (!cars || cars.length === 0) return [];
-
-  const carIds = cars.map((c) => c.id);
-
-  const { data: busy } = await supabase
-    .from("bookings")
-    .select("car_id")
-    .in("car_id", carIds)
-    .in("status", OPEN_BOOKING_STATUSES)
-    .lte("start_date", endDate)
-    .gte("end_date", startDate);
-
-  const busyIds = new Set((busy || []).map((b) => b.car_id));
-  return cars.filter((c) => !busyIds.has(c.id));
-}
-
-async function resolveCarChoice(text: string, startDate?: string, endDate?: string) {
-  const supabase = getAdminClient();
-  if (!supabase) return null;
-
-  const query = text.toLowerCase().trim();
-
-  // 1. Try matching by type or model directly
-  const { data: directCars } = await supabase
-    .from("cars")
-    .select("id, brand, model, type, transmission, price_24_hours, branch_id, status")
-    .in("status", ACTIVE_CAR_STATUSES)
-    .or(`type.ilike.%${query}%,model.ilike.%${query}%,brand.ilike.%${query}%`)
-    .order("price_24_hours", { ascending: true });
-
-  if (directCars && directCars.length > 0) {
-    return directCars[0];
-  }
-
-  // 2. Fallback to available cars list
-  const cars = await fetchAvailableCars(startDate || manilaToday(), endDate || manilaToday());
-  const num = parseInt(text, 10);
-
-  if (!isNaN(num) && num >= 1 && num <= cars.length) {
-    return cars[num - 1];
-  }
-
-  return (
-    cars.find(
-      (c) =>
-        c.model?.toLowerCase().includes(query) ||
-        c.brand?.toLowerCase().includes(query) ||
-        c.type?.toLowerCase().includes(query),
-    ) || null
-  );
 }
 
 function calculateDays(start?: string, end?: string): number {
