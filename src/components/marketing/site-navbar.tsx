@@ -10,9 +10,10 @@ export function SiteNavbar() {
   const [searchOpen, setSearchOpen] = useState(false);
 
   const links = [
-    { label: "Services", href: "#features" },
-    { label: "Our Fleet", href: "#fleet" },
-    { label: "Contact Us", href: "#contact" },
+    { label: "Services", href: "/#features" },
+    { label: "Our Fleet", href: "/#fleet" },
+    { label: "Availability", href: "/availability" },
+    { label: "Contact Us", href: "/#contact" },
   ];
 
   return (

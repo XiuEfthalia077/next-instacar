@@ -229,7 +229,7 @@ export async function operatorCars(session: AppSession): Promise<CarWithOwner[]>
   );
 }
 
-type CachedBranch = {
+export type CachedBranch = {
   id: number;
   name: string;
   address: string | null;
