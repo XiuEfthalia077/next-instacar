@@ -465,7 +465,8 @@ async function handleIncomingMessengerFlow(
         `• Rental Duration: ${days} day(s)\n` +
         `• Total Rental Amount: ₱${totalPrice.toLocaleString()}\n` +
         `${fulfillmentSummary}\n\n` +
-        `⚠️ Are all these details correct?\n` +
+        `⚠️ CANCELLATION POLICY: Once confirmed and down payment is paid, reservations are strictly non-refundable.\n\n` +
+        `Are all these details correct?\n` +
         `👉 Reply "YES" to confirm and submit your reservation directly to our database! 🚗\n` +
         `(Or reply if you wish to adjust any dates or details.)`,
     );
@@ -637,7 +638,7 @@ async function processIdPhotoAndAttachToBooking(
         .eq("id", targetBookingId)
         .maybeSingle();
 
-      const updateData: Record<string, string> = {};
+      const updateData: Record<string, string | number> = {};
       let docLabel = "Valid ID";
 
       if (!currentBooking?.primary_id_path) {
@@ -651,6 +652,7 @@ async function processIdPhotoAndAttachToBooking(
         docLabel = "Secondary ID";
       } else {
         updateData.proof_payment_path = storagePath;
+        updateData.down_payment = 500;
         docLabel = "Proof of Down Payment (₱500)";
       }
 
