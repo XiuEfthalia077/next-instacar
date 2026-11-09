@@ -747,6 +747,23 @@
   .clip-headlight-cone {
     clip-path: polygon(0% 40%, 100% 0%, 100% 100%, 0% 60%);
   }
+
+  @keyframes loading-track-travel {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(250%); }
+  }
+  @keyframes loading-shimmer-sweep {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  .animate-loading-track {
+    animation: loading-track-travel 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  .animate-loading-shimmer {
+    animation: loading-shimmer-sweep 1.4s ease-in-out infinite;
+  }
+
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
