@@ -757,6 +757,15 @@
     100% { transform: translateX(100%); }
   }
 
+  @keyframes loading-laser-sweep {
+    0% { transform: translateX(-120%); }
+    100% { transform: translateX(250%); }
+  }
+
+  .animate-loading-laser {
+    animation: loading-laser-sweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
   .animate-loading-track {
     animation: loading-track-travel 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   }
