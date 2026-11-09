@@ -1,16 +1,11 @@
-import { AdminPageSkeleton } from "@/components/ui/admin-page-skeleton";
+import { CarLoadingScreen } from "@/components/common/car-loading-screen";
 
 export default function FinancialsLoading() {
   return (
-    <AdminPageSkeleton
-      titleWidth="w-72"
-      subtitleWidth="w-32"
-      showTabs={true}
-      tabCount={4}
-      showKpis={true}
-      kpiCount={4}
-      showToolbar={true}
-      tableRows={6}
+    <CarLoadingScreen
+      fullScreen={false}
+      message="Loading financial records..."
+      subtext="Aggregating revenue, payments, and payouts"
     />
   );
 }

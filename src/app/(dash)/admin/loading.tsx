@@ -1,5 +1,11 @@
-import { AdminPageSkeleton } from "@/components/ui/admin-page-skeleton";
+import { CarLoadingScreen } from "@/components/common/car-loading-screen";
 
 export default function AdminLoading() {
-  return <AdminPageSkeleton titleWidth="w-52" showKpis={true} kpiCount={4} showToolbar={true} tableRows={6} />;
+  return (
+    <CarLoadingScreen
+      fullScreen={false}
+      message="Preparing admin console..."
+      subtext="Loading fleet controls and permissions"
+    />
+  );
 }

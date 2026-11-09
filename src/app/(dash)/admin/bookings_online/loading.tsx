@@ -1,16 +1,11 @@
-import { AdminPageSkeleton } from "@/components/ui/admin-page-skeleton";
+import { CarLoadingScreen } from "@/components/common/car-loading-screen";
 
 export default function BookingsOnlineLoading() {
   return (
-    <AdminPageSkeleton
-      titleWidth="w-56"
-      subtitleWidth="w-32"
-      showTabs={true}
-      tabCount={6}
-      showKpis={true}
-      kpiCount={4}
-      showToolbar={true}
-      tableRows={6}
+    <CarLoadingScreen
+      fullScreen={false}
+      message="Loading online reservations..."
+      subtext="Syncing pending, approved, and active bookings"
     />
   );
 }

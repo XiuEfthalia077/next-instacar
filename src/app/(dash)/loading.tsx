@@ -1,5 +1,11 @@
-import { AdminPageSkeleton } from "@/components/ui/admin-page-skeleton";
+import { CarLoadingScreen } from "@/components/common/car-loading-screen";
 
 export default function DashboardLoading() {
-  return <AdminPageSkeleton titleWidth="w-56" showKpis={true} kpiCount={4} showToolbar={true} tableRows={6} />;
+  return (
+    <CarLoadingScreen
+      fullScreen={false}
+      message="Revving up your dashboard..."
+      subtext="Preparing your vehicles and bookings overview"
+    />
+  );
 }

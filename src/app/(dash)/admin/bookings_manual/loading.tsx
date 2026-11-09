@@ -1,16 +1,11 @@
-import { AdminPageSkeleton } from "@/components/ui/admin-page-skeleton";
+import { CarLoadingScreen } from "@/components/common/car-loading-screen";
 
 export default function BookingsManualLoading() {
   return (
-    <AdminPageSkeleton
-      titleWidth="w-64"
-      subtitleWidth="w-28"
-      showTabs={true}
-      tabCount={4}
-      showKpis={true}
-      kpiCount={4}
-      showToolbar={true}
-      tableRows={6}
+    <CarLoadingScreen
+      fullScreen={false}
+      message="Loading walk-in bookings..."
+      subtext="Fetching offline contracts & rental logs"
     />
   );
 }

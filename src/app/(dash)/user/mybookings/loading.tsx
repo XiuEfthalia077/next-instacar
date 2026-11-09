@@ -1,5 +1,11 @@
-import { TablePageSkeleton } from "@/components/common/skeletons";
+import { CarLoadingScreen } from "@/components/common/car-loading-screen";
 
 export default function UserMyBookingsLoading() {
-  return <TablePageSkeleton kpiCount={3} rowCount={6} />;
+  return (
+    <CarLoadingScreen
+      fullScreen={false}
+      message="Preparing your bookings..."
+      subtext="Retrieving your reservation history and schedules"
+    />
+  );
 }
