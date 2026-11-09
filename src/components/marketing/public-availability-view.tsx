@@ -366,8 +366,8 @@ export function PublicAvailabilityView({
                   >
                     {/* Selected Indicator Pill */}
                     {isSelected && (
-                      <div className="absolute right-3 top-3 z-20 flex items-center gap-1 rounded-full bg-[#ffcc00] px-2.5 py-0.5 text-[10px] font-black text-black shadow-md">
-                        <CheckCircle2 className="size-3" />
+                      <div className="absolute right-3 top-3 z-20 flex items-center gap-1 rounded-full bg-[#ffcc00] px-2.5 py-1 text-[10px] font-black text-black shadow-md border border-[#ffcc00]/50 shrink-0">
+                        <CheckCircle2 className="size-3 text-black shrink-0" />
                         <span>Viewing Schedule</span>
                       </div>
                     )}
@@ -382,15 +382,15 @@ export function PublicAvailabilityView({
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
 
-                      {/* Top Left: Badges */}
-                      <div className="absolute left-3 top-3 flex flex-wrap items-center gap-1 z-10">
-                        <span className="rounded-full bg-black/80 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-white border border-white/10 backdrop-blur">
+                      {/* Top Left: Badges (Stacked vertically to prevent overlapping with top-right pill) */}
+                      <div className="absolute left-3 top-3 z-10 flex flex-col items-start gap-1 max-w-[55%] sm:max-w-[60%]">
+                        <span className="rounded-full bg-black/80 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-white border border-white/10 backdrop-blur shrink-0">
                           {car.type || "Car"}
                         </span>
                         {car.branches?.name && (
-                          <span className="flex items-center gap-1 rounded-full bg-black/80 px-2 py-0.5 text-[10px] font-bold text-amber-400 border border-amber-400/30 backdrop-blur">
-                            <MapPin className="size-2.5" />
-                            {car.branches.name}
+                          <span className="inline-flex items-center gap-1 rounded-full bg-black/80 px-2.5 py-0.5 text-[10px] font-bold text-amber-400 border border-amber-400/30 backdrop-blur truncate max-w-full">
+                            <MapPin className="size-2.5 shrink-0" />
+                            <span className="truncate">{car.branches.name}</span>
                           </span>
                         )}
                       </div>
@@ -403,11 +403,11 @@ export function PublicAvailabilityView({
                           setGalleryCar(car);
                           setGalleryOpen(true);
                         }}
-                        className="absolute right-3 bottom-3 z-10 flex items-center gap-1 rounded-lg bg-black/75 px-2 py-1 text-[10px] font-bold text-white border border-white/20 backdrop-blur hover:bg-black transition-all"
-                        title="View photo gallery"
+                        className="absolute right-3 bottom-3 z-10 flex items-center gap-1.5 rounded-full bg-black/85 px-2.5 py-1 text-[11px] font-bold text-white border border-white/20 backdrop-blur hover:bg-[#ffcc00] hover:text-black hover:border-[#ffcc00] transition-all shadow-md group/btn cursor-pointer"
+                        title={`View all ${photos.length} photos of ${carName}`}
                       >
-                        <Camera className="size-3 text-[#ffcc00]" />
-                        <span>{photos.length}</span>
+                        <Camera className="size-3.5 text-[#ffcc00] group-hover/btn:text-black transition-colors" />
+                        <span>View Photos ({photos.length})</span>
                       </button>
                     </div>
 

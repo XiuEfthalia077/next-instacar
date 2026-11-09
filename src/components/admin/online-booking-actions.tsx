@@ -2,23 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import {
-  Car,
-  CircleCheck,
-  CircleX,
-  Eye,
-  Flag,
-  Lock,
-  Pencil,
-  Trash2,
-} from "lucide-react";
+import { CircleX, Eye } from "lucide-react";
 
 import { BookingStatusDialog } from "@/components/admin/booking-status-dialog";
-import { DeleteBookingDialog } from "@/components/admin/delete-booking-dialog";
-import {
-  EditReservationDialog,
-  type EditableReservation,
-} from "@/components/admin/edit-reservation-dialog";
+import type { EditableReservation } from "@/components/admin/edit-reservation-dialog";
 import type { BookingDocument } from "@/components/admin/document-preview";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,16 +20,15 @@ type OnlineBooking = EditableReservation & { status: string };
 
 type StatusTarget = "Confirmed" | "Released" | "Completed" | "Cancelled";
 
-const ITEM_CLASS = "gap-2 text-xs font-semibold";
+const ITEM_CLASS = "gap-2 text-xs font-semibold cursor-pointer";
 
 /**
- * Row actions of the online reservation listing.
+ * Row actions for the online bookings table.
  *
- * Mirrors the legacy Bootstrap dropdown in `bookings_online.php`:
- *   Pending   -> Edit, Confirm, Cancel
- *   Confirmed -> Release Vehicle, Cancel
- *   Released  -> Complete Trip, Cancel
- *   Completed / Cancelled -> locked
+ * Simplified to prevent accidental clicks:
+ *   - "View Details" takes admin to the full details page where
+ *     heavy actions (Edit, Confirm, Release, Complete, Delete) are performed.
+ *   - "Cancel" is kept as a quick action for active bookings.
  */
 export function OnlineBookingActions({
   booking,
@@ -57,10 +43,8 @@ export function OnlineBookingActions({
   onOptimisticConfirm?: (id: number, status: StatusTarget) => void;
   onError?: (id: number, error: string) => void;
 }) {
-  const [editOpen, setEditOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [target, setTarget] = useState<StatusTarget>("Confirmed");
+  const [target, setTarget] = useState<StatusTarget>("Cancelled");
 
   const locked = booking.status === "Completed" || booking.status === "Cancelled";
 
@@ -74,10 +58,10 @@ export function OnlineBookingActions({
   if (locked) {
     return (
       <div className="flex justify-start">
-        <Button asChild variant="outline" size="xs" className="gap-1.5 font-semibold">
+        <Button asChild variant="outline" size="xs" className="gap-1.5 font-bold">
           <Link href={detailsHref}>
-            <Lock className="size-3" />
-            Locked
+            <Eye className="size-3.5 text-muted-foreground" />
+            View Details
           </Link>
         </Button>
       </div>
@@ -93,44 +77,13 @@ export function OnlineBookingActions({
           </Button>
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="end" className="w-52 rounded-xl">
+        <DropdownMenuContent align="end" className="w-48 rounded-xl">
           <DropdownMenuItem asChild className={ITEM_CLASS}>
             <Link href={detailsHref}>
               <Eye className="size-4 text-muted-foreground" />
               View Details
             </Link>
           </DropdownMenuItem>
-
-          <DropdownMenuSeparator />
-
-          {booking.status === "Pending" ? (
-            <>
-              <DropdownMenuItem
-                className={ITEM_CLASS}
-                onSelect={() => setEditOpen(true)}
-              >
-                <Pencil className="size-4 text-sky-600" />
-                Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className={ITEM_CLASS}
-                onSelect={() => ask("Confirmed")}
-              >
-                <CircleCheck className="size-4 text-emerald-600" />
-                Confirm
-              </DropdownMenuItem>
-            </>
-          ) : null}
-
-          {booking.status === "Confirmed" ? (
-            <DropdownMenuItem
-              className={ITEM_CLASS}
-              onSelect={() => ask("Released")}
-            >
-              <Car className="size-4 text-sky-600" />
-              Release Vehicle
-            </DropdownMenuItem>
-          ) : null}
 
           <DropdownMenuSeparator />
 
@@ -142,34 +95,8 @@ export function OnlineBookingActions({
             <CircleX className="size-4" />
             Cancel
           </DropdownMenuItem>
-
-          <DropdownMenuSeparator />
-
-          <DropdownMenuItem
-            variant="destructive"
-            className={`${ITEM_CLASS} text-rose-600 focus:text-rose-600 dark:text-rose-400`}
-            onSelect={() => setDeleteOpen(true)}
-          >
-            <Trash2 className="size-4" />
-            Delete Booking
-          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-
-      <EditReservationDialog
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        booking={booking}
-        filter={filter}
-        documents={documents}
-      />
-
-      <DeleteBookingDialog
-        open={deleteOpen}
-        onOpenChange={setDeleteOpen}
-        bookingId={booking.id}
-        redirectTo={`/admin/bookings_online?filter=${encodeURIComponent(filter)}`}
-      />
 
       <BookingStatusDialog
         open={statusOpen}

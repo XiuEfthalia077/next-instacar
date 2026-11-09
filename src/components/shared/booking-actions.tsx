@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarClock, CircleCheck, CircleX, Flag } from "lucide-react";
+import { CalendarClock, CircleCheck, CircleX, Flag, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/common/loading-button";
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { updateBookingStatusAction } from "@/lib/actions/bookings";
 import { EditReservationDialog, type EditableReservation } from "@/components/shared/edit-reservation-dialog";
+import { DeleteBookingDialog } from "@/components/admin/delete-booking-dialog";
 import type { BookingDocument } from "@/components/admin/document-preview";
 
 type StatusAction = "Confirmed" | "Released" | "Completed" | "Cancelled";
@@ -86,6 +87,7 @@ export function BookingActions({
   isAdmin?: boolean;
 }) {
   const [action, setAction] = useState<StatusAction | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [optimisticStatus, setOptimisticStatus] = useState<StatusAction | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -140,6 +142,27 @@ export function BookingActions({
             </Button>
           }
         />
+      ) : null}
+
+      {isAdmin ? (
+        <>
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full gap-2 font-semibold text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-950/40"
+            onClick={() => setDeleteOpen(true)}
+          >
+            <Trash2 className="size-4" />
+            Delete Booking
+          </Button>
+
+          <DeleteBookingDialog
+            open={deleteOpen}
+            onOpenChange={setDeleteOpen}
+            bookingId={booking.id}
+            redirectTo={booking.booking_type === "manual" ? "/admin/bookings_manual" : "/admin/bookings_online"}
+          />
+        </>
       ) : null}
 
       <Dialog open={action !== null} onOpenChange={(open) => {

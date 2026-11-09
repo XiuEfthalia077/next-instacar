@@ -96,31 +96,46 @@ export function UserCarCard({
             <Heart className={cn("size-4 transition-transform", favorited && "fill-current scale-110")} />
           </button>
 
-          {/* Bottom Left: Subtle Swipeable Carousel Dots */}
-          {photos.length > 1 && (
-            <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5 bg-black/50 px-2 py-1 rounded-full backdrop-blur-sm">
-              {photos.slice(0, 5).map((_, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActivePhotoIdx(idx);
-                  }}
-                  className={cn(
-                    "size-1.5 rounded-full transition-all cursor-pointer",
-                    idx === activePhotoIdx
-                      ? "w-4 bg-[#ffcc00]"
-                      : "bg-white/60 hover:bg-white",
-                  )}
-                  aria-label={`Go to photo ${idx + 1}`}
-                />
-              ))}
-              {photos.length > 5 && (
-                <span className="text-[9px] font-bold text-white/80 pl-0.5">+{photos.length - 5}</span>
-              )}
-            </div>
-          )}
+          {/* Bottom Left: View Photos Button & Subtle Carousel Dots */}
+          <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setGalleryOpen(true);
+              }}
+              className="flex items-center gap-1.5 rounded-full bg-black/80 px-2.5 py-1 text-[11px] font-bold text-white border border-white/20 backdrop-blur hover:bg-[#ffcc00] hover:text-black hover:border-[#ffcc00] transition-all shadow-md group/btn cursor-pointer"
+              title={`View all ${photos.length} photos of ${carName}`}
+            >
+              <Camera className="size-3 text-[#ffcc00] group-hover/btn:text-black transition-colors" />
+              <span>View Photos ({photos.length})</span>
+            </button>
+
+            {photos.length > 1 && (
+              <div className="hidden sm:flex items-center gap-1.5 bg-black/50 px-2 py-1.5 rounded-full backdrop-blur-sm">
+                {photos.slice(0, 5).map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActivePhotoIdx(idx);
+                    }}
+                    className={cn(
+                      "size-1.5 rounded-full transition-all cursor-pointer",
+                      idx === activePhotoIdx
+                        ? "w-4 bg-[#ffcc00]"
+                        : "bg-white/60 hover:bg-white",
+                    )}
+                    aria-label={`Go to photo ${idx + 1}`}
+                  />
+                ))}
+                {photos.length > 5 && (
+                  <span className="text-[9px] font-bold text-white/80 pl-0.5">+{photos.length - 5}</span>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Bottom Right: Status Badge */}
           <div className="absolute bottom-3 right-3 z-10">

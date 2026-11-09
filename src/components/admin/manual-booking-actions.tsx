@@ -2,14 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { CircleX, Eye, Lock, Pencil } from "lucide-react";
+import { CircleX, Eye } from "lucide-react";
 
 import { BookingStatusDialog } from "@/components/admin/booking-status-dialog";
-import {
-  EditManualBookingDialog,
-  type EditableManualBooking,
-  type ManualEditCar,
-  type ManualEditCustomer,
+import type {
+  EditableManualBooking,
+  ManualEditCar,
+  ManualEditCustomer,
 } from "@/components/admin/edit-manual-booking-dialog";
 import type { BookingDocument } from "@/components/admin/document-preview";
 import { Button } from "@/components/ui/button";
@@ -25,15 +24,14 @@ type ManualBooking = EditableManualBooking & { status: string };
 
 type StatusTarget = "Completed" | "Cancelled";
 
-const ITEM_CLASS = "gap-2 text-xs font-semibold";
+const ITEM_CLASS = "gap-2 text-xs font-semibold cursor-pointer";
 
 /**
- * Row actions of the manual (walk-in) listing.
+ * Row actions for the manual (walk-in) bookings table.
  *
- * Mirrors `bookings_manual.php`:
- *   Confirmed -> Edit, Complete, Cancel
- *   other open rows -> Edit, Cancel
- *   Completed / Cancelled -> locked
+ * Cleaned up to match online bookings:
+ *   - "View Details" takes admin to full details page where editing is performed.
+ *   - "Cancel" is kept as a quick action for active bookings.
  */
 export function ManualBookingActions({
   booking,
@@ -48,7 +46,6 @@ export function ManualBookingActions({
   customers: ManualEditCustomer[];
   cars: ManualEditCar[];
 }) {
-  const [editOpen, setEditOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
   const [target, setTarget] = useState<StatusTarget>("Cancelled");
 
@@ -64,10 +61,10 @@ export function ManualBookingActions({
   if (locked) {
     return (
       <div className="flex justify-start">
-        <Button asChild variant="outline" size="xs" className="gap-1.5 font-semibold">
+        <Button asChild variant="outline" size="xs" className="gap-1.5 font-bold">
           <Link href={detailsHref}>
-            <Lock className="size-3" />
-            Locked
+            <Eye className="size-3.5 text-muted-foreground" />
+            View Details
           </Link>
         </Button>
       </div>
@@ -83,17 +80,12 @@ export function ManualBookingActions({
           </Button>
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="end" className="w-52 rounded-xl">
+        <DropdownMenuContent align="end" className="w-48 rounded-xl">
           <DropdownMenuItem asChild className={ITEM_CLASS}>
             <Link href={detailsHref}>
               <Eye className="size-4 text-muted-foreground" />
               View Details
             </Link>
-          </DropdownMenuItem>
-
-          <DropdownMenuItem className={ITEM_CLASS} onSelect={() => setEditOpen(true)}>
-            <Pencil className="size-4 text-sky-600" />
-            Edit
           </DropdownMenuItem>
 
           <DropdownMenuSeparator />
@@ -108,16 +100,6 @@ export function ManualBookingActions({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-
-      <EditManualBookingDialog
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        booking={booking}
-        filter={filter}
-        documents={documents}
-        customers={customers}
-        cars={cars}
-      />
 
       <BookingStatusDialog
         open={statusOpen}
