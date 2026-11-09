@@ -639,6 +639,7 @@ export async function addManualBookingAction(formData: FormData) {
   const endDate = str(formData, "end_date");
   const pickupTime = timeValue(str(formData, "pickup_time"));
   const returnTime = timeValue(str(formData, "return_time"));
+  const overrideConflict = str(formData, "override_conflict") === "true";
 
   const home =
     session.role === "staff" ? "/staff/bookings_manual" : "/admin/bookings_manual";
@@ -653,11 +654,11 @@ export async function addManualBookingAction(formData: FormData) {
     end: endDate,
   });
 
-  if (overlap) {
+  if (overlap && !overrideConflict) {
     flashRedirect(
       home,
       "error",
-      "This vehicle is already booked or unavailable during your selected time slot.",
+      "This vehicle is already booked or unavailable during your selected time slot. Check 'Authorize & Override Schedule Conflict' to proceed.",
     );
   }
 
@@ -737,13 +738,20 @@ export async function addManualBookingAction(formData: FormData) {
   const releaseLock = await bookingMutex.lock(`car:${carId}`);
   try {
     const raceOverlap = await hasOverlap({ carId, start: startDate, end: endDate });
-    if (raceOverlap) {
+    if (raceOverlap && !overrideConflict) {
       flashRedirect(
         home,
         "error",
         "This vehicle was just reserved by another customer for the selected dates.",
       );
     }
+
+    const rawRemarks = str(formData, "remarks") || "";
+    const overrideTag =
+      overrideConflict && (overlap || raceOverlap)
+        ? "[Admin Schedule Override: Authorized Overlap]"
+        : "";
+    const finalRemarks = [rawRemarks, overrideTag].filter(Boolean).join("\n") || null;
 
     const { data, error } = await db
       .from("bookings")
@@ -773,7 +781,7 @@ export async function addManualBookingAction(formData: FormData) {
         fulfillment_type: fulfillmentType,
         delivery_address: deliveryAddress,
         return_delivery_address: returnDeliveryAddress,
-        remarks: str(formData, "remarks") || null,
+        remarks: finalRemarks,
         status: "Confirmed",
         booking_type: "manual",
       })
@@ -904,6 +912,7 @@ export async function updateBookingAction(formData: FormData) {
   const endDate = returnRaw.slice(0, 10);
   const pickupTime = timeValue(pickupRaw.slice(11, 16));
   const returnTime = timeValue(returnRaw.slice(11, 16));
+  const overrideConflict = str(formData, "override_conflict") === "true";
 
   const overlap = await hasOverlap({
     carId,
@@ -912,7 +921,7 @@ export async function updateBookingAction(formData: FormData) {
     excludeBookingId: bookingId,
   });
 
-  if (overlap) {
+  if (overlap && !overrideConflict) {
     flashRedirect(
       home,
       "error",
@@ -1000,7 +1009,14 @@ export async function updateBookingAction(formData: FormData) {
         str(formData, "return_delivery_address") ||
         old.return_delivery_address ||
         null,
-      remarks: str(formData, "remarks") || null,
+      remarks: (() => {
+        const raw = str(formData, "remarks") || "";
+        const overrideTag =
+          overrideConflict && overlap
+            ? "[Admin Schedule Override: Authorized Overlap]"
+            : "";
+        return [raw, overrideTag].filter(Boolean).join("\n") || null;
+      })(),
       total_price: totalPrice,
       last_action_by: session.userId,
       last_action_at: new Date().toISOString(),

@@ -126,6 +126,7 @@ export function ManualBookingDialog({
   const [discount, setDiscount] = useState("0");
   const [downPayment, setDownPayment] = useState("0");
   const [remarks, setRemarks] = useState("");
+  const [overrideConflict, setOverrideConflict] = useState(false);
 
   // Fulfillment state
   const [fulfillmentType, setFulfillmentType] = useState<
@@ -283,9 +284,14 @@ export function ManualBookingDialog({
     setDiscount("0");
     setDownPayment("0");
     setRemarks("");
+    setOverrideConflict(false);
     setPastUnlocked(false);
     pastConfirmedRef.current = false;
   };
+
+  useEffect(() => {
+    setOverrideConflict(false);
+  }, [carId, pickup, returnAt]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -486,10 +492,10 @@ export function ManualBookingDialog({
     ? "Return must be after pickup time!"
     : tooShort
       ? `${hours.toFixed(1)} hrs (Min 10h)`
-      : isCarConflicted
-        ? "Selected car is unavailable for these dates. Please choose another."
+      : isCarConflicted && !overrideConflict
+        ? "Car scheduled for these dates — check override below to authorize"
         : hours > 0
-          ? `${Math.ceil(hours)} Hours`
+          ? `${Math.ceil(hours)} Hours${overrideConflict && isCarConflicted ? " (Conflict Overridden)" : ""}`
           : "0 Hours";
 
   const MAX_ALLOWED_AMOUNT = 1_000_000;
@@ -520,7 +526,7 @@ export function ManualBookingDialog({
     !!pickupDate &&
     !!returnDate &&
     !!selectedCar &&
-    !isCarConflicted &&
+    (!isCarConflicted || overrideConflict) &&
     !invalidRange &&
     !tooShort &&
     hours >= 9.99 &&
@@ -599,6 +605,11 @@ export function ManualBookingDialog({
           }}
           className="space-y-4"
         >
+          <input
+            type="hidden"
+            name="override_conflict"
+            value={overrideConflict ? "true" : "false"}
+          />
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <Label htmlFor="manual-customer-type" className="mb-1 block text-xs font-bold">
@@ -928,17 +939,37 @@ export function ManualBookingDialog({
                 {filteredCars.map((car) => {
                   const conflicted = conflictingCars.has(car.id);
                   return (
-                    <option key={car.id} value={car.id} disabled={conflicted}>
+                    <option key={car.id} value={car.id}>
                       {carLabel(car)}
-                      {conflicted ? " (UNAVAILABLE - Already Booked)" : ""}
+                      {conflicted ? " (Already Booked - Conflict)" : ""}
                     </option>
                   );
                 })}
               </select>
               {isCarConflicted ? (
-                <p className="mt-1 text-xs text-rose-600 dark:text-rose-400 font-semibold">
-                  This car has an overlapping booking for the selected dates. Please choose another car or adjust the dates.
-                </p>
+                <div className="mt-2.5 rounded-lg border border-amber-500/50 bg-amber-500/10 p-3 text-xs space-y-2">
+                  <div className="flex items-start gap-2">
+                    <span className="text-amber-600 dark:text-amber-400 font-bold shrink-0 text-sm leading-none mt-0.5">⚠️</span>
+                    <div>
+                      <p className="font-semibold text-amber-900 dark:text-amber-200">
+                        Vehicle Schedule Conflict Detected
+                      </p>
+                      <p className="text-amber-800/90 dark:text-amber-300/80 text-[11px] mt-0.5">
+                        This vehicle has an existing schedule or active booking for these dates (e.g. from TimeTree or prior booking).
+                      </p>
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer pt-1 font-semibold text-amber-950 dark:text-amber-100 select-none">
+                    <input
+                      type="checkbox"
+                      id="manual-override-conflict"
+                      checked={overrideConflict}
+                      onChange={(e) => setOverrideConflict(e.target.checked)}
+                      className="h-4 w-4 rounded border-amber-400 text-amber-600 focus:ring-amber-500"
+                    />
+                    <span>Authorize & Override Schedule Conflict (Admin/Staff)</span>
+                  </label>
+                </div>
               ) : null}
               {isPastDate ? (
                 <p className="mt-1 text-xs text-amber-600 dark:text-amber-400 font-semibold">
