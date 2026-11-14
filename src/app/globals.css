@@ -773,6 +773,15 @@
     animation: loading-shimmer-sweep 1.4s ease-in-out infinite;
   }
 
+  @keyframes carousel-scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  .animate-carousel-scroll {
+    animation: carousel-scroll 32s linear infinite;
+  }
+
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }

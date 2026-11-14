@@ -8,11 +8,11 @@ import {
   Sparkles,
   Truck,
 } from "lucide-react";
-import { HeroMobileSearch } from "@/components/mobile/hero-mobile-search";
+import { KayakHeroSearch, type BranchOption } from "@/components/marketing/kayak-hero-search";
 
-export function Hero() {
+export function Hero({ branches }: { branches?: BranchOption[] }) {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-background via-muted/20 to-background py-16 md:py-24 lg:py-28 transition-colors">
+    <section className="relative overflow-hidden bg-gradient-to-b from-background via-muted/20 to-background py-12 md:py-20 lg:py-24 transition-colors">
       {/* Background Ambient Glow */}
       <div
         className="pointer-events-none absolute inset-0 opacity-40 dark:opacity-60"
@@ -23,12 +23,9 @@ export function Hero() {
       />
 
       <div className="relative mx-auto w-full max-w-[1320px] px-4">
-        <div className="mx-auto max-w-[960px] text-center">
-          {/* Mobile Airbnb/Turo Search Pill Bar */}
-          <HeroMobileSearch />
-
+        <div className="mx-auto max-w-[1040px] text-center">
           {/* Top Badge */}
-          <div className="mb-5 inline-flex">
+          <div className="mb-4 inline-flex">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-[#ffcc00]/50 bg-[#ffcc00]/10 px-4 py-1.5 text-xs font-bold text-amber-700 dark:text-[#ffcc00] shadow-xs">
               <Sparkles className="size-3.5" />
               <span>Reliable Car Rentals • Doorstep Delivery &amp; Flexible Tiers</span>
@@ -36,34 +33,39 @@ export function Hero() {
           </div>
 
           {/* Headline */}
-          <h1 className="hero-title mb-5 text-foreground">
+          <h1 className="hero-title mb-4 text-foreground">
             Take the wheel with
             <br />
             <span className="hero-gradient-text">zero hassle.</span>
           </h1>
 
           {/* Subtitle */}
-          <p className="mx-auto mb-8 max-w-2xl text-base sm:text-lg font-normal leading-relaxed text-muted-foreground">
+          <p className="mx-auto mb-8 max-w-2xl text-sm sm:text-base md:text-lg font-normal leading-relaxed text-muted-foreground">
             From quick 10-hour business trips to full weekly family getaways.
             Enjoy transparent hourly &amp; 24-hour rates, doorstep delivery across
             Pavia &amp; Iloilo, and thoroughly pre-inspected vehicles ready to drive.
           </p>
 
-          {/* Action CTAs */}
+          {/* KAYAK Signature Search Widget (Tasks 1.1 & 1.2) */}
+          <div className="mb-10">
+            <KayakHeroSearch branches={branches} />
+          </div>
+
+          {/* Secondary Action CTAs */}
           <div className="flex flex-wrap items-center justify-center gap-3.5">
             <Link
               href="/register"
-              className="inline-flex items-center gap-2 rounded-xl bg-[#ffcc00] px-6 py-3.5 text-sm sm:text-base font-black text-black shadow-lg transition-all hover:bg-[#ffd633] hover:scale-[1.02] active:scale-[0.98]"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#ffcc00] px-6 py-3 text-sm font-black text-black shadow-lg transition-all hover:bg-[#ffd633] hover:scale-[1.02] active:scale-[0.98]"
             >
-              <CalendarCheck className="size-5" />
-              <span>Reserve a Vehicle</span>
+              <CalendarCheck className="size-4" />
+              <span>Create Free Account</span>
             </Link>
             <a
               href="#fleet"
-              className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-6 py-3.5 text-sm sm:text-base font-bold text-foreground transition-all hover:bg-muted hover:border-[#ffcc00]/60 active:scale-[0.98]"
+              className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-6 py-3 text-sm font-bold text-foreground transition-all hover:bg-muted hover:border-[#ffcc00]/60 active:scale-[0.98]"
             >
-              <Car className="size-5" />
-              <span>Explore Fleet</span>
+              <Car className="size-4" />
+              <span>Explore All Cars</span>
             </a>
           </div>
 

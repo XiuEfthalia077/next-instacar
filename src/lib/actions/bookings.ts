@@ -1684,7 +1684,9 @@ export async function payRemainingBalanceAction(formData: FormData) {
 /* ------------------------------------------------------------------ */
 
 export async function createBookingAction(formData: FormData) {
-  const session = await requireRole("user", "admin", "staff");
+  let session = await getSession();
+  const supabase = await getSupabase();
+  const db = getAdminClient() ?? supabase;
 
   const carId = parseVehicleId(formData);
   const startDate = str(formData, "start_date");
@@ -1696,6 +1698,83 @@ export async function createBookingAction(formData: FormData) {
 
   if (!carId || !startDate || !endDate) {
     flashRedirect(back, "error", "Invalid request.");
+  }
+
+  // Guest Checkout support: If not signed in, create account at final step
+  let effectiveUserId = session?.userId;
+  if (!session) {
+    const guestName = str(formData, "guest_name") || "Valued Customer";
+    const guestEmail = str(formData, "guest_email").toLowerCase().trim();
+    const guestPhone = str(formData, "guest_phone");
+    const guestPassword = str(formData, "guest_password");
+
+    if (!guestEmail || !guestPassword) {
+      flashRedirect(back, "error", "Please provide your account email and password to confirm your booking.");
+    }
+
+    // Check if user already exists in public.users
+    const { data: existingUser } = await db
+      .from("users")
+      .select("id, name, email")
+      .eq("email", guestEmail)
+      .maybeSingle();
+
+    if (existingUser) {
+      effectiveUserId = (existingUser as { id: number }).id;
+    } else {
+      // Create user in Supabase Auth via Admin API
+      const { data: createdAuth, error: authErr } = await db.auth.admin.createUser({
+        email: guestEmail,
+        password: guestPassword,
+        email_confirm: true,
+        user_metadata: {
+          name: guestName,
+          phone: guestPhone || null,
+        },
+      });
+
+      if (authErr && !authErr.message.includes("already registered")) {
+        flashRedirect(back, "error", `Failed to create account: ${authErr.message}`);
+      }
+
+      // Check if trigger created row in public.users
+      const { data: newDbUser } = await db
+        .from("users")
+        .select("id")
+        .eq("email", guestEmail)
+        .maybeSingle();
+
+      if (newDbUser) {
+        effectiveUserId = (newDbUser as { id: number }).id;
+      } else {
+        const { data: insertedUser, error: insertErr } = await db
+          .from("users")
+          .insert({
+            auth_id: createdAuth?.user?.id ?? null,
+            name: guestName,
+            email: guestEmail,
+            phone: guestPhone || null,
+            role: "user",
+          })
+          .select("id")
+          .single();
+
+        if (insertErr || !insertedUser) {
+          flashRedirect(back, "error", "Failed to register customer profile.");
+        }
+        effectiveUserId = (insertedUser as { id: number }).id;
+      }
+
+      // Sign in the new guest user to establish session
+      try {
+        await supabase.auth.signInWithPassword({
+          email: guestEmail,
+          password: guestPassword,
+        });
+      } catch {
+        // Fallback: continue booking flow
+      }
+    }
   }
 
   const hours =
@@ -1725,18 +1804,15 @@ export async function createBookingAction(formData: FormData) {
 
   const totalPrice = priceFor(car, hours);
 
-  const supabase = await getSupabase();
-  const db = getAdminClient() ?? supabase;
-
   const { data: profile } = await db
     .from("users")
     .select("name")
-    .eq("id", session.userId)
+    .eq("id", effectiveUserId)
     .maybeSingle();
 
-  const folderName = ((profile as { name: string | null } | null)?.name ?? `user_${session.userId}`)
+  const folderName = ((profile as { name: string | null } | null)?.name ?? `user_${effectiveUserId}`)
     .replace(/[^a-zA-Z0-9_-]/g, "_");
-  const folder = `${folderName}_${session.userId}`;
+  const folder = `${folderName}_${effectiveUserId}`;
 
   const upload = async (field: string, prefix: string) => {
     const fileValue = file(formData, field);
@@ -1788,8 +1864,8 @@ export async function createBookingAction(formData: FormData) {
     const { data, error } = await db
       .from("bookings")
       .insert({
-        user_id: session.userId,
-        created_by: session.userId,
+        user_id: effectiveUserId,
+        created_by: effectiveUserId,
         car_id: carId,
         branch_id: car.branch_id,
         start_date: startDate,
@@ -1835,14 +1911,17 @@ export async function createBookingAction(formData: FormData) {
   // Feature B: Queue online booking confirmation to client & notification to admin
   try {
     const carName = `${car.brand ?? ""} ${car.model ?? ""}`.trim() || "Vehicle";
+    const customerEmail = session?.email || str(formData, "guest_email") || null;
+    const customerName = session?.name || str(formData, "guest_name") || "Customer";
+    const customerPhone = str(formData, "guest_phone") || null;
 
-    if (session.email) {
+    if (customerEmail) {
       await queueEmail({
         type: "booking_client_confirmation",
-        email: session.email,
+        email: customerEmail,
         data: {
           bookingId,
-          name: session.name || "Customer",
+          name: customerName,
           carName,
           startDate,
           endDate,
@@ -1863,9 +1942,9 @@ export async function createBookingAction(formData: FormData) {
         email: adminEmail,
         data: {
           bookingId,
-          customerName: session.name || "Customer",
-          customerEmail: session.email,
-          customerPhone: null,
+          customerName,
+          customerEmail,
+          customerPhone,
           carName,
           startDate,
           endDate,

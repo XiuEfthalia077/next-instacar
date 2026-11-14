@@ -55,6 +55,7 @@ type RentCarFlowDialogProps = {
   blockedRanges?: BlockedRange[];
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  isLoggedIn?: boolean;
 };
 
 export function RentCarFlowDialog({
@@ -64,6 +65,7 @@ export function RentCarFlowDialog({
   blockedRanges = [],
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
+  isLoggedIn = true,
 }: RentCarFlowDialogProps) {
   type FlowStep = "idle" | "agreement" | "form";
   const [flowStep, setFlowStep] = React.useState<FlowStep>("idle");
@@ -792,6 +794,40 @@ export function RentCarFlowDialog({
                   View Full Agreement
                 </button>
               </div>
+
+              {/* Guest Checkout: Prompt account creation at final step */}
+              {!isLoggedIn && (
+                <div className="rounded-2xl border border-[#ffcc00]/50 bg-[#ffcc00]/5 p-4 space-y-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#ffcc00] text-black text-xs font-black shadow-xs">
+                      !
+                    </span>
+                    <div>
+                      <h4 className="text-xs font-extrabold text-foreground">Guest Checkout: Create Your Account</h4>
+                      <p className="text-[11px] text-muted-foreground">Your account will be created automatically to manage and track this reservation.</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                    <div>
+                      <Label className="text-[11px] font-bold text-foreground">Full Name *</Label>
+                      <Input name="guest_name" required placeholder="Juan Dela Cruz" className="mt-1 text-xs" />
+                    </div>
+                    <div>
+                      <Label className="text-[11px] font-bold text-foreground">Phone Number *</Label>
+                      <Input name="guest_phone" required placeholder="0917-123-4567" className="mt-1 text-xs" />
+                    </div>
+                    <div>
+                      <Label className="text-[11px] font-bold text-foreground">Email Address *</Label>
+                      <Input name="guest_email" type="email" required placeholder="name@example.com" className="mt-1 text-xs" />
+                    </div>
+                    <div>
+                      <Label className="text-[11px] font-bold text-foreground">Create Password *</Label>
+                      <Input name="guest_password" type="password" required placeholder="••••••••" className="mt-1 text-xs" />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="flex items-start gap-2.5">
                 <input
