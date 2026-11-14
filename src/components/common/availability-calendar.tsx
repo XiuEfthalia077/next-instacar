@@ -24,6 +24,11 @@ export type AvailabilityCalendarProps = {
   className?: string;
 };
 
+const CAL_MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+];
+
 export function AvailabilityCalendar({
   startDate,
   endDate,
@@ -102,10 +107,7 @@ export function AvailabilityCalendar({
     return days;
   }, [calDate]);
 
-  const monthYearLabel = calDate.toLocaleString("en-US", {
-    month: "short",
-    year: "numeric",
-  });
+  const monthYearLabel = `${CAL_MONTHS[calDate.getMonth()]} ${calDate.getFullYear()}`;
 
   const nextMonth = () => {
     setCalDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
@@ -216,7 +218,7 @@ export function AvailabilityCalendar({
         >
           &lt; Prev
         </button>
-        <span className="font-black text-sm tracking-wide text-foreground">
+        <span className="font-black text-sm tracking-wide text-foreground" suppressHydrationWarning>
           {monthYearLabel}
         </span>
         <button

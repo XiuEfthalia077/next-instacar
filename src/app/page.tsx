@@ -162,7 +162,7 @@ export default async function HomePage() {
 
       <main className="overflow-x-hidden pb-24 md:pb-0">
         {/* Task 1.1 & 1.2: Top Hero & KAYAK Search Widget with Mini-Map Modal */}
-        <Hero branches={branches} />
+        <Hero branches={branches} todayStr={todayStr} />
 
         {/* Task 1.4: Featured Cars Carousel (Continuous marquee, pauses on hover, car detail modal) */}
         <FeaturedCarsCarousel cars={stats.popular_cars} reviews={initialReviews} />

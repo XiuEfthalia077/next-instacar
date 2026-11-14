@@ -14,6 +14,7 @@ import {
   Sparkles,
   Loader2,
   ChevronUp,
+  Truck,
 } from "lucide-react";
 import {
   Dialog,
@@ -31,6 +32,23 @@ export const BRANCH_COORDS = {
   name: "InstaCar Pavia Hub",
   address: "Instacar Car Rental Services, Pandac, Pavia, 5001 Iloilo",
 };
+
+export const DEFAULT_MAP_BRANCHES = [
+  {
+    id: 1,
+    name: "InstaCar Pavia Hub (Main)",
+    address: "Instacar Car Rental Services, Pandac, Pavia, 5001 Iloilo",
+    lat: 10.7766,
+    lng: 122.5444,
+  },
+  {
+    id: 2,
+    name: "Iloilo City Airport Branch",
+    address: "Iloilo International Airport, Cabatuan, 5031 Iloilo",
+    lat: 10.8329,
+    lng: 122.4934,
+  },
+];
 
 export const POPULAR_DESTINATIONS = [
   {
@@ -106,8 +124,14 @@ interface UberInteractiveMapProps {
     lng: number;
     distanceKm: number;
     deliveryFee: number;
+    mode?: "branch" | "delivery";
+    branchId?: number;
+    branchName?: string;
   }) => void;
   title?: string;
+  branches?: Array<{ id: number; name: string; address?: string | null; lat?: number; lng?: number }>;
+  initialMode?: "branch" | "delivery";
+  allowBranchSelection?: boolean;
 }
 
 export function UberInteractiveMapDialog({
@@ -115,11 +139,34 @@ export function UberInteractiveMapDialog({
   onOpenChange,
   initialAddress = "",
   onConfirmLocation,
-  title = "Pin Delivery Location",
+  title = "Choose Pickup Branch or Doorstep Delivery",
+  branches,
+  initialMode = "branch",
+  allowBranchSelection = true,
 }: UberInteractiveMapProps) {
   const mapContainerRef = React.useRef<HTMLDivElement>(null);
   const mapInstanceRef = React.useRef<any>(null);
   const markerRef = React.useRef<any>(null);
+
+  // Map branches list with coordinates fallback
+  const branchList = React.useMemo(() => {
+    if (!branches || branches.length === 0) return DEFAULT_MAP_BRANCHES;
+    return branches.map((b, idx) => {
+      const fallback = DEFAULT_MAP_BRANCHES[idx] || DEFAULT_MAP_BRANCHES[0];
+      return {
+        id: b.id,
+        name: b.name,
+        address: b.address || fallback.address,
+        lat: b.lat ?? fallback.lat,
+        lng: b.lng ?? fallback.lng,
+      };
+    });
+  }, [branches]);
+
+  const [activeMode, setActiveMode] = React.useState<"branch" | "delivery">(initialMode);
+  const [selectedBranchId, setSelectedBranchId] = React.useState<number>(() => {
+    return branchList[0]?.id || 1;
+  });
 
   const [currentCoords, setCurrentCoords] = React.useState({
     lat: BRANCH_COORDS.lat,
@@ -379,13 +426,28 @@ export function UberInteractiveMapDialog({
   };
 
   const handleConfirm = () => {
-    onConfirmLocation({
-      address,
-      lat: currentCoords.lat,
-      lng: currentCoords.lng,
-      distanceKm,
-      deliveryFee,
-    });
+    if (activeMode === "branch") {
+      const br = branchList.find((b) => b.id === selectedBranchId) || branchList[0];
+      onConfirmLocation({
+        address: br.address,
+        lat: br.lat,
+        lng: br.lng,
+        distanceKm: 0,
+        deliveryFee: 0,
+        mode: "branch",
+        branchId: br.id,
+        branchName: br.name,
+      });
+    } else {
+      onConfirmLocation({
+        address,
+        lat: currentCoords.lat,
+        lng: currentCoords.lng,
+        distanceKm,
+        deliveryFee,
+        mode: "delivery",
+      });
+    }
     onOpenChange(false);
   };
 
@@ -396,50 +458,129 @@ export function UberInteractiveMapDialog({
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
 
-        {/* TOP FLOATING SEARCH OVERLAY (DESKTOP & TABLET) */}
-        <div className="absolute top-4 left-4 right-16 sm:right-auto sm:w-96 z-[400] pointer-events-auto">
-          <div className="relative rounded-2xl bg-card/95 backdrop-blur-md shadow-xl border border-border p-2">
-            <div className="relative flex items-center">
-              <Search className="absolute left-3 size-4 text-muted-foreground" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search street, hotel, mall in Iloilo..."
-                className="pl-9 pr-8 h-10 rounded-xl border-none bg-muted/50 text-xs text-foreground focus-visible:ring-1 focus-visible:ring-[#ffcc00]"
-              />
-              {isSearching && (
-                <Loader2 className="absolute right-3 size-4 animate-spin text-muted-foreground" />
-              )}
-              {searchQuery && !isSearching && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-3 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="size-3.5" />
-                </button>
+        {/* TOP FLOATING CONTROLS (DESKTOP & TABLET): MODE SWITCHER & SEARCH / BRANCH CARDS */}
+        <div className="absolute top-4 left-4 right-16 sm:right-auto sm:w-[400px] z-[400] pointer-events-auto space-y-2">
+          {allowBranchSelection && (
+            <div className="inline-flex rounded-2xl bg-card/95 backdrop-blur-md p-1 border border-border shadow-xl gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveMode("branch");
+                  const br = branchList.find((b) => b.id === selectedBranchId) || branchList[0];
+                  if (br) {
+                    setAddress(br.address);
+                    flyToCoords(br.lat, br.lng, br.address);
+                  }
+                }}
+                className={cn(
+                  "px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer",
+                  activeMode === "branch"
+                    ? "bg-[#ffcc00] text-black font-black shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Building2 className="size-3.5" />
+                <span>Pickup Branch (Free)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveMode("delivery")}
+                className={cn(
+                  "px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer",
+                  activeMode === "delivery"
+                    ? "bg-[#ffcc00] text-black font-black shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Truck className="size-3.5" />
+                <span>Doorstep Delivery</span>
+              </button>
+            </div>
+          )}
+
+          {activeMode === "branch" ? (
+            <div className="rounded-2xl bg-card/95 backdrop-blur-md shadow-xl border border-border p-2.5 space-y-1.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground block px-1">
+                Select Pickup Branch
+              </span>
+              <div className="space-y-1">
+                {branchList.map((b) => {
+                  const isSel = selectedBranchId === b.id;
+                  return (
+                    <button
+                      key={b.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedBranchId(b.id);
+                        setAddress(b.address);
+                        flyToCoords(b.lat, b.lng, b.address);
+                      }}
+                      className={cn(
+                        "w-full flex items-center justify-between p-2 rounded-xl text-left transition cursor-pointer border",
+                        isSel
+                          ? "bg-[#ffcc00]/15 border-[#ffcc00]/50 text-foreground"
+                          : "border-transparent hover:bg-muted text-foreground"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Building2 className={cn("size-4 shrink-0", isSel ? "text-[#ffcc00]" : "text-muted-foreground")} />
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold truncate">{b.name}</p>
+                          <p className="text-[10px] text-muted-foreground truncate">{b.address}</p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full shrink-0">
+                        Free
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="relative rounded-2xl bg-card/95 backdrop-blur-md shadow-xl border border-border p-2">
+              <div className="relative flex items-center">
+                <Search className="absolute left-3 size-4 text-muted-foreground" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search street, hotel, mall in Iloilo..."
+                  className="pl-9 pr-8 h-10 rounded-xl border-none bg-muted/50 text-xs text-foreground focus-visible:ring-1 focus-visible:ring-[#ffcc00]"
+                />
+                {isSearching && (
+                  <Loader2 className="absolute right-3 size-4 animate-spin text-muted-foreground" />
+                )}
+                {searchQuery && !isSearching && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Autocomplete Search Dropdown */}
+              {searchResults.length > 0 && (
+                <div className="mt-2 divide-y divide-border/60 rounded-xl border border-border bg-card max-h-56 overflow-y-auto shadow-lg">
+                  {searchResults.map((item, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleSelectSearchResult(item)}
+                      className="flex w-full items-start gap-2.5 p-2.5 text-left text-xs hover:bg-[#ffcc00]/10 transition cursor-pointer"
+                    >
+                      <MapPin className="size-4 shrink-0 text-[#ffcc00] mt-0.5" />
+                      <span className="line-clamp-2 text-foreground font-medium">
+                        {item.display_name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
-
-            {/* Autocomplete Search Dropdown */}
-            {searchResults.length > 0 && (
-              <div className="mt-2 divide-y divide-border/60 rounded-xl border border-border bg-card max-h-56 overflow-y-auto shadow-lg">
-                {searchResults.map((item, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => handleSelectSearchResult(item)}
-                    className="flex w-full items-start gap-2.5 p-2.5 text-left text-xs hover:bg-[#ffcc00]/10 transition cursor-pointer"
-                  >
-                    <MapPin className="size-4 shrink-0 text-[#ffcc00] mt-0.5" />
-                    <span className="line-clamp-2 text-foreground font-medium">
-                      {item.display_name}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          )}
         </div>
 
         {/* FULLSCREEN / DESKTOP INTERACTIVE MAP CONTAINER */}
@@ -578,7 +719,9 @@ export function UberInteractiveMapDialog({
                 className="flex-1 rounded-xl bg-[#ffcc00] text-black font-black text-xs h-10 hover:bg-[#ffd633] shadow-md transition-all active:scale-[0.98] cursor-pointer"
               >
                 <Check className="size-4 mr-1.5 stroke-[2.5]" />
-                Confirm Pin &amp; Set Fee (₱{deliveryFee.toLocaleString()})
+                {activeMode === "branch"
+                  ? "Confirm Branch Pickup (Free)"
+                  : `Confirm Delivery Location (₱${deliveryFee.toLocaleString()})`}
               </Button>
             </div>
           </div>

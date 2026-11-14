@@ -10,7 +10,13 @@ import {
 } from "lucide-react";
 import { KayakHeroSearch, type BranchOption } from "@/components/marketing/kayak-hero-search";
 
-export function Hero({ branches }: { branches?: BranchOption[] }) {
+export function Hero({
+  branches,
+  todayStr,
+}: {
+  branches?: BranchOption[];
+  todayStr?: string;
+}) {
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-background via-muted/20 to-background py-12 md:py-20 lg:py-24 transition-colors">
       {/* Background Ambient Glow */}
@@ -48,7 +54,7 @@ export function Hero({ branches }: { branches?: BranchOption[] }) {
 
           {/* KAYAK Signature Search Widget (Tasks 1.1 & 1.2) */}
           <div className="mb-10">
-            <KayakHeroSearch branches={branches} />
+            <KayakHeroSearch branches={branches} defaultDate={todayStr} />
           </div>
 
           {/* Secondary Action CTAs */}

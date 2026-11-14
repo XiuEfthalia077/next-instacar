@@ -39,6 +39,7 @@ export interface BranchOption {
 interface KayakHeroSearchProps {
   branches?: BranchOption[];
   className?: string;
+  defaultDate?: string;
 }
 
 const DEFAULT_BRANCHES: BranchOption[] = [
@@ -93,16 +94,24 @@ const MONTH_NAMES = [
   "July", "August", "September", "October", "November", "December"
 ];
 
+const WEEKDAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS_SHORT = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+];
+
 function formatDisplayDate(dateStr: string): string {
   if (!dateStr) return "";
   try {
-    const [year, month, day] = dateStr.split("-").map(Number);
+    const parts = dateStr.split("-").map(Number);
+    if (parts.length < 3 || isNaN(parts[0]) || isNaN(parts[1]) || isNaN(parts[2])) {
+      return dateStr;
+    }
+    const [year, month, day] = parts;
     const d = new Date(year, month - 1, day);
-    return d.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    });
+    const dayOfWeek = WEEKDAYS_SHORT[d.getDay()] || "";
+    const monthName = MONTHS_SHORT[month - 1] || "";
+    return `${dayOfWeek}, ${monthName} ${day}`;
   } catch {
     return dateStr;
   }
@@ -214,11 +223,11 @@ function CustomDateTimePicker({
             <span className="text-[10px] uppercase font-black tracking-wider text-muted-foreground block">
               {label}
             </span>
-            <div className="flex items-center gap-1.5 mt-0.5 truncate">
-              <span className="text-xs sm:text-sm font-black text-foreground">
+            <div className="flex items-center gap-1.5 mt-0.5 truncate" suppressHydrationWarning>
+              <span className="text-xs sm:text-sm font-black text-foreground" suppressHydrationWarning>
                 {formatDisplayDate(date)}
               </span>
-              <span className="text-[11px] font-bold text-muted-foreground">
+              <span className="text-[11px] font-bold text-muted-foreground" suppressHydrationWarning>
                 • {formatDisplayTime(time)}
               </span>
             </div>
@@ -364,131 +373,52 @@ function CustomDateTimePicker({
  * and doorstep delivery options.
  */
 function CustomLocationDropdown({
-  branches,
   locationMode,
   selectedBranch,
   deliveryAddress,
-  onSelectBranch,
   onOpenMap,
 }: {
-  branches: BranchOption[];
   locationMode: "branch" | "delivery";
   selectedBranch: BranchOption;
   deliveryAddress: string;
-  onSelectBranch: (branch: BranchOption) => void;
   onOpenMap: () => void;
 }) {
-  const [open, setOpen] = React.useState(false);
-
   const displayLocation =
     locationMode === "branch"
       ? selectedBranch.name
       : deliveryAddress || "Set Doorstep Delivery Location";
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <div
-          role="button"
-          tabIndex={0}
-          className="lg:col-span-4 flex items-center gap-3 px-3.5 py-2.5 rounded-2xl lg:rounded-full bg-muted/40 hover:bg-muted/70 border border-border/60 hover:border-[#ffcc00]/60 transition-all cursor-pointer group w-full"
-          aria-label="Select pickup branch or doorstep delivery"
-        >
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#ffcc00]/20 text-[#ffcc00] group-hover:scale-105 transition-transform shadow-xs">
-            {locationMode === "branch" ? (
-              <Building2 className="size-4 text-amber-600 dark:text-[#ffcc00]" />
-            ) : (
-              <MapPin className="size-4 text-amber-600 dark:text-[#ffcc00]" />
-            )}
-          </div>
-          <div className="min-w-0 flex-1 text-left">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] uppercase font-black tracking-wider text-muted-foreground">
-                {locationMode === "branch" ? "Pickup Branch" : "Doorstep Delivery"}
-              </span>
-              <span className="text-[9px] font-extrabold text-[#b38a00] dark:text-[#ffcc00] underline">
-                Select
-              </span>
-            </div>
-            <p className="text-xs sm:text-sm font-black text-foreground truncate">
-              {displayLocation}
-            </p>
-          </div>
-          <ChevronDown className="size-3.5 text-muted-foreground group-hover:text-foreground shrink-0 transition-transform duration-200" />
-        </div>
-      </PopoverTrigger>
-
-      <PopoverContent
-        align="start"
-        sideOffset={8}
-        className="w-[300px] sm:w-[340px] rounded-2xl border border-border bg-card/98 p-3 shadow-2xl backdrop-blur-xl text-card-foreground z-[200] space-y-2"
-      >
-        <div className="px-2 py-1 border-b border-border/60">
-          <p className="text-xs font-black text-foreground">Pickup Location</p>
-          <p className="text-[11px] text-muted-foreground">
-            Choose a branch hub or request doorstep delivery.
-          </p>
-        </div>
-
-        {/* Branch List */}
-        <div className="space-y-1">
-          <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground px-2">
-            Branches (Free Pickup)
+    <button
+      type="button"
+      onClick={onOpenMap}
+      className="lg:col-span-4 flex items-center gap-3 px-3.5 py-2.5 rounded-2xl lg:rounded-full bg-muted/40 hover:bg-muted/70 border border-border/60 hover:border-[#ffcc00]/60 transition-all cursor-pointer group w-full text-left"
+      aria-label="Click to open interactive map for branch or doorstep delivery"
+    >
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#ffcc00]/20 text-[#ffcc00] group-hover:scale-105 transition-transform shadow-xs">
+        {locationMode === "branch" ? (
+          <Building2 className="size-4 text-amber-600 dark:text-[#ffcc00]" />
+        ) : (
+          <MapPin className="size-4 text-amber-600 dark:text-[#ffcc00]" />
+        )}
+      </div>
+      <div className="min-w-0 flex-1 text-left">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] uppercase font-black tracking-wider text-muted-foreground">
+            {locationMode === "branch" ? "Pickup Branch" : "Doorstep Delivery"}
           </span>
-          {branches.map((b) => {
-            const isSelected = locationMode === "branch" && selectedBranch.id === b.id;
-            return (
-              <button
-                key={b.id}
-                type="button"
-                onClick={() => {
-                  onSelectBranch(b);
-                  setOpen(false);
-                }}
-                className={cn(
-                  "w-full flex items-center justify-between gap-2.5 p-2 rounded-xl text-left transition cursor-pointer",
-                  isSelected
-                    ? "bg-[#ffcc00]/15 border border-[#ffcc00]/40 text-foreground"
-                    : "hover:bg-muted text-foreground"
-                )}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <Building2 className={cn("size-4 shrink-0", isSelected ? "text-[#ffcc00]" : "text-muted-foreground")} />
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold truncate">{b.name}</p>
-                    {b.address && (
-                      <p className="text-[10px] text-muted-foreground truncate">{b.address}</p>
-                    )}
-                  </div>
-                </div>
-                {isSelected && <Check className="size-3.5 text-[#ffcc00] shrink-0" />}
-              </button>
-            );
-          })}
+          <span className="text-[9px] font-extrabold text-[#b38a00] dark:text-[#ffcc00] underline">
+            Open Map
+          </span>
         </div>
-
-        {/* Doorstep Delivery Option */}
-        <div className="pt-2 border-t border-border/60">
-          <button
-            type="button"
-            onClick={() => {
-              setOpen(false);
-              onOpenMap();
-            }}
-            className="w-full flex items-center justify-between gap-2.5 p-2.5 rounded-xl border border-dashed border-[#ffcc00]/50 hover:bg-[#ffcc00]/10 transition text-left cursor-pointer group"
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <Truck className="size-4 text-amber-600 dark:text-[#ffcc00] shrink-0 group-hover:scale-110 transition-transform" />
-              <div>
-                <p className="text-xs font-bold text-foreground">Doorstep Delivery</p>
-                <p className="text-[10px] text-muted-foreground">Pin hotel, airport, or home on map</p>
-              </div>
-            </div>
-            <span className="text-[11px] font-black text-amber-600 dark:text-[#ffcc00]">&rarr;</span>
-          </button>
-        </div>
-      </PopoverContent>
-    </Popover>
+        <p className="text-xs sm:text-sm font-black text-foreground truncate">
+          {displayLocation}
+        </p>
+      </div>
+      <div className="size-7 rounded-full bg-[#ffcc00]/10 flex items-center justify-center group-hover:bg-[#ffcc00] text-muted-foreground group-hover:text-black transition-colors shrink-0">
+        <MapPin className="size-3.5" />
+      </div>
+    </button>
   );
 }
 
@@ -578,6 +508,7 @@ function CustomDriverAgePicker({
 export function KayakHeroSearch({
   branches = DEFAULT_BRANCHES,
   className,
+  defaultDate,
 }: KayakHeroSearchProps) {
   const router = useRouter();
 
@@ -591,20 +522,22 @@ export function KayakHeroSearch({
   const [deliveryFee, setDeliveryFee] = React.useState(0);
   const [mapOpen, setMapOpen] = React.useState(false);
 
-  // Dates & Times (Defaults: Today 10:00 AM -> Tomorrow 10:00 AM)
-  const [startDate, setStartDate] = React.useState(() => {
-    const today = new Date();
-    const pad = (n: number) => String(n).padStart(2, "0");
-    return `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
-  });
-  const [startTime, setStartTime] = React.useState("10:00");
+  // Deterministic Default Dates & Times (avoids UTC vs local SSR hydration mismatch)
+  const defaultStart = defaultDate || "2026-11-15";
+  const defaultEnd = React.useMemo(() => {
+    try {
+      const parts = defaultStart.split("-").map(Number);
+      const d = new Date(parts[0], parts[1] - 1, parts[2] + 1);
+      const pad = (n: number) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    } catch {
+      return "2026-11-16";
+    }
+  }, [defaultStart]);
 
-  const [endDate, setEndDate] = React.useState(() => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const pad = (n: number) => String(n).padStart(2, "0");
-    return `${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}`;
-  });
+  const [startDate, setStartDate] = React.useState(defaultStart);
+  const [startTime, setStartTime] = React.useState("10:00");
+  const [endDate, setEndDate] = React.useState(defaultEnd);
   const [endTime, setEndTime] = React.useState("10:00");
 
   // Driver Age selection
@@ -725,17 +658,11 @@ export function KayakHeroSearch({
         onSubmit={handleSearchSubmit}
         className="rounded-3xl lg:rounded-full border border-border bg-card/95 backdrop-blur-xl p-2.5 lg:p-3 shadow-2xl shadow-black/25 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2 items-center"
       >
-        {/* 1. Location Segment: Custom Dark-Mode Popover + Mini-Map Trigger */}
+        {/* 1. Location Segment: Interactive Mini-Map Trigger (Task 1.3) */}
         <CustomLocationDropdown
-          branches={branches}
           locationMode={locationMode}
           selectedBranch={selectedBranch}
           deliveryAddress={deliveryAddress}
-          onSelectBranch={(b) => {
-            setSelectedBranch(b);
-            setLocationMode("branch");
-            setDeliveryFee(0);
-          }}
           onOpenMap={() => setMapOpen(true)}
         />
 
@@ -791,12 +718,20 @@ export function KayakHeroSearch({
         open={mapOpen}
         onOpenChange={setMapOpen}
         title="Choose Pickup Branch or Doorstep Delivery"
-        initialAddress={deliveryAddress || BRANCH_COORDS.address}
+        initialAddress={deliveryAddress || selectedBranch.address || BRANCH_COORDS.address}
+        branches={branches}
+        allowBranchSelection={true}
+        initialMode={locationMode}
         onConfirmLocation={(data) => {
-          if (data.distanceKm <= 0.8) {
+          if (data.mode === "branch" || data.distanceKm <= 0.8) {
             // Picked branch location
             setLocationMode("branch");
-            setSelectedBranch(branches[0] || DEFAULT_BRANCHES[0]);
+            if (data.branchId) {
+              const matched = branches.find((b) => b.id === data.branchId);
+              if (matched) setSelectedBranch(matched);
+            } else {
+              setSelectedBranch(branches[0] || DEFAULT_BRANCHES[0]);
+            }
             setDeliveryFee(0);
           } else {
             // Picked custom doorstep delivery location
