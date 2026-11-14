@@ -20,7 +20,7 @@ import { ExpenseManager } from "@/components/admin/expense-manager";
 import { FinancialTelemetryChart } from "@/components/admin/financial-chart";
 import { FinancialTabs } from "@/components/admin/financial-tabs";
 import { PrintButton } from "@/components/admin/print-button";
-import { filterControlClass } from "@/components/common/filter-bar";
+import { FilterBar, filterControlClass } from "@/components/common/filter-bar";
 import { Flash } from "@/components/common/flash";
 import { StatCard } from "@/components/shared/StatCard";
 import { TabContentSkeleton } from "@/components/ui/tab-content-skeleton";
@@ -264,7 +264,7 @@ export default async function FinancialIntelligenceCenterPage({
           <FinancialTelemetryChart data={telemetryData} />
 
           {/* Analytics Filter Bar */}
-          <form method="GET" action="/admin/financials" className="space-y-3">
+          <FilterBar action="/admin/financials" className="space-y-3">
             <input type="hidden" name="tab" value="overview" />
             <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-card p-3 shadow-xs md:p-4">
               <div className="flex flex-1 flex-wrap items-center gap-3 min-w-[240px]">
@@ -312,7 +312,7 @@ export default async function FinancialIntelligenceCenterPage({
                 </Button>
               </div>
             </div>
-          </form>
+          </FilterBar>
 
           {/* Performance Table */}
           <div className="rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-xs">
@@ -440,7 +440,7 @@ export default async function FinancialIntelligenceCenterPage({
             />
           </div>
 
-          <form method="GET" action="/admin/financials" className="space-y-3">
+          <FilterBar action="/admin/financials" className="space-y-3">
             <input type="hidden" name="tab" value="revenue" />
             <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-card p-3 shadow-xs md:p-4">
               <select
@@ -483,7 +483,7 @@ export default async function FinancialIntelligenceCenterPage({
                 Apply
               </Button>
             </div>
-          </form>
+          </FilterBar>
 
           <div className="rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-xs overflow-x-auto">
             <Table>
@@ -586,7 +586,7 @@ export default async function FinancialIntelligenceCenterPage({
             />
           </div>
 
-          <form method="GET" action="/admin/financials" className="space-y-3">
+          <FilterBar action="/admin/financials" className="space-y-3">
             <input type="hidden" name="tab" value="expenses" />
             <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-card p-3 shadow-xs md:p-4">
               <select
@@ -617,7 +617,7 @@ export default async function FinancialIntelligenceCenterPage({
                 Apply
               </Button>
             </div>
-          </form>
+          </FilterBar>
 
           <div className="rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-xs overflow-x-auto">
             <Table>
@@ -717,7 +717,7 @@ export default async function FinancialIntelligenceCenterPage({
           </div>
 
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <form method="GET" action="/admin/financials" className="flex items-center gap-3">
+            <FilterBar action="/admin/financials" className="flex items-center gap-3">
               <input type="hidden" name="tab" value="income" />
               <select
                 name="year"
@@ -733,7 +733,7 @@ export default async function FinancialIntelligenceCenterPage({
               <Button type="submit" size="sm" className="bg-[#ffcc00] text-black font-bold hover:bg-[#ffd700]">
                 Apply
               </Button>
-            </form>
+            </FilterBar>
 
             <div className="flex items-center gap-2">
               <Button asChild variant="outline" size="sm" className="gap-2 font-bold text-xs">

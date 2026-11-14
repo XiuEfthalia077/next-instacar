@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 
 import { EmptyState } from "@/components/common/empty-state";
-import { filterControlClass } from "@/components/common/filter-bar";
+import { FilterBar, filterControlClass } from "@/components/common/filter-bar";
 import { Flash } from "@/components/common/flash";
 import { PageHeader } from "@/components/common/page-header";
 import { SectionCard } from "@/components/common/section-card";
@@ -212,7 +212,7 @@ export default async function SharedMyCarSchedulesPage({
             bodyClassName="p-6 sm:p-8 lg:p-9"
           >
             {/* Filter by car */}
-            <form method="get" className="mb-6">
+            <FilterBar action="/shared/my_car_schedules" className="mb-6">
               <div className="flex flex-wrap items-center gap-3">
                 <select
                   name="car_id"
@@ -233,7 +233,7 @@ export default async function SharedMyCarSchedulesPage({
                   Filter
                 </button>
               </div>
-            </form>
+            </FilterBar>
 
             {schedules.length === 0 ? (
               <EmptyState

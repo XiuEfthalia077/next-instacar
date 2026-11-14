@@ -3,6 +3,7 @@ import { Inter, Poppins } from "next/font/google";
 import { Suspense } from "react";
 
 import { TopLoader } from "@/components/common/top-loader";
+import { GlobalNavigationListener } from "@/components/common/global-navigation-listener";
 import { MobileBottomBar } from "@/components/mobile/mobile-bottom-bar";
 import "./globals.css";
 
@@ -113,6 +114,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="flex min-h-full flex-col bg-background font-sans text-foreground">
         <Suspense fallback={null}>
           <TopLoader />
+          <GlobalNavigationListener />
         </Suspense>
         {children}
         <Suspense fallback={null}>

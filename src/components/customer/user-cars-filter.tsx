@@ -57,14 +57,36 @@ export function UserCarsFilter({
   const formId = useId();
   const [searchSheetOpen, setSearchSheetOpen] = useState(false);
 
+  const applyFormFilters = (form: HTMLFormElement) => {
+    const formData = new FormData(form);
+    const params = new URLSearchParams(window.location.search);
+    for (const [key, value] of formData.entries()) {
+      if (typeof value === "string") {
+        const trimmed = value.trim();
+        if (trimmed && trimmed !== "All") {
+          params.set(key, trimmed);
+        } else {
+          params.delete(key);
+        }
+      }
+    }
+    params.delete("page");
+    const qs = params.toString();
+    startTransition(() => {
+      router.push(qs ? `/user/cars?${qs}` : "/user/cars", { scroll: false });
+    });
+  };
+
   const handleFieldChange = (event: React.ChangeEvent<HTMLFormElement>) => {
     const target = event.target as HTMLElement;
     if (target.tagName === "SELECT" || target.getAttribute("type") === "date") {
-      const form = event.currentTarget;
-      startTransition(() => {
-        form.requestSubmit();
-      });
+      applyFormFilters(event.currentTarget);
     }
+  };
+
+  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    applyFormFilters(e.currentTarget);
   };
 
   const handleQuickChip = (key: string, value: string) => {
@@ -153,7 +175,7 @@ export function UserCarsFilter({
         </div>
 
         {/* Search Bar - Top Right */}
-        <form method="get" className="w-full sm:w-72 md:w-80">
+        <form onSubmit={handleFormSubmit} className="w-full sm:w-72 md:w-80">
           {typeFilter !== "All" && <input type="hidden" name="type" value={typeFilter} />}
           {branchFilter !== "All" && <input type="hidden" name="branch" value={branchFilter} />}
           {statusFilter !== "All" && <input type="hidden" name="status" value={statusFilter} />}
@@ -177,7 +199,7 @@ export function UserCarsFilter({
       {/* 3. MAIN FILTER CARD (Desktop & Tablet) */}
       <form
         id={formId}
-        method="get"
+        onSubmit={handleFormSubmit}
         onChange={handleFieldChange}
         className={cn(
           "hidden md:block rounded-2xl border border-border bg-card/90 p-4 sm:p-5 shadow-xs transition-opacity duration-200",
