@@ -99,30 +99,30 @@ export default async function AdminBranchesPage({
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 border-t border-border pt-3.5">
-                <div className="flex flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 transition-colors hover:bg-[#ffcc00]/8">
-                  <span className="text-[1.1rem] font-extrabold leading-none text-foreground">
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 border-t border-border pt-3.5">
+                <div className="flex flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 min-w-0 transition-colors hover:bg-[#ffcc00]/8">
+                  <span className="text-base sm:text-[1.1rem] font-extrabold leading-none text-foreground truncate max-w-full">
                     {branch.staff_count.toLocaleString("en-PH")}
                   </span>
-                  <span className="text-center text-[0.62rem] font-bold uppercase leading-[1.15] tracking-[0.05em] text-muted-foreground">
-                    Staff / Operators
+                  <span className="text-center text-[10px] sm:text-[11px] font-bold uppercase leading-tight tracking-wider text-muted-foreground truncate max-w-full">
+                    Staff
                   </span>
                 </div>
 
-                <div className="flex flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 transition-colors hover:bg-[#ffcc00]/8">
-                  <span className="text-[1.1rem] font-extrabold leading-none text-foreground">
+                <div className="flex flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 min-w-0 transition-colors hover:bg-[#ffcc00]/8">
+                  <span className="text-base sm:text-[1.1rem] font-extrabold leading-none text-foreground truncate max-w-full">
                     {branch.car_count.toLocaleString("en-PH")}
                   </span>
-                  <span className="text-center text-[0.62rem] font-bold uppercase leading-[1.15] tracking-[0.05em] text-muted-foreground">
+                  <span className="text-center text-[10px] sm:text-[11px] font-bold uppercase leading-tight tracking-wider text-muted-foreground truncate max-w-full">
                     Cars
                   </span>
                 </div>
 
-                <div className="flex flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 transition-colors hover:bg-[#ffcc00]/8">
-                  <span className="text-[1.1rem] font-extrabold leading-none text-foreground">
+                <div className="flex flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 min-w-0 transition-colors hover:bg-[#ffcc00]/8">
+                  <span className="text-base sm:text-[1.1rem] font-extrabold leading-none text-foreground truncate max-w-full">
                     {branch.booking_count.toLocaleString("en-PH")}
                   </span>
-                  <span className="text-center text-[0.62rem] font-bold uppercase leading-[1.15] tracking-[0.05em] text-muted-foreground">
+                  <span className="text-center text-[10px] sm:text-[11px] font-bold uppercase leading-tight tracking-wider text-muted-foreground truncate max-w-full">
                     Bookings
                   </span>
                 </div>

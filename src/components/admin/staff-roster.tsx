@@ -126,7 +126,7 @@ export function StaffRoster({
           {visible.map((row) => (
             <div
               key={row.id}
-              className="flex h-full flex-col justify-between gap-4 rounded-2xl border border-border bg-card p-4 sm:p-5 transition-all hover:border-[#ffcc00] hover:shadow-[0_12px_20px_-8px_rgba(255,204,0,0.25)]"
+              className="flex h-full min-w-0 flex-col justify-between gap-4 rounded-2xl border border-border bg-card p-4 sm:p-5 transition-all hover:border-[#ffcc00] hover:shadow-[0_12px_20px_-8px_rgba(255,204,0,0.25)] overflow-hidden"
             >
               <div>
                 {/* Header Row: Responsive wrap on mobile to prevent clipping */}

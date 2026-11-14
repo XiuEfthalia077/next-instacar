@@ -100,12 +100,12 @@ export function StatCard({
   return (
     <Card
       className={cn(
-        "gap-0 rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-xs transition hover:border-[#ffcc00]/50 dark:border-zinc-800 dark:bg-zinc-900/90 dark:hover:border-zinc-700 w-full",
+        "gap-0 rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-xs transition hover:border-[#ffcc00]/50 dark:border-zinc-800 dark:bg-zinc-900/90 dark:hover:border-zinc-700 w-full min-w-0 overflow-hidden",
         className,
       )}
     >
-      <div className="flex items-center justify-between gap-2">
-        <span className="truncate text-[11px] font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-400">
+      <div className="flex items-center justify-between gap-2 min-w-0">
+        <span className="truncate text-[11px] font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-400 min-w-0">
           {displayTitle}
         </span>
         {Icon ? (
@@ -122,7 +122,7 @@ export function StatCard({
 
       <div
         className={cn(
-          "mt-2 truncate text-xl sm:text-2xl font-black tracking-tight",
+          "mt-2 truncate text-xl sm:text-2xl font-black tracking-tight min-w-0 max-w-full",
           valueClassName || config.defaultValueColor,
         )}
       >
@@ -130,7 +130,7 @@ export function StatCard({
       </div>
 
       {displayHint ? (
-        <div className="mt-1 line-clamp-2 text-xs text-muted-foreground dark:text-zinc-400">
+        <div className="mt-1 line-clamp-2 text-xs text-muted-foreground dark:text-zinc-400 min-w-0">
           {displayHint}
         </div>
       ) : null}
