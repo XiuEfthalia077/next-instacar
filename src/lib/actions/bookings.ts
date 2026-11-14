@@ -26,7 +26,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 
 import { getSession, getSupabase, requireRole } from "@/lib/auth";
-import { calculatePriceByHours } from "@/lib/pricing";
+import { calculatePriceByHours, computeOperatorShare } from "@/lib/pricing";
 import {
   bookingConfirmedEmail,
   bookingCancelledEmail,
@@ -1265,16 +1265,12 @@ export async function savePaymentAction(formData: FormData) {
     );
 
     if (endTs > startTs) {
-      const hours = Math.ceil((endTs - startTs) / 3_600_000);
-
-      const op10 = Number(car.operator_10_hours ?? 0);
-      const op12 = Number(car.operator_12_hours ?? 0);
-      const op24 = Number(car.operator_24_hours ?? 0);
-
-      if (hours <= 10 && op10 > 0) operatorShare = op10;
-      else if (hours <= 12 && op12 > 0) operatorShare = op12;
-      else if (hours <= 24 && op24 > 0) operatorShare = op24;
-      else if (op24 > 0) operatorShare = Math.floor(hours / 24) * op24;
+      const hours = (endTs - startTs) / 3_600_000;
+      operatorShare = computeOperatorShare(hours, {
+        operator_10_hours: Number(car.operator_10_hours ?? 0),
+        operator_12_hours: Number(car.operator_12_hours ?? 0),
+        operator_24_hours: Number(car.operator_24_hours ?? 0),
+      });
     }
   }
 
