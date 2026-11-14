@@ -245,15 +245,6 @@ export function UberInteractiveMapDialog({
 
       if (!mapContainerRef.current || !isMounted) return;
 
-      // Ensure Leaflet CSS is dynamically injected
-      if (!document.getElementById("leaflet-css")) {
-        const link = document.createElement("link");
-        link.id = "leaflet-css";
-        link.rel = "stylesheet";
-        link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-        document.head.appendChild(link);
-      }
-
       // Cleanup existing map instance
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
@@ -267,16 +258,29 @@ export function UberInteractiveMapDialog({
         zoomControl: false,
       });
 
-      // CartoDB Voyager / OpenStreetMap standard tiles (crisp, beautiful, modern Uber-like styling)
-      L.tileLayer(
-        "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+      // OpenStreetMap standard tiles (universal, reliable, not blocked by privacy extensions)
+      const tileLayer = L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
         {
           attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
-          subdomains: "abcd",
-          maxZoom: 20,
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          subdomains: ["a", "b", "c"],
+          maxZoom: 19,
+          crossOrigin: true,
         },
       ).addTo(map);
+
+      // Automatic fallback if OSM has connection or rate-limit issues
+      tileLayer.on("tileerror", function (err: any) {
+        const tile = err?.tile as HTMLImageElement;
+        if (tile && !tile.dataset.retried) {
+          tile.dataset.retried = "true";
+          const coords = err.coords;
+          if (coords) {
+            tile.src = `https://a.basemaps.cartocdn.com/rastertiles/voyager/${coords.z}/${coords.x}/${coords.y}.png`;
+          }
+        }
+      });
 
       // Add Zoom control at top-right
       L.control.zoom({ position: "topright" }).addTo(map);
@@ -322,12 +326,10 @@ export function UberInteractiveMapDialog({
       mapInstanceRef.current = map;
       markerRef.current = marker;
 
-      // Invalidate map size after animation
-      setTimeout(() => {
-        if (mapInstanceRef.current) {
-          mapInstanceRef.current.invalidateSize();
-        }
-      }, 250);
+      // Invalidate map size after animation transitions
+      const t1 = setTimeout(() => mapInstanceRef.current?.invalidateSize(), 100);
+      const t2 = setTimeout(() => mapInstanceRef.current?.invalidateSize(), 300);
+      const t3 = setTimeout(() => mapInstanceRef.current?.invalidateSize(), 600);
     };
 
     initMap();
@@ -614,14 +616,6 @@ export function UberInteractiveMapDialog({
               <Compass className="size-5 text-[#ffcc00]" />
             </button>
           </div>
-
-          {/* DRAG INSTRUCTION PILL (Floating center-top) */}
-          <div className="absolute top-16 sm:top-4 left-1/2 -translate-x-1/2 z-[399] pointer-events-none">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/75 backdrop-blur text-white text-[11px] font-bold shadow-md border border-white/10">
-              <Sparkles className="size-3 text-[#ffcc00]" />
-              <span>Drag pin or click map to move</span>
-            </div>
-          </div>
         </div>
 
         {/* BOTTOM SHEET UI (Mobile & Desktop Unified Card) */}
@@ -644,9 +638,12 @@ export function UberInteractiveMapDialog({
             {/* Address & Fee Header Summary */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
                     Selected Destination
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[10px] text-amber-600 dark:text-[#ffcc00] font-semibold">
+                    <Sparkles className="size-3" /> Drag gold pin or click map to move
                   </span>
                   {isGeocoding && (
                     <span className="inline-flex items-center gap-1 text-[10px] text-[#ffcc00] font-semibold">

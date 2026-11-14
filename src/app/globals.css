@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "leaflet/dist/leaflet.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -815,5 +816,25 @@
   .carousel-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: #ffcc00 rgba(120, 120, 128, 0.2);
+  }
+
+  /* Leaflet Interactive Map styling & tile containment */
+  .leaflet-container {
+    width: 100% !important;
+    height: 100% !important;
+    background-color: #1a1a1e !important;
+    font-family: inherit;
+    outline: none !important;
+  }
+  .leaflet-tile {
+    border: none !important;
+    outline: none !important;
+  }
+  .leaflet-pane {
+    z-index: 10 !important;
+  }
+  .leaflet-top,
+  .leaflet-bottom {
+    z-index: 20 !important;
   }
 }
