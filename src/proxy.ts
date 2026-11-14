@@ -54,23 +54,30 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
+  const isPrefetch =
+    request.headers.get("purpose") === "prefetch" ||
+    request.headers.get("x-next-router-prefetch") !== null ||
+    request.headers.get("x-purpose") === "prefetch";
+
   // Refreshes the Supabase session cookie when it is close to expiring.
   let user: { id: string } | null = null;
   try {
     const { data, error } = await supabase.auth.getUser();
     if (error) {
       const msg = (error.message || "").toLowerCase();
-      if (
-        msg.includes("refresh token") ||
-        msg.includes("invalid refresh") ||
-        error.name === "AuthApiError" ||
-        error.status === 400
-      ) {
-        // Clear corrupted auth cookies so the client stops looping with invalid tokens
+      const isAlreadyUsed = msg.includes("already used") || msg.includes("already_used");
+      const isFatalRevoked =
+        msg.includes("session_not_found") ||
+        msg.includes("user_not_found") ||
+        (msg.includes("invalid refresh") && !isAlreadyUsed) ||
+        (msg.includes("refresh token") && !isAlreadyUsed && error.status === 400);
+
+      // Never wipe cookies on background router prefetches or transient rotation race conditions
+      if (isFatalRevoked && !isPrefetch) {
         const allCookies = request.cookies.getAll();
         for (const cookie of allCookies) {
           if (cookie.name.startsWith("sb-") || cookie.name.includes("auth-token")) {
-            response.cookies.delete(cookie.name);
+            response.cookies.set(cookie.name, "", { path: "/", maxAge: 0 });
           }
         }
       }
@@ -87,6 +94,9 @@ export async function proxy(request: NextRequest) {
   // Signed out
   // ---------------------------------------------------------------------
   if (!user) {
+    if (isPrefetch) {
+      return response;
+    }
     if (pathname === "/accept-terms") {
       const url = request.nextUrl.clone();
       url.pathname = "/login";

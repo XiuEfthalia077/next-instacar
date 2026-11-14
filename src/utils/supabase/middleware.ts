@@ -88,17 +88,19 @@ export async function updateSession(request: NextRequest) {
     // If an invalid refresh token error occurred, clear stale Supabase cookies
     if (error) {
       const msg = (error.message || "").toLowerCase();
-      if (
-        msg.includes("refresh token") ||
-        msg.includes("invalid refresh") ||
-        error.name === "AuthApiError" ||
-        error.status === 400
-      ) {
-        // Clean out any stale auth cookies from the response
+      const isAlreadyUsed = msg.includes("already used") || msg.includes("already_used");
+      const isFatalRevoked =
+        msg.includes("session_not_found") ||
+        msg.includes("user_not_found") ||
+        (msg.includes("invalid refresh") && !isAlreadyUsed) ||
+        (msg.includes("refresh token") && !isAlreadyUsed && error.status === 400);
+
+      if (isFatalRevoked) {
+        // Clean out any stale auth cookies from the response with proper root path
         const allCookies = request.cookies.getAll();
         for (const cookie of allCookies) {
           if (cookie.name.startsWith("sb-") || cookie.name.includes("auth-token")) {
-            supabaseResponse.cookies.delete(cookie.name);
+            supabaseResponse.cookies.set(cookie.name, "", { path: "/", maxAge: 0 });
           }
         }
       }
