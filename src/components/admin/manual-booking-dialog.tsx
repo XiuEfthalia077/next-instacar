@@ -508,7 +508,7 @@ export function ManualBookingDialog({
           ? `${Math.ceil(hours)} Hours${overrideConflict && isCarConflicted ? " (Conflict Overridden)" : ""}`
           : "0 Hours";
 
-  const MAX_ALLOWED_AMOUNT = 1_000_000;
+  const MAX_ALLOWED_AMOUNT = 100_000;
 
   const handleNumericInput =
     (setter: (val: string) => void) =>

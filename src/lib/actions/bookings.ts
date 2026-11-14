@@ -1769,7 +1769,13 @@ export async function createBookingAction(formData: FormData) {
 
   const fulfillment = fulfillmentValue(str(formData, "fulfillment_type", "pickup"));
   const deliveryAddressVal =
-    fulfillment === "Delivery" ? str(formData, "delivery_address") || null : null;
+    fulfillment === "Delivery"
+      ? str(formData, "delivery_address") || null
+      : str(formData, "delivery_address") || "Instacar Car Rental Services, Pandac, Pavia, Iloilo";
+  const returnAddressVal =
+    str(formData, "return_delivery_address") ||
+    str(formData, "return_address") ||
+    null;
 
   let insertedBooking: { id: number } | null = null;
   const releaseLock = await bookingMutex.lock(`car:${carId}`);
@@ -1801,7 +1807,7 @@ export async function createBookingAction(formData: FormData) {
         booking_type: "online",
         fulfillment_type: fulfillment,
         delivery_address: deliveryAddressVal,
-        return_delivery_address: str(formData, "return_delivery_address") || null,
+        return_delivery_address: returnAddressVal,
         primary_id_path: primaryId,
         secondary_id_path: secondaryId || null,
         proof_billing_path: proofBilling || null,

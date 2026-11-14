@@ -121,6 +121,49 @@ export function RentCarFlowDialog({
   const branchAddress = "Instacar Car Rental Services, Pandac, Pavia, Iloilo";
   const mapSearchUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(branchAddress)}`;
   const qrUrl = siteAssetUrl("qr_code_payment.png");
+  const CUSTOMER_DRAFT_KEY = `instacar_customer_rent_draft_${car.id}`;
+
+  // Restore draft from localStorage when modal opens
+  React.useEffect(() => {
+    if (!open) return;
+    try {
+      const saved = localStorage.getItem(CUSTOMER_DRAFT_KEY);
+      if (saved) {
+        const d = JSON.parse(saved);
+        if (d.pickupDatetime) setPickupDatetime(d.pickupDatetime);
+        if (d.returnDatetime) setReturnDatetime(d.returnDatetime);
+        if (d.quickDuration) setQuickDuration(d.quickDuration);
+        if (d.fulfillmentType) setFulfillmentType(d.fulfillmentType);
+        if (d.deliveryAddress) setDeliveryAddress(d.deliveryAddress);
+        if (d.returnAddress) setReturnAddress(d.returnAddress);
+      }
+    } catch {}
+  }, [open, CUSTOMER_DRAFT_KEY]);
+
+  // Persist draft to localStorage on change
+  React.useEffect(() => {
+    if (!open) return;
+    try {
+      const draft = {
+        pickupDatetime,
+        returnDatetime,
+        quickDuration,
+        fulfillmentType,
+        deliveryAddress,
+        returnAddress,
+      };
+      localStorage.setItem(CUSTOMER_DRAFT_KEY, JSON.stringify(draft));
+    } catch {}
+  }, [
+    open,
+    CUSTOMER_DRAFT_KEY,
+    pickupDatetime,
+    returnDatetime,
+    quickDuration,
+    fulfillmentType,
+    deliveryAddress,
+    returnAddress,
+  ]);
 
   // Initialize pickup & return times
   React.useEffect(() => {
@@ -294,6 +337,9 @@ export function RentCarFlowDialog({
                 return;
               }
               setIsSubmitting(true);
+              try {
+                localStorage.removeItem(CUSTOMER_DRAFT_KEY);
+              } catch {}
             }}
             className="space-y-5 pt-2"
           >
@@ -544,11 +590,17 @@ export function RentCarFlowDialog({
               </div>
             ) : (
               <div className="rounded-xl border border-border bg-card p-3.5 space-y-2">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                  <MapPin className="size-4 text-[#ffcc00]" />
-                  <span>Pickup Address</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    <MapPin className="size-4 text-[#ffcc00]" />
+                    <span>Pickup Address (Branch Location)</span>
+                  </div>
+                  <span className="rounded bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                    Auto-Filled (Read-Only)
+                  </span>
                 </div>
-                <div className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/20 p-3">
+                <input type="hidden" name="delivery_address" value={branchAddress} />
+                <div className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/40 p-3">
                   <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#ffcc00]/20 text-[#ffcc00]">
                     <MapPin className="size-4" />
                   </div>
@@ -566,28 +618,26 @@ export function RentCarFlowDialog({
                         <span>↗ Map</span>
                       </a>
                     </div>
-                    <p className="text-xs font-bold text-foreground truncate">{branchAddress}</p>
+                    <p className="text-xs font-bold text-foreground">{branchAddress}</p>
                     <p className="text-[11px] text-muted-foreground">🏢 {branchName}</p>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* 6. RETURN ADDRESS BLOCK (Clarified: Where we will collect the car) */}
+            {/* 6. RETURN ADDRESS BLOCK */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label htmlFor="return_address_field" className="text-xs font-bold text-rose-500 flex items-center gap-1">
-                  <span>↵ Return Address (Where we will pick up the car)</span>
+                <Label htmlFor="return_address_field" className="text-xs font-bold text-foreground flex items-center gap-1">
+                  <span>Custom Return Address</span>
                 </Label>
-                <a
-                  href={mapSearchUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-[#ffcc00]"
+                <button
+                  type="button"
+                  onClick={() => setReturnAddress(branchAddress)}
+                  className="text-[11px] font-bold text-[#b38a00] dark:text-[#ffcc00] hover:underline cursor-pointer"
                 >
-                  <MapPin className="size-3" />
-                  <span>View Map</span>
-                </a>
+                  Use Branch Address
+                </button>
               </div>
               <textarea
                 id="return_address_field"
@@ -598,6 +648,10 @@ export function RentCarFlowDialog({
                 placeholder="Enter address for vehicle return / pickup..."
                 className="w-full rounded-xl border border-border bg-card p-2.5 text-xs text-foreground outline-none transition focus:border-[#ffcc00] focus:ring-1 focus:ring-[#ffcc00]/50"
               />
+              <input type="hidden" name="return_delivery_address" value={returnAddress} />
+              <p className="text-[11px] text-muted-foreground">
+                Specify where the vehicle will be returned or collected at the end of the rental.
+              </p>
             </div>
 
             {/* 7. DOCUMENT UPLOADS */}
