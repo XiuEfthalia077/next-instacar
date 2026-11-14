@@ -66,8 +66,6 @@ export const CAR_STATUSES = [
   "Available",
   "Active",
   "Maintenance",
-  "Not Available",
-  "Reserved",
 ] as const;
 
 export const TRANSMISSIONS = ["Manual", "Automatic"] as const;

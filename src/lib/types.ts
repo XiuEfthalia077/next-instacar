@@ -23,9 +23,7 @@ export type FulfillmentType = "Pickup" | "Delivery";
 export type CarStatus =
   | "Available"
   | "Active"
-  | "Maintenance"
-  | "Not Available"
-  | "Reserved";
+  | "Maintenance";
 
 export type Transmission = "Manual" | "Automatic";
 

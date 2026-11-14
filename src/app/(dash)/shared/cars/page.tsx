@@ -189,10 +189,8 @@ export default async function SharedCarsPage({
           >
             <option value="all">All Statuses</option>
             <option value="Available">Available</option>
-            <option value="Active">Active (Rented)</option>
+            <option value="Active">Active</option>
             <option value="Maintenance">Maintenance</option>
-            <option value="Not Available">Not Available</option>
-            <option value="Reserved">Reserved</option>
           </select>
         </FilterField>
 
