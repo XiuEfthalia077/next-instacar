@@ -1,104 +1,69 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { Search, User, Sparkles } from "lucide-react";
 import { ThemeToggle } from "@/components/layout/topbar";
-import { MobileSearchSheet } from "@/components/mobile/mobile-search-sheet";
 
+/**
+ * SiteNavbar — Task 1.1
+ * Header Navigation strictly containing:
+ * - Brand Logo (left)
+ * - "Contact Us"
+ * - Theme Toggle
+ * - "Sign In"
+ * - "Register" (prominently styled as a yellow button)
+ *
+ * Designed with full Light Mode and Dark Mode support and responsive
+ * layouts for Mobile (<640px), Tablet (768px), Laptop (1024px), and Desktop (1280px+).
+ */
 export function SiteNavbar() {
-  const [searchOpen, setSearchOpen] = useState(false);
-
-  const links = [
-    { label: "Services", href: "/#features" },
-    { label: "Our Fleet", href: "/#fleet" },
-    { label: "Availability", href: "/availability" },
-    { label: "Contact Us", href: "/#contact" },
-  ];
-
   return (
-    <>
-      <header className="sticky top-0 z-50 h-14 sm:h-16 border-b border-border/80 bg-background/90 text-foreground backdrop-blur-md transition-colors flex items-center">
-        <div className="mx-auto w-full max-w-[1320px] px-4">
-          <div className="flex items-center justify-between">
-            {/* Left: Crisp Brand Logo */}
+    <header className="sticky top-0 z-50 h-16 border-b border-border/80 bg-background/95 text-foreground backdrop-blur-md transition-colors flex items-center">
+      <div className="mx-auto w-full max-w-[1320px] px-4">
+        <div className="flex items-center justify-between gap-3">
+          {/* Left: Crisp Brand Logo */}
+          <Link
+            href="/"
+            className="brand-gradient-text text-[1.5rem] sm:text-[1.85rem] font-black tracking-[-1px] flex items-center gap-1 shrink-0"
+          >
+            <span>Insta</span>
+            <span className="text-[#ffcc00]">Car</span>
+            <span className="size-1.5 rounded-full bg-[#ffcc00] inline-block mb-1" />
+          </Link>
+
+          {/* Right: Header Navigation Elements (Desktop, Tablet & Mobile) */}
+          <div className="flex items-center gap-2 sm:gap-3.5">
+            {/* Contact Us Link */}
             <Link
-              href="/"
-              className="brand-gradient-text text-[1.6rem] sm:text-[1.85rem] font-black tracking-[-1px] flex items-center gap-1"
+              href="/#contact"
+              className="text-xs sm:text-sm font-bold text-foreground/80 hover:text-[#ffcc00] transition-colors px-2 py-1.5 rounded-lg hover:bg-muted/50"
             >
-              <span>Insta</span>
-              <span className="text-[#ffcc00]">Car</span>
-              <span className="size-1.5 rounded-full bg-[#ffcc00] inline-block mb-1" />
+              Contact Us
             </Link>
 
-            {/* Mobile Header Actions (Inspired by modern native apps) */}
-            <div className="flex items-center gap-1.5 sm:gap-2 lg:hidden">
-              {/* Search Shortcut Icon */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.currentTarget.blur();
-                  setSearchOpen(true);
-                }}
-                aria-label="Search vehicles"
-                className="flex size-10 items-center justify-center rounded-full border border-border bg-card text-foreground hover:bg-muted active:scale-95 transition-all shadow-xs cursor-pointer min-h-[40px] min-w-[40px]"
-              >
-                <Search className="size-4.5 stroke-[2.2]" />
-              </button>
-
-              {/* Theme Toggle */}
+            {/* Theme Toggle (Light / Dark) */}
+            <div className="flex items-center justify-center">
               <ThemeToggle />
-
-              {/* User Profile / Sign In Shortcut */}
-              <Link
-                href="/login"
-                aria-label="User account or sign in"
-                className="flex size-10 items-center justify-center rounded-full bg-[#ffcc00] text-black hover:bg-[#ffd633] active:scale-95 transition-all shadow-xs cursor-pointer min-h-[40px] min-w-[40px]"
-              >
-                <User className="size-4.5 stroke-[2.5]" />
-              </Link>
             </div>
 
-            {/* Desktop Navigation Links */}
-            <div className="hidden lg:flex lg:items-center lg:gap-6">
-              <ul className="flex items-center gap-6">
-                {links.map((link) => (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      className="text-xs sm:text-sm font-bold text-muted-foreground transition-colors hover:text-[#ffcc00]"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+            {/* Sign In */}
+            <Link
+              href="/login"
+              className="inline-flex items-center justify-center rounded-xl border border-border bg-card px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold text-foreground shadow-xs transition hover:border-[#ffcc00] hover:bg-muted active:scale-95"
+            >
+              Sign In
+            </Link>
 
-              <div className="flex items-center gap-2.5 pl-2 border-l border-border/70">
-                <ThemeToggle />
-
-                <Link
-                  href="/login"
-                  className="inline-flex items-center justify-center rounded-xl border border-border bg-card px-4 py-2 text-xs sm:text-sm font-bold text-foreground transition hover:border-[#ffcc00]"
-                >
-                  Sign In
-                </Link>
-
-                <Link
-                  href="/register"
-                  className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#ffcc00] px-4 py-2 text-xs sm:text-sm font-extrabold text-black shadow-sm transition hover:bg-[#ffd633]"
-                >
-                  <span>Register</span>
-                  <span aria-hidden="true">→</span>
-                </Link>
-              </div>
-            </div>
+            {/* Register (Styled as a bold yellow button) */}
+            <Link
+              href="/register"
+              className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#ffcc00] px-3.5 sm:px-5 py-1.5 sm:py-2 text-xs sm:text-sm font-black text-black shadow-md transition hover:bg-[#ffd633] hover:scale-[1.02] active:scale-95 shrink-0"
+            >
+              <span>Register</span>
+              <span aria-hidden="true" className="hidden sm:inline">→</span>
+            </Link>
           </div>
         </div>
-      </header>
-
-      {/* Mobile Search Bottom Sheet */}
-      <MobileSearchSheet open={searchOpen} onOpenChange={setSearchOpen} />
-    </>
+      </div>
+    </header>
   );
 }

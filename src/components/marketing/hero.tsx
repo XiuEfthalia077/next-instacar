@@ -61,11 +61,11 @@ export function Hero({ branches }: { branches?: BranchOption[] }) {
               <span>Create Free Account</span>
             </Link>
             <a
-              href="#fleet"
+              href="#featured-cars"
               className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-6 py-3 text-sm font-bold text-foreground transition-all hover:bg-muted hover:border-[#ffcc00]/60 active:scale-[0.98]"
             >
               <Car className="size-4" />
-              <span>Explore All Cars</span>
+              <span>Featured Cars</span>
             </a>
           </div>
 
