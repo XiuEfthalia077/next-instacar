@@ -14,10 +14,16 @@
 
 import { revalidatePath } from "next/cache";
 
-import { getSupabase, requireRole } from "@/lib/auth";
+import { getSession, getSupabase, requireRole } from "@/lib/auth";
 import { flashRedirect } from "@/lib/flash";
 import { sendMail } from "@/lib/mailer";
 import { siteUrl } from "@/lib/emails/booking";
+import {
+  BUCKETS,
+  getExtension,
+  publicFileUrl,
+  uploadFile,
+} from "@/lib/storage";
 
 function str(form: FormData, key: string, fallback = ""): string {
   const value = form.get(key);
@@ -99,14 +105,18 @@ export async function saveReviewAction(formData: FormData) {
     // A customer may only review their own completed booking.
     const { data: booking } = await supabase
       .from("bookings")
-      .select("id, user_id")
+      .select("id, user_id, status")
       .eq("id", bookingId)
       .maybeSingle();
 
-    const row = booking as { id: number; user_id: number | null } | null;
+    const row = booking as { id: number; user_id: number | null; status: string | null } | null;
 
     if (!row || row.user_id !== session.userId) {
       flashRedirect("/user/mybookings", "error", "Booking not found.");
+    }
+
+    if (row.status !== "Completed") {
+      flashRedirect(back, "error", "Reviews can only be submitted for completed bookings.");
     }
   }
 
@@ -114,12 +124,31 @@ export async function saveReviewAction(formData: FormData) {
     flashRedirect(back, "error", "This booking has no customer account to review it.");
   }
 
+  // Handle optional review photo upload
+  const photo = formData.get("photo") ?? formData.get("image");
+  let uploadedImageUrl: string | null = null;
+  if (photo instanceof File && photo.size > 0) {
+    const ext = getExtension(photo.name) || "jpg";
+    const fileName = `rev_${bookingId}_${Date.now()}.${ext}`;
+    const uploadRes = await uploadFile(supabase, {
+      bucket: BUCKETS.reviewPhotos,
+      folder: `user_${userId}`,
+      fileName,
+      file: photo,
+    });
+    if (uploadRes.ok) {
+      uploadedImageUrl = publicFileUrl(BUCKETS.reviewPhotos, uploadRes.path);
+    }
+  }
+
   const { data: existing } = await supabase
     .from("reviews")
-    .select("id")
+    .select("id, image_url")
     .eq("booking_id", bookingId)
     .eq("user_id", userId)
     .maybeSingle();
+
+  const finalImageUrl = uploadedImageUrl || (existing as { image_url?: string | null } | null)?.image_url || null;
 
   if (existing) {
     const { error } = await supabase
@@ -128,6 +157,7 @@ export async function saveReviewAction(formData: FormData) {
         rating: stars,
         review_title: title,
         review_text: text,
+        image_url: finalImageUrl,
         status: "pending",
         updated_at: new Date().toISOString(),
       })
@@ -144,6 +174,7 @@ export async function saveReviewAction(formData: FormData) {
       rating: stars,
       review_title: title,
       review_text: text,
+      image_url: finalImageUrl,
       status: "pending",
     });
 
@@ -167,4 +198,79 @@ export async function saveReviewAction(formData: FormData) {
     "success",
     "Review submitted! It will appear once approved by an admin.",
   );
+}
+
+/* ------------------------------------------------------------------ */
+/* Query user's completed bookings eligible for review                */
+/* ------------------------------------------------------------------ */
+
+export interface EligibleBooking {
+  id: number;
+  car_id: number | null;
+  start_date: string | null;
+  end_date: string | null;
+  cars: {
+    id: number;
+    brand: string | null;
+    model: string | null;
+    type: string | null;
+    image_path: string | null;
+  } | null;
+}
+
+export async function getUserCompletedBookingsAction(): Promise<{
+  isLoggedIn: boolean;
+  completedBookings: EligibleBooking[];
+}> {
+  const session = await getSession();
+  if (!session) {
+    return { isLoggedIn: false, completedBookings: [] };
+  }
+
+  const supabase = await getSupabase();
+  const { data } = await supabase
+    .from("bookings")
+    .select(`
+      id,
+      car_id,
+      start_date,
+      end_date,
+      cars!bookings_car_id_fkey ( id, brand, model, type, image_path )
+    `)
+    .eq("user_id", session.userId)
+    .eq("status", "Completed")
+    .order("end_date", { ascending: false });
+
+  const rawRows = (data ?? []) as unknown as Array<{
+    id: number;
+    car_id: number | null;
+    start_date: string | null;
+    end_date: string | null;
+    cars: {
+      id: number;
+      brand: string | null;
+      model: string | null;
+      type: string | null;
+      image_path: string | null;
+    } | {
+      id: number;
+      brand: string | null;
+      model: string | null;
+      type: string | null;
+      image_path: string | null;
+    }[] | null;
+  }>;
+
+  const completedBookings: EligibleBooking[] = rawRows.map((r) => ({
+    id: r.id,
+    car_id: r.car_id,
+    start_date: r.start_date,
+    end_date: r.end_date,
+    cars: Array.isArray(r.cars) ? r.cars[0] ?? null : r.cars,
+  }));
+
+  return {
+    isLoggedIn: true,
+    completedBookings,
+  };
 }

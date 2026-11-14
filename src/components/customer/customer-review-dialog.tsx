@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Star, Sparkles, MessageSquareHeart } from "lucide-react";
+import { useState, useRef } from "react";
+import { Star, Sparkles, MessageSquareHeart, ImagePlus, X } from "lucide-react";
 import {
   Dialog,
   DialogClose,
@@ -48,8 +48,27 @@ export function CustomerReviewDialog({
 }: CustomerReviewDialogProps) {
   const [rating, setRating] = useState<number>(5);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   if (!booking) return null;
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+    } else {
+      setPreviewUrl(null);
+    }
+  };
+
+  const removePhoto = () => {
+    setPreviewUrl(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const carName =
     [booking.cars?.brand, booking.cars?.model].filter(Boolean).join(" ") ||
@@ -132,11 +151,46 @@ export function CustomerReviewDialog({
             <Textarea
               id="review_text"
               name="review_text"
-              rows={4}
+              rows={3}
               placeholder="How was the vehicle condition, pickup handoff, and overall service? Your honest feedback helps future drivers."
               required
               className="rounded-xl border-border bg-card text-xs font-medium"
             />
+          </div>
+
+          {/* Optional Trip Photo Upload */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-foreground flex items-center justify-between">
+              <span>Add Vehicle/Trip Photo</span>
+              <span className="text-[10px] text-muted-foreground font-normal">Optional</span>
+            </Label>
+            {previewUrl ? (
+              <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-border group bg-black/40">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={previewUrl} alt="Review photo preview" className="size-full object-cover" />
+                <button
+                  type="button"
+                  onClick={removePhoto}
+                  className="absolute top-2 right-2 size-7 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-rose-600 transition"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center p-3.5 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-[#ffcc00] hover:bg-muted/30 transition">
+                <ImagePlus className="size-5 text-muted-foreground mb-1" />
+                <span className="text-xs font-medium text-foreground">Click to upload photo</span>
+                <span className="text-[10px] text-muted-foreground">PNG, JPG, WebP up to 5MB</span>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  name="photo"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </label>
+            )}
           </div>
 
           <DialogFooter className="gap-2 border-t border-border/70 pt-4">

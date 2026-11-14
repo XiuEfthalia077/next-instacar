@@ -28,6 +28,7 @@ export const BUCKETS = {
   bookingPhotos: "booking-photos",
   remittancePhotos: "remittance-photos",
   siteAssets: "site-assets",
+  reviewPhotos: "review-photos",
 } as const;
 
 export type BucketName = (typeof BUCKETS)[keyof typeof BUCKETS];
@@ -36,6 +37,7 @@ export type BucketName = (typeof BUCKETS)[keyof typeof BUCKETS];
 export const PUBLIC_BUCKETS: BucketName[] = [
   BUCKETS.carImages,
   BUCKETS.siteAssets,
+  BUCKETS.reviewPhotos,
 ];
 
 /** Legacy upload limit: 5 MB. */
