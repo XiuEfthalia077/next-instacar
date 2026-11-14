@@ -369,23 +369,25 @@ test("all email templates contain consistent brand header, footer, and styling",
 
 // Test 14: Action-Required Overdue Notification Detection Logic
 test("getBookingAttentionAlert accurately detects overdue releases and returns", async () => {
-  const { getBookingAttentionAlert } = await import("../src/lib/alerts.ts");
+  const { getBookingAttentionAlert, getManilaToday, getManilaTomorrow } = await import("../src/lib/alerts.ts");
 
-  // Mock dates relative to today
-  const now = new Date();
+  const todayStr = getManilaToday();
+  const tomorrowStr = getManilaTomorrow();
+
+  const todayEpoch = Date.parse(todayStr);
   const pad = (n) => String(n).padStart(2, "0");
-  const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const toDateStr = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
-  const pastDate1 = new Date(now.getTime() - 1 * 86_400_000);
-  const pastDateStr1 = `${pastDate1.getFullYear()}-${pad(pastDate1.getMonth() + 1)}-${pad(pastDate1.getDate())}`;
+  const pastDate1 = new Date(todayEpoch - 1 * 86_400_000);
+  const pastDateStr1 = toDateStr(pastDate1);
 
-  const pastDate3 = new Date(now.getTime() - 3 * 86_400_000);
-  const pastDateStr3 = `${pastDate3.getFullYear()}-${pad(pastDate3.getMonth() + 1)}-${pad(pastDate3.getDate())}`;
+  const pastDate3 = new Date(todayEpoch - 3 * 86_400_000);
+  const pastDateStr3 = toDateStr(pastDate3);
 
-  const futureDate = new Date(now.getTime() + 2 * 86_400_000);
-  const futureDateStr = `${futureDate.getFullYear()}-${pad(futureDate.getMonth() + 1)}-${pad(futureDate.getDate())}`;
+  const futureDate = new Date(todayEpoch + 2 * 86_400_000);
+  const futureDateStr = toDateStr(futureDate);
 
-  // 1. Confirmed booking scheduled for today -> Overdue for Release today
+  // 1. Confirmed booking scheduled for today -> Scheduled for Release today
   const releaseToday = getBookingAttentionAlert({
     status: "Confirmed",
     start_date: todayStr,
@@ -393,8 +395,8 @@ test("getBookingAttentionAlert accurately detects overdue releases and returns",
   });
   assert.ok(releaseToday);
   assert.equal(releaseToday.type, "release");
-  assert.equal(releaseToday.severity, "warning");
-  assert.equal(releaseToday.message, "Car was supposed to be released today.");
+  assert.equal(releaseToday.severity, "urgent");
+  assert.equal(releaseToday.message, "This car is scheduled to be released today.");
 
   // 2. Confirmed booking scheduled 1 day ago -> Overdue for Release 1 day ago
   const release1DayAgo = getBookingAttentionAlert({
@@ -405,7 +407,7 @@ test("getBookingAttentionAlert accurately detects overdue releases and returns",
   assert.ok(release1DayAgo);
   assert.equal(release1DayAgo.type, "release");
   assert.equal(release1DayAgo.severity, "urgent");
-  assert.equal(release1DayAgo.message, "Car was supposed to be released 1 day ago.");
+  assert.equal(release1DayAgo.message, "This car was supposed to be released 1 day ago.");
 
   // 3. Confirmed booking scheduled 3 days ago -> Overdue for Release 3 days ago
   const release3DaysAgo = getBookingAttentionAlert({
@@ -416,9 +418,9 @@ test("getBookingAttentionAlert accurately detects overdue releases and returns",
   assert.ok(release3DaysAgo);
   assert.equal(release3DaysAgo.type, "release");
   assert.equal(release3DaysAgo.severity, "urgent");
-  assert.equal(release3DaysAgo.message, "Car was supposed to be released 3 days ago.");
+  assert.equal(release3DaysAgo.message, "This car was supposed to be released 3 days ago.");
 
-  // 4. Released booking scheduled for return today -> Overdue for Return today
+  // 4. Released booking scheduled for return today -> Scheduled for Return today
   const returnToday = getBookingAttentionAlert({
     status: "Released",
     start_date: pastDateStr1,
@@ -426,8 +428,8 @@ test("getBookingAttentionAlert accurately detects overdue releases and returns",
   });
   assert.ok(returnToday);
   assert.equal(returnToday.type, "return");
-  assert.equal(returnToday.severity, "warning");
-  assert.equal(returnToday.message, "Car was supposed to be returned today.");
+  assert.equal(returnToday.severity, "urgent");
+  assert.equal(returnToday.message, "This car is scheduled to be returned today.");
 
   // 5. Released booking scheduled for return 3 days ago -> Overdue for Return 3 days ago
   const return3DaysAgo = getBookingAttentionAlert({
@@ -438,7 +440,7 @@ test("getBookingAttentionAlert accurately detects overdue releases and returns",
   assert.ok(return3DaysAgo);
   assert.equal(return3DaysAgo.type, "return");
   assert.equal(return3DaysAgo.severity, "urgent");
-  assert.equal(return3DaysAgo.message, "Car was supposed to be returned 3 days ago.");
+  assert.equal(return3DaysAgo.message, "This car was supposed to be returned 3 days ago.");
 
   // 6. Automatic clearing when status changes (e.g. Completed or Cancelled)
   assert.equal(

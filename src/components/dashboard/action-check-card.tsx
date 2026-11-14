@@ -51,8 +51,8 @@ export function ActionCheckCard({
   const hasUrgent = urgentItems.length > 0;
   const hasTomorrow = tomorrowItems.length > 0;
 
-  // Show up to 2 items in the preview card on mobile/desktop so it doesn't overwhelm the screen
-  const previewItems = items.slice(0, 2);
+  // Show up to 3 items in the preview card per Task 5.3
+  const previewItems = items.slice(0, 3);
   const remainingCount = Math.max(0, items.length - previewItems.length);
 
   const renderItemCard = (item: ActionCheckItem) => (
