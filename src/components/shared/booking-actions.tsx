@@ -148,8 +148,8 @@ export function BookingActions({
         <>
           <Button
             type="button"
-            variant="ghost"
-            className="w-full gap-2 font-semibold text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-950/40"
+            variant="destructive"
+            className="w-full gap-2 font-bold bg-rose-600 text-white hover:bg-rose-700 shadow-sm transition"
             onClick={() => setDeleteOpen(true)}
           >
             <Trash2 className="size-4" />
