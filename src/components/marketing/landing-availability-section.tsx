@@ -34,6 +34,7 @@ interface LandingAvailabilitySectionProps {
   branches: CachedBranch[];
   blockedRangesByCar: Record<number, BlockedRange[]>;
   initialCarId?: number;
+  isLoggedIn?: boolean;
 }
 
 export function LandingAvailabilitySection({
@@ -41,6 +42,7 @@ export function LandingAvailabilitySection({
   branches,
   blockedRangesByCar,
   initialCarId,
+  isLoggedIn = false,
 }: LandingAvailabilitySectionProps) {
   const searchParams = useSearchParams();
 
@@ -453,7 +455,9 @@ export function LandingAvailabilitySection({
                   blockedRanges={activeBlockedRanges}
                   open={bookingDialogOpen}
                   onOpenChange={setBookingDialogOpen}
-                  isLoggedIn={false}
+                  isLoggedIn={isLoggedIn}
+                  initialStartDate={selectedStart}
+                  initialEndDate={selectedEnd}
                 />
               </div>
             ) : (

@@ -304,24 +304,9 @@ export function RegisterForm() {
         Create Account
       </LoadingButton>
 
-      <div className="divider">OR</div>
+      <div className="divider text-xs text-muted-foreground my-2.5">OR</div>
 
-      <GoogleButton label="Sign up with Google" />
-
-      <div className="mt-4 text-center">
-        <p className="mb-1 text-xs text-muted">
-          Already have an account?{" "}
-          <Link href="/login" className="font-bold">
-            Sign In
-          </Link>
-        </p>
-        <p className="text-xs">
-          <Link href="/" className="text-[#6c757d] hover:text-white">
-            <House className="me-1 inline h-3.5 w-3.5" aria-hidden />
-            Back to Main Site
-          </Link>
-        </p>
-      </div>
+      <GoogleButton label="Sign up with Google" showDisclaimer={false} />
     </form>
   );
 }

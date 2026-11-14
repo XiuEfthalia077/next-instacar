@@ -23,6 +23,8 @@ import { PastDateConfirmDialog } from "@/components/common/past-date-confirm-dia
 import { TimePicker, getCurrentTime24 } from "@/components/common/time-picker";
 import { UberInteractiveMapDialog } from "@/components/common/uber-interactive-map";
 import { Money } from "@/components/common/money";
+import { GoogleButton } from "@/components/auth/google-button";
+import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -56,6 +58,10 @@ type RentCarFlowDialogProps = {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   isLoggedIn?: boolean;
+  initialStartDate?: string;
+  initialEndDate?: string;
+  initialPickupTime?: string;
+  initialReturnTime?: string;
 };
 
 export function RentCarFlowDialog({
@@ -66,12 +72,33 @@ export function RentCarFlowDialog({
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
   isLoggedIn = true,
+  initialStartDate,
+  initialEndDate,
+  initialPickupTime,
+  initialReturnTime,
 }: RentCarFlowDialogProps) {
   type FlowStep = "idle" | "agreement" | "form";
   const [flowStep, setFlowStep] = React.useState<FlowStep>("idle");
   const [readingTermsInForm, setReadingTermsInForm] = React.useState(false);
   const [qrModalOpen, setQrModalOpen] = React.useState(false);
   const [deliveryConfirmOpen, setDeliveryConfirmOpen] = React.useState(false);
+  const [userLoggedIn, setUserLoggedIn] = React.useState(isLoggedIn);
+  const [authError, setAuthError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    setUserLoggedIn(isLoggedIn);
+  }, [isLoggedIn]);
+
+  React.useEffect(() => {
+    try {
+      const supabase = createClient();
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) {
+          setUserLoggedIn(true);
+        }
+      });
+    } catch {}
+  }, []);
 
   // Sync with external trigger (e.g. from gallery modal "Book This Vehicle")
   React.useEffect(() => {
@@ -82,6 +109,7 @@ export function RentCarFlowDialog({
   }, [controlledOpen, controlledOnOpenChange]);
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const isModalOpen = flowStep !== "idle" || !!controlledOpen;
 
   const handleCloseAll = React.useCallback(() => {
     setIsSubmitting(false);
@@ -132,7 +160,7 @@ export function RentCarFlowDialog({
 
   // Restore draft from localStorage when modal opens
   React.useEffect(() => {
-    if (!open) return;
+    if (!isModalOpen) return;
     try {
       const saved = localStorage.getItem(CUSTOMER_DRAFT_KEY);
       if (saved) {
@@ -145,11 +173,11 @@ export function RentCarFlowDialog({
         if (d.returnAddress) setReturnAddress(d.returnAddress);
       }
     } catch {}
-  }, [open, CUSTOMER_DRAFT_KEY]);
+  }, [isModalOpen, CUSTOMER_DRAFT_KEY]);
 
   // Persist draft to localStorage on change
   React.useEffect(() => {
-    if (!open) return;
+    if (!isModalOpen) return;
     try {
       const draft = {
         pickupDatetime,
@@ -162,7 +190,7 @@ export function RentCarFlowDialog({
       localStorage.setItem(CUSTOMER_DRAFT_KEY, JSON.stringify(draft));
     } catch {}
   }, [
-    open,
+    isModalOpen,
     CUSTOMER_DRAFT_KEY,
     pickupDatetime,
     returnDatetime,
@@ -172,24 +200,46 @@ export function RentCarFlowDialog({
     returnAddress,
   ]);
 
-  // Initialize pickup & return times
+  // Initialize pickup & return times (prioritizing initial dates if provided)
   React.useEffect(() => {
-    if ((flowStep === "agreement" || flowStep === "form") && !pickupDatetime) {
-      const now = new Date();
-      now.setHours(now.getHours() + 2);
-      now.setMinutes(0);
-      const pad = (n: number) => String(n).padStart(2, "0");
-      const startStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
-      
-      const end = new Date(now.getTime() + 24 * 3_600_000);
-      const endStr = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`;
+    if (flowStep === "agreement" || flowStep === "form" || isModalOpen) {
+      if (initialStartDate) {
+        const pTime = initialPickupTime || (pickupDatetime ? pickupDatetime.slice(11, 16) : "10:00");
+        const newStart = `${initialStartDate}T${pTime}`;
+        setPickupDatetime(newStart);
 
-      setPickupDatetime(startStr);
-      setReturnDatetime(endStr);
-      setQuickDuration("24h");
-      setAgreedToTerms(false);
+        if (initialEndDate) {
+          const rTime = initialReturnTime || (returnDatetime ? returnDatetime.slice(11, 16) : "10:00");
+          setReturnDatetime(`${initialEndDate}T${rTime}`);
+          setQuickDuration("custom");
+        } else if (!returnDatetime) {
+          const startMs = Date.parse(newStart);
+          if (!isNaN(startMs)) {
+            const end = new Date(startMs + 24 * 3_600_000);
+            const pad = (n: number) => String(n).padStart(2, "0");
+            setReturnDatetime(
+              `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`
+            );
+            setQuickDuration("24h");
+          }
+        }
+      } else if (!pickupDatetime) {
+        const now = new Date();
+        now.setHours(now.getHours() + 2);
+        now.setMinutes(0);
+        const pad = (n: number) => String(n).padStart(2, "0");
+        const startStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+        
+        const end = new Date(now.getTime() + 24 * 3_600_000);
+        const endStr = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`;
+
+        setPickupDatetime(startStr);
+        setReturnDatetime(endStr);
+        setQuickDuration("24h");
+        setAgreedToTerms(false);
+      }
     }
-  }, [flowStep, pickupDatetime]);
+  }, [flowStep, isModalOpen, initialStartDate, initialEndDate, initialPickupTime, initialReturnTime]);
 
   // Handle Quick Duration Click
   const handleQuickDuration = (mode: "10h" | "24h" | "custom") => {
@@ -282,6 +332,26 @@ export function RentCarFlowDialog({
 
   const handleConfirmBookingClick = (e: React.MouseEvent) => {
     e.preventDefault();
+    setAuthError(null);
+
+    // Enforce that booking cannot be finalized without an account or Google login
+    if (!userLoggedIn) {
+      const form = formRef.current;
+      const guestName = (form?.elements.namedItem("guest_name") as HTMLInputElement)?.value?.trim();
+      const guestEmail = (form?.elements.namedItem("guest_email") as HTMLInputElement)?.value?.trim();
+      const guestPhone = (form?.elements.namedItem("guest_phone") as HTMLInputElement)?.value?.trim();
+      const guestPassword = (form?.elements.namedItem("guest_password") as HTMLInputElement)?.value;
+
+      if (!guestName || !guestEmail || !guestPhone || !guestPassword) {
+        setAuthError("Please sign in with Google or fill in all account fields to finalize your reservation.");
+        return;
+      }
+      if (guestPassword.length < 8) {
+        setAuthError("Password must be at least 8 characters long.");
+        return;
+      }
+    }
+
     if (!agreedToTerms || hours < 10 || hasDateOverlap || isSubmitting) return;
 
     const todayIso = new Intl.DateTimeFormat("en-CA", {
@@ -795,35 +865,86 @@ export function RentCarFlowDialog({
                 </button>
               </div>
 
-              {/* Guest Checkout: Prompt account creation at final step */}
-              {!isLoggedIn && (
-                <div className="rounded-2xl border border-[#ffcc00]/50 bg-[#ffcc00]/5 p-4 space-y-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#ffcc00] text-black text-xs font-black shadow-xs">
+              {/* Guest Checkout: Prompt account creation or Google sign-in before finalizing */}
+              {!userLoggedIn && (
+                <div className="rounded-2xl border border-amber-500/40 bg-amber-500/5 p-4 sm:p-5 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#ffcc00] text-black text-xs font-black shadow-xs mt-0.5">
                       !
                     </span>
-                    <div>
-                      <h4 className="text-xs font-extrabold text-foreground">Guest Checkout: Create Your Account</h4>
-                      <p className="text-[11px] text-muted-foreground">Your account will be created automatically to manage and track this reservation.</p>
+                    <div className="space-y-0.5">
+                      <h4 className="text-xs sm:text-sm font-black text-foreground">
+                        Account Required to Finalize Reservation
+                      </h4>
+                      <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
+                        To protect your reservation and access rental documents, please sign in with Google or enter your details below.
+                      </p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                  {/* Google OAuth Option */}
+                  <div className="pt-1">
+                    <GoogleButton
+                      label="Sign in with Google to Book"
+                      showDisclaimer={false}
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground my-1">
+                    <div className="h-px flex-1 bg-border" />
+                    <span className="font-bold uppercase tracking-wider text-[10px]">Or create an account</span>
+                    <div className="h-px flex-1 bg-border" />
+                  </div>
+
+                  {authError && (
+                    <div className="rounded-xl border border-rose-500/50 bg-rose-500/10 px-3.5 py-2 text-xs font-semibold text-rose-500 dark:text-rose-400">
+                      {authError}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <Label className="text-[11px] font-bold text-foreground">Full Name *</Label>
-                      <Input name="guest_name" required placeholder="Juan Dela Cruz" className="mt-1 text-xs" />
+                      <Label className="text-xs font-bold text-foreground">Full Name *</Label>
+                      <Input
+                        name="guest_name"
+                        required
+                        placeholder="Juan Dela Cruz"
+                        className="mt-1 h-10 text-xs"
+                        onChange={() => setAuthError(null)}
+                      />
                     </div>
                     <div>
-                      <Label className="text-[11px] font-bold text-foreground">Phone Number *</Label>
-                      <Input name="guest_phone" required placeholder="0917-123-4567" className="mt-1 text-xs" />
+                      <Label className="text-xs font-bold text-foreground">Phone Number *</Label>
+                      <Input
+                        name="guest_phone"
+                        required
+                        placeholder="0917-123-4567"
+                        className="mt-1 h-10 text-xs"
+                        onChange={() => setAuthError(null)}
+                      />
                     </div>
                     <div>
-                      <Label className="text-[11px] font-bold text-foreground">Email Address *</Label>
-                      <Input name="guest_email" type="email" required placeholder="name@example.com" className="mt-1 text-xs" />
+                      <Label className="text-xs font-bold text-foreground">Email Address *</Label>
+                      <Input
+                        name="guest_email"
+                        type="email"
+                        required
+                        placeholder="name@example.com"
+                        className="mt-1 h-10 text-xs"
+                        onChange={() => setAuthError(null)}
+                      />
                     </div>
                     <div>
-                      <Label className="text-[11px] font-bold text-foreground">Create Password *</Label>
-                      <Input name="guest_password" type="password" required placeholder="••••••••" className="mt-1 text-xs" />
+                      <Label className="text-xs font-bold text-foreground">Create Password (min. 8 chars) *</Label>
+                      <Input
+                        name="guest_password"
+                        type="password"
+                        required
+                        minLength={8}
+                        placeholder="••••••••"
+                        className="mt-1 h-10 text-xs"
+                        onChange={() => setAuthError(null)}
+                      />
                     </div>
                   </div>
                 </div>

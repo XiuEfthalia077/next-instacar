@@ -11,7 +11,7 @@ import { ReviewsSection, type ReviewItem } from "@/components/marketing/reviews-
 import { SiteFooter } from "@/components/marketing/site-footer";
 import { SiteNavbar } from "@/components/marketing/site-navbar";
 import { getSiteStats } from "@/lib/public-stats";
-import { getSupabase } from "@/lib/auth";
+import { getSupabase, getSession } from "@/lib/auth";
 import { getAdminClient } from "@/lib/supabase-admin";
 import { listBranches, type CarWithOwner } from "@/lib/data/cars";
 import { ACTIVE_CAR_STATUSES, OPEN_BOOKING_STATUSES } from "@/lib/data/legacy-status";
@@ -29,7 +29,7 @@ export default async function HomePage() {
   const todayStr = manilaToday();
   const client = getAdminClient() ?? (await getSupabase());
 
-  const [stats, branches, carsRes, bookingsRes, schedulesRes] = await Promise.all([
+  const [stats, branches, carsRes, bookingsRes, schedulesRes, session] = await Promise.all([
     getSiteStats(),
     listBranches(true),
     client
@@ -49,7 +49,10 @@ export default async function HomePage() {
       .from("car_schedules")
       .select("car_id, start_date, end_date, reason")
       .gte("end_date", todayStr),
+    getSession().catch(() => null),
   ]);
+
+  const isLoggedIn = !!session?.userId;
 
   const cars = (carsRes.data || []) as CarWithOwner[];
   const activeBookings = (bookingsRes.data || []) as Array<{
@@ -170,6 +173,7 @@ export default async function HomePage() {
             cars={cars}
             branches={branches}
             blockedRangesByCar={blockedRangesByCar}
+            isLoggedIn={isLoggedIn}
           />
         </Suspense>
 

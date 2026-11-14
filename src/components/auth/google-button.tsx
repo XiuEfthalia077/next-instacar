@@ -39,9 +39,11 @@ function GoogleMark() {
 export function GoogleButton({
   label,
   showDisclaimer = true,
+  next: explicitNext,
 }: {
   label: string;
   showDisclaimer?: boolean;
+  next?: string;
 }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -54,7 +56,7 @@ export function GoogleButton({
       const supabase = createClient();
 
       const searchParams = new URLSearchParams(window.location.search);
-      const next = searchParams.get("next");
+      const next = explicitNext || searchParams.get("next");
       const callbackUrl = new URL("/auth/callback", window.location.origin);
       if (next && next.startsWith("/")) {
         callbackUrl.searchParams.set("next", next);

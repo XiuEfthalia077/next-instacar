@@ -462,12 +462,12 @@
   .auth-form-control {
     display: block;
     width: 100%;
-    padding: 12px;
+    padding: 10px 14px;
     border-radius: 10px;
     border: 1px solid var(--border);
     background-color: var(--card);
     color: var(--foreground);
-    margin-bottom: 1rem;
+    margin-bottom: 0;
     transition: all 0.2s ease;
   }
   .dark .auth-form-control {

@@ -103,12 +103,12 @@ export default function LoginPage() {
           <p className="text-xs text-muted-foreground">Premier Car Rentals in Iloilo</p>
         </div>
 
-        <div className="mx-auto w-full max-w-sm">
+        <div className="mx-auto w-full max-w-md sm:max-w-[460px]">
           <div className="mb-6">
-            <h1 className="text-2xl font-black text-foreground tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
               Welcome back
             </h1>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1.5">
               Enter your credentials to access your InstaCar dashboard.
             </p>
           </div>

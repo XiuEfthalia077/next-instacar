@@ -89,10 +89,10 @@ export default function RegisterPage() {
       </div>
 
       {/* ── Right Column: Registration Form ── */}
-      <div className="md:col-span-6 lg:col-span-5 flex flex-col justify-center px-6 py-10 sm:px-10 lg:px-14 overflow-y-auto">
+      <div className="md:col-span-6 lg:col-span-5 flex flex-col justify-center px-6 py-8 sm:px-10 lg:px-12 overflow-y-auto">
         {/* Mobile Header Branding (< md) */}
-        <div className="mb-6 md:hidden text-center">
-          <Link href="/" className="inline-flex items-center gap-2 mb-2">
+        <div className="mb-4 md:hidden text-center">
+          <Link href="/" className="inline-flex items-center gap-2 mb-1.5">
             <div className="flex size-9 items-center justify-center rounded-xl bg-[#ffcc00] text-black font-black">
               <CarFront className="size-5" />
             </div>
@@ -102,7 +102,7 @@ export default function RegisterPage() {
           </Link>
         </div>
 
-        <div className="mx-auto w-full max-w-md space-y-6">
+        <div className="mx-auto w-full max-w-[420px] space-y-4 my-auto">
           <div className="space-y-1">
             <div className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-amber-700 dark:text-[#ffcc00]">
               <UserPlus className="size-3.5" />
@@ -111,7 +111,7 @@ export default function RegisterPage() {
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
               Get started with InstaCar
             </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Create your account in under a minute or continue as a guest.
             </p>
           </div>
@@ -120,7 +120,7 @@ export default function RegisterPage() {
           <RegisterForm />
 
           {/* Alternate Link */}
-          <p className="text-center text-xs text-muted-foreground pt-2">
+          <p className="text-center text-xs text-muted-foreground pt-1">
             Already have an account?{" "}
             <Link
               href="/login"
