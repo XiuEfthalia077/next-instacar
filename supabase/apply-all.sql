@@ -3273,3 +3273,27 @@ begin
   perform set_config('instacar.auth_sync_direction', '', true);
 end $$;
 
+
+
+-- --------------------------------------------------------------------------
+-- migrations/20260101001900_fix_admin_staff_bookings_rls.sql
+-- --------------------------------------------------------------------------
+
+drop policy if exists bookings_read on public.bookings;
+create policy bookings_read on public.bookings
+  for select using (
+    public.current_user_role() in ('admin', 'staff')
+    or created_by = public.current_user_id()
+    or user_id = public.current_user_id()
+    or public.user_can_access_booking(id)
+  );
+
+drop policy if exists bookings_insert on public.bookings;
+create policy bookings_insert on public.bookings
+  for insert with check (
+    public.current_user_role() in ('admin', 'staff')
+    or created_by = public.current_user_id()
+    or user_id = public.current_user_id()
+    or user_id = (select id from public.users where auth_id = auth.uid())
+    or auth.role() = 'service_role'
+  );
