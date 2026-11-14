@@ -50,12 +50,57 @@ export function FeaturedCarsCarousel({
   // Review carousel state inside modal
   const [activeReviewIndex, setActiveReviewIndex] = React.useState(0);
 
-  // Drag-to-scroll state
+  // Auto-scroll & drag-to-scroll state
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   const isDraggingRef = React.useRef(false);
   const startXRef = React.useRef(0);
   const scrollLeftRef = React.useRef(0);
   const [isDragging, setIsDragging] = React.useState(false);
+  const [isHovered, setIsHovered] = React.useState(false);
+  const [scrollProgress, setScrollProgress] = React.useState(0);
+
+  // Smooth continuous auto-scroll that pauses on hover or drag
+  React.useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+
+    let animId: number;
+    let lastTime = performance.now();
+
+    const step = (time: number) => {
+      const delta = Math.min(time - lastTime, 50); // cap delta to prevent jumps
+      lastTime = time;
+
+      if (!isHovered && !isDraggingRef.current && el) {
+        // Continuous smooth auto-scroll: ~40px per second
+        el.scrollLeft += (40 * delta) / 1000;
+
+        // If reached halfway through the duplicated list, wrap back smoothly
+        if (el.scrollWidth > el.clientWidth && el.scrollLeft >= el.scrollWidth / 2) {
+          el.scrollLeft -= el.scrollWidth / 2;
+        }
+      }
+      animId = requestAnimationFrame(step);
+    };
+
+    animId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(animId);
+  }, [isHovered]);
+
+  const handleScroll = () => {
+    if (!scrollContainerRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+    const max = scrollWidth - clientWidth;
+    if (max > 0) {
+      setScrollProgress(Math.min(100, Math.max(0, (scrollLeft / max) * 100)));
+    }
+  };
+
+  const scrollByAmount = (direction: "left" | "right") => {
+    if (!scrollContainerRef.current) return;
+    const delta = direction === "left" ? -340 : 340;
+    scrollContainerRef.current.scrollBy({ left: delta, behavior: "smooth" });
+  };
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!scrollContainerRef.current) return;
@@ -134,27 +179,21 @@ export function FeaturedCarsCarousel({
       {/* ── Continuous Auto-Scrolling Marquee (Pauses on Hover & Draggable via Click-and-Drag) ── */}
       <div
         ref={scrollContainerRef}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => {
+          setIsHovered(false);
+          handleMouseUp();
+        }}
+        onScroll={handleScroll}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
         className={cn(
-          "relative w-full overflow-x-auto no-scrollbar select-none py-2",
+          "relative w-full overflow-x-auto carousel-scrollbar select-none py-3 px-4",
           isDragging ? "cursor-grabbing" : "cursor-grab"
         )}
       >
-        {/* Left / Right Vignette Gradients */}
-        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-12 sm:w-24 z-10 bg-gradient-to-r from-background to-transparent" />
-        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 sm:w-24 z-10 bg-gradient-to-l from-background to-transparent" />
-
-        <div
-          className={cn(
-            "flex gap-4 sm:gap-6 w-max",
-            isDragging
-              ? "animate-none"
-              : "animate-carousel-scroll hover:[animation-play-state:paused]"
-          )}
-        >
+        <div className="flex gap-4 sm:gap-6 w-max">
           {marqueeCars.map((car, idx) => {
             const photo = car.image_path ? car.image_path.split(",")[0].trim() : "";
             const image = carImageUrl(photo || "default.png");
@@ -234,6 +273,51 @@ export function FeaturedCarsCarousel({
               </div>
             );
           })}
+        </div>
+      </div>
+
+      {/* ── Carousel Horizontal Control & Progress Bar ── */}
+      <div className="mx-auto w-full max-w-[1320px] px-4 mt-3 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => scrollByAmount("left")}
+            className="flex size-9 items-center justify-center rounded-xl border border-border bg-card text-foreground hover:bg-[#ffcc00] hover:text-black hover:border-[#ffcc00] active:scale-95 transition shadow-xs cursor-pointer"
+            aria-label="Scroll left"
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollByAmount("right")}
+            className="flex size-9 items-center justify-center rounded-xl border border-border bg-card text-foreground hover:bg-[#ffcc00] hover:text-black hover:border-[#ffcc00] active:scale-95 transition shadow-xs cursor-pointer"
+            aria-label="Scroll right"
+          >
+            <ChevronRight className="size-4" />
+          </button>
+          <span className="text-xs font-semibold text-muted-foreground hidden sm:inline ml-1">
+            Drag or use horizontal scrollbar to browse
+          </span>
+        </div>
+
+        {/* Interactive Scrollbar Progress Track */}
+        <div
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const percent = clickX / rect.width;
+            if (scrollContainerRef.current) {
+              const max = scrollContainerRef.current.scrollWidth - scrollContainerRef.current.clientWidth;
+              scrollContainerRef.current.scrollTo({ left: max * percent, behavior: "smooth" });
+            }
+          }}
+          className="relative flex-1 max-w-xs sm:max-w-md h-2 rounded-full bg-muted/60 cursor-pointer overflow-hidden border border-border/50"
+          title="Click to jump along the fleet carousel"
+        >
+          <div
+            className="h-full bg-[#ffcc00] rounded-full transition-all duration-150"
+            style={{ width: `${Math.max(15, scrollProgress)}%` }}
+          />
         </div>
       </div>
 

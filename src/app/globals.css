@@ -793,4 +793,27 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  /* Custom styled carousel scrollbar for interactive sliding */
+  .carousel-scrollbar::-webkit-scrollbar {
+    height: 8px;
+  }
+  .carousel-scrollbar::-webkit-scrollbar-track {
+    background: rgba(120, 120, 128, 0.2);
+    border-radius: 9999px;
+  }
+  .carousel-scrollbar::-webkit-scrollbar-thumb {
+    background: #ffcc00;
+    border-radius: 9999px;
+    cursor: grab;
+  }
+  .carousel-scrollbar::-webkit-scrollbar-thumb:hover,
+  .carousel-scrollbar::-webkit-scrollbar-thumb:active {
+    background: #ffd633;
+    cursor: grabbing;
+  }
+  .carousel-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #ffcc00 rgba(120, 120, 128, 0.2);
+  }
 }
