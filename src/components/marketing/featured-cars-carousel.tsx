@@ -50,6 +50,36 @@ export function FeaturedCarsCarousel({
   // Review carousel state inside modal
   const [activeReviewIndex, setActiveReviewIndex] = React.useState(0);
 
+  // Drag-to-scroll state
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const isDraggingRef = React.useRef(false);
+  const startXRef = React.useRef(0);
+  const scrollLeftRef = React.useRef(0);
+  const [isDragging, setIsDragging] = React.useState(false);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!scrollContainerRef.current) return;
+    isDraggingRef.current = true;
+    startXRef.current = e.pageX - scrollContainerRef.current.offsetLeft;
+    scrollLeftRef.current = scrollContainerRef.current.scrollLeft;
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingRef.current || !scrollContainerRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollContainerRef.current.offsetLeft;
+    const walk = (x - startXRef.current) * 1.5;
+    scrollContainerRef.current.scrollLeft = scrollLeftRef.current - walk;
+    if (Math.abs(walk) > 4) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleMouseUp = () => {
+    isDraggingRef.current = false;
+    setTimeout(() => setIsDragging(false), 50);
+  };
+
   // Filter reviews matching selected car model or brand
   const carSpecificReviews = React.useMemo(() => {
     if (!selectedCar) return [];
@@ -78,7 +108,7 @@ export function FeaturedCarsCarousel({
   }, [cars]);
 
   return (
-    <section className="py-12 md:py-16 overflow-hidden">
+    <section id="featured-cars" className="scroll-mt-16 py-12 md:py-16 overflow-hidden">
       <div className="mx-auto w-full max-w-[1320px] px-4 mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <span className="text-xs font-black uppercase tracking-wider text-amber-700 dark:text-[#ffcc00]">
@@ -88,7 +118,7 @@ export function FeaturedCarsCarousel({
             Featured <span className="text-amber-600 dark:text-[#ffcc00]">Cars Carousel</span>
           </h2>
           <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
-            Hover anywhere to pause. Click any vehicle to inspect photo galleries, specifications, and client reviews.
+            Hover to pause, drag to browse. Click any vehicle to inspect photo galleries, specifications, and client reviews.
           </p>
         </div>
 
@@ -101,13 +131,30 @@ export function FeaturedCarsCarousel({
         </Link>
       </div>
 
-      {/* ── Continuous Auto-Scrolling Marquee (Pauses on Hover) ── */}
-      <div className="relative w-full overflow-hidden select-none py-2">
+      {/* ── Continuous Auto-Scrolling Marquee (Pauses on Hover & Draggable via Click-and-Drag) ── */}
+      <div
+        ref={scrollContainerRef}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        className={cn(
+          "relative w-full overflow-x-auto no-scrollbar select-none py-2",
+          isDragging ? "cursor-grabbing" : "cursor-grab"
+        )}
+      >
         {/* Left / Right Vignette Gradients */}
         <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-12 sm:w-24 z-10 bg-gradient-to-r from-background to-transparent" />
         <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 sm:w-24 z-10 bg-gradient-to-l from-background to-transparent" />
 
-        <div className="flex gap-4 sm:gap-6 animate-carousel-scroll hover:[animation-play-state:paused] w-max">
+        <div
+          className={cn(
+            "flex gap-4 sm:gap-6 w-max",
+            isDragging
+              ? "animate-none"
+              : "animate-carousel-scroll hover:[animation-play-state:paused]"
+          )}
+        >
           {marqueeCars.map((car, idx) => {
             const photo = car.image_path ? car.image_path.split(",")[0].trim() : "";
             const image = carImageUrl(photo || "default.png");
@@ -120,6 +167,7 @@ export function FeaturedCarsCarousel({
               <div
                 key={`${car.id}-${idx}`}
                 onClick={() => {
+                  if (isDragging) return;
                   setSelectedCar(car);
                   setActivePhotoIndex(0);
                   setActiveReviewIndex(0);

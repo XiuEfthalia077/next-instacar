@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { connection } from "next/server";
 
@@ -163,12 +164,14 @@ export default async function HomePage() {
         {/* Task 1.4: Featured Cars Carousel (Continuous marquee, pauses on hover, car detail modal) */}
         <FeaturedCarsCarousel cars={stats.popular_cars} reviews={initialReviews} />
 
-        {/* Task 1.3: Filter Row & Availability Section (2-Column: Left 4 scrollable cars, Right interactive calendar) */}
-        <LandingAvailabilitySection
-          cars={cars}
-          branches={branches}
-          blockedRangesByCar={blockedRangesByCar}
-        />
+        {/* Task 1.4: Search Data Integration & Availability Section (2-Column: Left 4 scrollable cars, Right interactive calendar) */}
+        <Suspense fallback={<div className="h-96 w-full animate-pulse bg-muted/20" />}>
+          <LandingAvailabilitySection
+            cars={cars}
+            branches={branches}
+            blockedRangesByCar={blockedRangesByCar}
+          />
+        </Suspense>
 
         {/* Features Showcase */}
         <Features />

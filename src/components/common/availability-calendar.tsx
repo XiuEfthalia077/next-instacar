@@ -296,7 +296,7 @@ export function AvailabilityCalendar({
               className={cn(
                 "flex h-8 items-center justify-center rounded-lg font-bold transition text-xs",
                 isSelected
-                  ? "border-2 border-[#ffcc00] bg-[#ffcc00]/25 text-[#ffcc00] font-black shadow-sm"
+                  ? "border-2 border-[#ffcc00] bg-[#ffcc00] text-black font-black shadow-sm"
                   : isBlocked
                     ? "border border-rose-500/50 bg-rose-500/20 text-rose-400 cursor-not-allowed opacity-90"
                     : isPast

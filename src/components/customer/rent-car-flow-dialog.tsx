@@ -45,7 +45,7 @@ import { cn } from "@/lib/utils";
 export type BlockedRange = {
   start: string;
   end: string;
-  reason: "Booked" | "Maintenance";
+  reason?: "Booked" | "Maintenance" | string;
 };
 
 type RentCarFlowDialogProps = {

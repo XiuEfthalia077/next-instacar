@@ -455,7 +455,7 @@
 
   .auth-form-label {
     display: block;
-    color: #bbb;
+    color: var(--foreground);
     margin-bottom: 0.5rem !important;
   }
 
@@ -464,21 +464,25 @@
     width: 100%;
     padding: 12px;
     border-radius: 10px;
-    border: 1px solid #ffcc00;
-    background-color: #2a2a2a;
-    color: white;
+    border: 1px solid var(--border);
+    background-color: var(--card);
+    color: var(--foreground);
     margin-bottom: 1rem;
+    transition: all 0.2s ease;
+  }
+  .dark .auth-form-control {
+    background-color: #1c1c1f;
+    color: #ffffff;
+    border-color: rgba(255, 204, 0, 0.4);
   }
   .auth-form-control:focus {
-    background-color: #2a2a2a;
-    color: white;
-    border-color: #ffcc00;
+    border-color: #ffcc00 !important;
     box-shadow: 0 0 0 0.25rem rgba(255, 204, 0, 0.25);
     outline: none;
   }
   .auth-form-control::placeholder {
-    color: #a0a0a0;
-    opacity: 1;
+    color: var(--muted-foreground);
+    opacity: 0.8;
   }
   /* Reset page uses a lighter box with a white border (reset.php) */
   .auth-box-reset .auth-form-control {
