@@ -21,6 +21,7 @@ import { LoadingButton } from "@/components/common/loading-button";
 import { AvailabilityCalendar } from "@/components/common/availability-calendar";
 import { PastDateConfirmDialog } from "@/components/common/past-date-confirm-dialog";
 import { TimePicker, getCurrentTime24 } from "@/components/common/time-picker";
+import { UberInteractiveMapDialog } from "@/components/common/uber-interactive-map";
 import { Money } from "@/components/common/money";
 import { Button } from "@/components/ui/button";
 import {
@@ -111,6 +112,10 @@ export function RentCarFlowDialog({
   const [fulfillmentType, setFulfillmentType] = React.useState<"pickup" | "Delivery">("pickup");
   const [deliveryAddress, setDeliveryAddress] = React.useState("");
   const [returnAddress, setReturnAddress] = React.useState("");
+  const [mapDialogOpen, setMapDialogOpen] = React.useState(false);
+  const [mapTarget, setMapTarget] = React.useState<"delivery" | "return">("delivery");
+  const [estimatedDeliveryFee, setEstimatedDeliveryFee] = React.useState<number | null>(null);
+  const [estimatedDeliveryKm, setEstimatedDeliveryKm] = React.useState<number | null>(null);
   const [pastConfirmOpen, setPastConfirmOpen] = React.useState(false);
   const [pastUnlocked, setPastUnlocked] = React.useState(false);
   const pastConfirmedRef = React.useRef(false);
@@ -560,19 +565,19 @@ export function RentCarFlowDialog({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-[#ffcc00] uppercase tracking-wider">
                     <Truck className="size-4" />
-                    <span>Delivery Address (Where should we deliver the vehicle?) *</span>
+                    <span>Delivery Address *</span>
                   </div>
-                  {deliveryAddress && (
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(deliveryAddress)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-[11px] font-bold text-[#ffcc00] hover:underline"
-                    >
-                      <MapPin className="size-3" />
-                      <span>View Map</span>
-                    </a>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMapTarget("delivery");
+                      setMapDialogOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-[#ffcc00] px-2.5 py-1 text-[11px] font-black text-black hover:bg-[#ffd633] transition shadow-xs cursor-pointer"
+                  >
+                    <MapPin className="size-3.5 stroke-[2.5]" />
+                    <span>Pin on Interactive Map</span>
+                  </button>
                 </div>
                 <textarea
                   id="delivery_address_field"
@@ -584,6 +589,16 @@ export function RentCarFlowDialog({
                   placeholder="Enter complete street address, landmark, subdivision, hotel or delivery instructions..."
                   className="w-full rounded-xl border border-border bg-card p-2.5 text-xs text-foreground outline-none transition focus:border-[#ffcc00] focus:ring-1 focus:ring-[#ffcc00]/50"
                 />
+                {estimatedDeliveryFee !== null && (
+                  <div className="flex items-center justify-between rounded-lg bg-[#ffcc00]/15 border border-[#ffcc00]/40 px-3 py-1.5 text-xs">
+                    <span className="text-muted-foreground font-medium">
+                      Estimated Distance: <strong className="text-foreground">{estimatedDeliveryKm} km</strong> from Hub
+                    </span>
+                    <span className="font-bold text-[#b38a00] dark:text-[#ffcc00]">
+                      Delivery Fee: ₱{estimatedDeliveryFee.toLocaleString()}
+                    </span>
+                  </div>
+                )}
                 <p className="text-[11px] text-muted-foreground">
                   📍 Our staff will deliver the vehicle directly to this address before your rental start time.
                 </p>
@@ -631,13 +646,26 @@ export function RentCarFlowDialog({
                 <Label htmlFor="return_address_field" className="text-xs font-bold text-foreground flex items-center gap-1">
                   <span>Custom Return Address</span>
                 </Label>
-                <button
-                  type="button"
-                  onClick={() => setReturnAddress(branchAddress)}
-                  className="text-[11px] font-bold text-[#b38a00] dark:text-[#ffcc00] hover:underline cursor-pointer"
-                >
-                  Use Branch Address
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMapTarget("return");
+                      setMapDialogOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#b38a00] dark:text-[#ffcc00] hover:underline cursor-pointer"
+                  >
+                    <MapPin className="size-3" />
+                    <span>Pin on Map</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReturnAddress(branchAddress)}
+                    className="text-[11px] font-bold text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
+                  >
+                    Use Branch Address
+                  </button>
+                </div>
               </div>
               <textarea
                 id="return_address_field"
@@ -971,6 +999,23 @@ export function RentCarFlowDialog({
         }}
         title="Past Date Booking Confirmation"
         message="This booking is set in the past. Are you sure you want to proceed?"
+      />
+
+      {/* INTERACTIVE UBER-STYLE MAP MODAL */}
+      <UberInteractiveMapDialog
+        open={mapDialogOpen}
+        onOpenChange={setMapDialogOpen}
+        initialAddress={mapTarget === "delivery" ? deliveryAddress : returnAddress}
+        title={mapTarget === "delivery" ? "Pin Delivery Location" : "Pin Return Location"}
+        onConfirmLocation={({ address: resolvedAddr, distanceKm, deliveryFee }) => {
+          if (mapTarget === "delivery") {
+            setDeliveryAddress(resolvedAddr);
+            setEstimatedDeliveryFee(deliveryFee);
+            setEstimatedDeliveryKm(distanceKm);
+          } else {
+            setReturnAddress(resolvedAddr);
+          }
+        }}
       />
     </>
   );

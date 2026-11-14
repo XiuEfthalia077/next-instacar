@@ -7,6 +7,7 @@ import {
   Check,
   ChevronDown,
   CircleDollarSign,
+  MapPin,
   PlusCircle,
   RotateCcw,
   Search,
@@ -19,6 +20,7 @@ import { LoadingButton } from "@/components/common/loading-button";
 import { AvailabilityCalendar } from "@/components/common/availability-calendar";
 import { PastDateConfirmDialog } from "@/components/common/past-date-confirm-dialog";
 import { TimePicker, getCurrentTime24 } from "@/components/common/time-picker";
+import { UberInteractiveMapDialog } from "@/components/common/uber-interactive-map";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -134,6 +136,8 @@ export function ManualBookingDialog({
   >("Pickup");
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [returnAddress, setReturnAddress] = useState("");
+  const [mapOpen, setMapOpen] = useState(false);
+  const [mapTarget, setMapTarget] = useState<"delivery" | "return">("delivery");
 
   // Searchable select state for registered members
   const [memberSearch, setMemberSearch] = useState("");
@@ -1010,9 +1014,24 @@ export function ManualBookingDialog({
             </div>
 
             <div className="sm:col-span-2">
-              <Label htmlFor="manual-delivery-address" className="mb-1 block text-xs font-bold">
-                {fulfillmentType === "Delivery" ? "Delivery Address *" : "Pickup / Branch Address"}
-              </Label>
+              <div className="flex items-center justify-between mb-1">
+                <Label htmlFor="manual-delivery-address" className="block text-xs font-bold">
+                  {fulfillmentType === "Delivery" ? "Delivery Address *" : "Pickup / Branch Address"}
+                </Label>
+                {fulfillmentType === "Delivery" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMapTarget("delivery");
+                      setMapOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-[#ffcc00] px-2.5 py-1 text-[11px] font-black text-black hover:bg-[#ffd633] transition shadow-xs cursor-pointer"
+                  >
+                    <MapPin className="size-3 stroke-[2.5]" />
+                    <span>Pin on Interactive Map</span>
+                  </button>
+                )}
+              </div>
               <Input
                 id="manual-delivery-address"
                 type="text"
@@ -1045,9 +1064,31 @@ export function ManualBookingDialog({
 
             {/* New Return Address Input */}
             <div className="sm:col-span-2">
-              <Label htmlFor="manual-return-address" className="mb-1 block text-xs font-bold">
-                Return Address
-              </Label>
+              <div className="flex items-center justify-between mb-1">
+                <Label htmlFor="manual-return-address" className="block text-xs font-bold">
+                  Return Address
+                </Label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMapTarget("return");
+                      setMapOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-[#ffcc00] hover:underline cursor-pointer"
+                  >
+                    <MapPin className="size-3" />
+                    <span>Pin on Map</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReturnAddress(DEFAULT_BRANCH_ADDRESS)}
+                    className="text-[11px] font-bold text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
+                  >
+                    Use Branch Address
+                  </button>
+                </div>
+              </div>
               <Input
                 id="manual-return-address"
                 type="text"
@@ -1252,6 +1293,22 @@ export function ManualBookingDialog({
         }}
         title="Past Date Booking Confirmation"
         message="This booking is set in the past. Are you sure you want to proceed?"
+      />
+
+      {/* Interactive Uber-Style Map Modal */}
+      <UberInteractiveMapDialog
+        open={mapOpen}
+        onOpenChange={setMapOpen}
+        initialAddress={mapTarget === "delivery" ? deliveryAddress : returnAddress}
+        title={mapTarget === "delivery" ? "Pin Delivery Location" : "Pin Return Location"}
+        onConfirmLocation={({ address: resolvedAddr, deliveryFee: fee }) => {
+          if (mapTarget === "delivery") {
+            setDeliveryAddress(resolvedAddr);
+            setDeliveryFee(String(fee));
+          } else {
+            setReturnAddress(resolvedAddr);
+          }
+        }}
       />
     </Dialog>
   );
