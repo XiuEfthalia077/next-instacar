@@ -20,7 +20,7 @@ import { FileUploadDropzone } from "@/components/common/file-upload-dropzone";
 import { LoadingButton } from "@/components/common/loading-button";
 import { AvailabilityCalendar } from "@/components/common/availability-calendar";
 import { PastDateConfirmDialog } from "@/components/common/past-date-confirm-dialog";
-import { TimePicker } from "@/components/common/time-picker";
+import { TimePicker, getCurrentTime24 } from "@/components/common/time-picker";
 import { Money } from "@/components/common/money";
 import { Button } from "@/components/ui/button";
 import {
@@ -165,13 +165,14 @@ export function RentCarFlowDialog({
   // Pricing & Duration calculation
   const { hours, calculatedPrice, startDate, endDate, pickupTime, returnTime } = React.useMemo(() => {
     if (!pickupDatetime || !returnDatetime) {
+      const nowTime = getCurrentTime24();
       return {
         hours: 0,
         calculatedPrice: Number(car.price_24_hours ?? 0),
         startDate: "",
         endDate: "",
-        pickupTime: "00:00",
-        returnTime: "00:00",
+        pickupTime: nowTime,
+        returnTime: nowTime,
       };
     }
 
@@ -312,8 +313,9 @@ export function RentCarFlowDialog({
               pastUnlocked={pastUnlocked}
               onUnlockPast={() => setPastUnlocked(true)}
               onSelectRange={(startDay, endDay) => {
-                const pTime = pickupDatetime ? pickupDatetime.slice(11, 16) : "09:00";
-                const rTime = returnDatetime ? returnDatetime.slice(11, 16) : "09:00";
+                const nowTime = getCurrentTime24();
+                const pTime = pickupDatetime ? pickupDatetime.slice(11, 16) : nowTime;
+                const rTime = returnDatetime ? returnDatetime.slice(11, 16) : nowTime;
                 setPickupDatetime(`${startDay}T${pTime}`);
                 setReturnDatetime(`${endDay}T${rTime}`);
                 setQuickDuration("custom");
@@ -375,7 +377,7 @@ export function RentCarFlowDialog({
                   value={startDate}
                   onChange={(e) => {
                     const d = e.target.value;
-                    const t = pickupTime || "10:00";
+                    const t = pickupTime || getCurrentTime24();
                     setPickupDatetime(`${d}T${t}`);
                     setQuickDuration("custom");
                   }}
@@ -421,7 +423,7 @@ export function RentCarFlowDialog({
                   value={endDate}
                   onChange={(e) => {
                     const d = e.target.value;
-                    const t = returnTime || "10:00";
+                    const t = returnTime || getCurrentTime24();
                     setReturnDatetime(`${d}T${t}`);
                     setQuickDuration("custom");
                   }}

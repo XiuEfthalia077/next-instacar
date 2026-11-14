@@ -82,7 +82,14 @@ export function TimePicker({
 }: TimePickerProps) {
   const [open, setOpen] = React.useState(false);
 
-  const { hour12, minute, period } = React.useMemo(() => parseTime(value), [value]);
+  // Default to exact current time if value is not set
+  React.useEffect(() => {
+    if (!value || value.trim() === "") {
+      onChange?.(getCurrentTime24());
+    }
+  }, [value, onChange]);
+
+  const { hour12, minute, period } = React.useMemo(() => parseTime(value || getCurrentTime24()), [value]);
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (disabled) return;
@@ -145,6 +152,7 @@ export function TimePicker({
             type="button"
             variant="outline"
             disabled={disabled}
+            data-timepicker-trigger="true"
             className={cn(
               "w-full justify-between rounded-lg border-input bg-background px-3 py-2 text-left text-xs sm:text-sm font-normal shadow-xs hover:bg-accent/50 focus-visible:ring-2 focus-visible:ring-[#ffcc00]",
               !value && "text-muted-foreground",
@@ -166,6 +174,13 @@ export function TimePicker({
           onOpenAutoFocus={(e) => e.preventDefault()}
           onCloseAutoFocus={(e) => e.preventDefault()}
           onPointerDown={(e) => e.stopPropagation()}
+          onInteractOutside={(e) => {
+            const target = e.target as HTMLElement | null;
+            if (target?.closest('[data-timepicker-trigger="true"]')) {
+              return;
+            }
+            e.preventDefault();
+          }}
           className="z-[250] w-[300px] rounded-xl border border-border bg-popover p-3 shadow-2xl"
         >
           {/* Header */}

@@ -19,12 +19,16 @@ export function PastDateConfirmDialog({
   onConfirm,
   title = "Past Date Confirmation",
   message = "This booking is set in the past. Are you sure you want to proceed?",
+  confirmLabel = "Yes, Proceed",
+  cancelLabel = "No, Cancel",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
   title?: string;
   message?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
 }) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -45,17 +49,16 @@ export function PastDateConfirmDialog({
             onClick={() => onOpenChange(false)}
             className="rounded-xl border-border px-5 text-xs font-semibold"
           >
-            No, Cancel
+            {cancelLabel}
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={(e) => {
               e.preventDefault();
-              onOpenChange(false);
               onConfirm();
             }}
             className="rounded-xl bg-[#ffcc00] px-5 text-xs font-bold text-black hover:bg-[#ffd633] transition"
           >
-            Yes, Proceed
+            {confirmLabel}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

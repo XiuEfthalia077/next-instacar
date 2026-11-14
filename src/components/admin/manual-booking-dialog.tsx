@@ -18,7 +18,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { LoadingButton } from "@/components/common/loading-button";
 import { AvailabilityCalendar } from "@/components/common/availability-calendar";
 import { PastDateConfirmDialog } from "@/components/common/past-date-confirm-dialog";
-import { TimePicker } from "@/components/common/time-picker";
+import { TimePicker, getCurrentTime24 } from "@/components/common/time-picker";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -142,6 +142,7 @@ export function ManualBookingDialog({
   const [pastConfirmOpen, setPastConfirmOpen] = useState(false);
   const [pastUnlocked, setPastUnlocked] = useState(false);
   const [inputPastConfirmOpen, setInputPastConfirmOpen] = useState(false);
+  const [inputPastStage, setInputPastStage] = useState<"warning" | "confirm">("warning");
   const [pendingInputDate, setPendingInputDate] = useState<{ field: "pickup" | "return"; value: string } | null>(null);
 
   const pastConfirmedRef = useRef(false);
@@ -343,13 +344,14 @@ export function ManualBookingDialog({
     [cars],
   );
 
+  const defaultTime = useMemo(() => getCurrentTime24(), []);
   const pickupDate = pickup ? pickup.slice(0, 10) : "";
-  const pickupTime = pickup && pickup.length >= 16 ? pickup.slice(11, 16) : "10:00";
+  const pickupTime = pickup && pickup.length >= 16 ? pickup.slice(11, 16) : defaultTime;
   const returnDate = returnAt ? returnAt.slice(0, 10) : "";
-  const returnTime = returnAt && returnAt.length >= 16 ? returnAt.slice(11, 16) : "10:00";
+  const returnTime = returnAt && returnAt.length >= 16 ? returnAt.slice(11, 16) : defaultTime;
 
   const changePickupDate = (newDate: string) => {
-    const time = pickupTime || "10:00";
+    const time = pickupTime || defaultTime;
     const newPickup = `${newDate}T${time}`;
     setPickup(newPickup);
     if (durationMode === 10) {
@@ -358,7 +360,7 @@ export function ManualBookingDialog({
       setReturnAt(addHours(newPickup, 24));
     } else {
       if (!returnDate || returnDate < newDate) {
-        setReturnAt(`${newDate}T${returnTime || "10:00"}`);
+        setReturnAt(`${newDate}T${returnTime || defaultTime}`);
       }
     }
   };
@@ -367,6 +369,7 @@ export function ManualBookingDialog({
     if (!newDate) return;
     if (newDate < todayStr && !pastUnlocked) {
       setPendingInputDate({ field: "pickup", value: newDate });
+      setInputPastStage("warning");
       setInputPastConfirmOpen(true);
     } else {
       changePickupDate(newDate);
@@ -385,7 +388,7 @@ export function ManualBookingDialog({
   };
 
   const changeReturnDate = (newDate: string) => {
-    const time = returnTime || "10:00";
+    const time = returnTime || defaultTime;
     setReturnAt(`${newDate}T${time}`);
     setDurationMode("custom");
   };
@@ -394,6 +397,7 @@ export function ManualBookingDialog({
     if (!newDate) return;
     if (newDate < todayStr && !pastUnlocked) {
       setPendingInputDate({ field: "return", value: newDate });
+      setInputPastStage("warning");
       setInputPastConfirmOpen(true);
     } else {
       changeReturnDate(newDate);
@@ -401,6 +405,11 @@ export function ManualBookingDialog({
   };
 
   const handleConfirmInputPast = () => {
+    if (inputPastStage === "warning") {
+      setInputPastStage("confirm");
+      return;
+    }
+
     setPastUnlocked(true);
     if (pendingInputDate) {
       if (pendingInputDate.field === "pickup") {
@@ -410,6 +419,7 @@ export function ManualBookingDialog({
       }
     }
     setPendingInputDate(null);
+    setInputPastStage("warning");
     setInputPastConfirmOpen(false);
   };
 
@@ -1208,18 +1218,25 @@ export function ManualBookingDialog({
         </form>
       </DialogContent>
 
-      {/* Step 1 Past Date Input Confirmation Modal */}
+      {/* Step 1 & 2 Past Date Input Warning & Confirmation Modal */}
       <PastDateConfirmDialog
         open={inputPastConfirmOpen}
         onOpenChange={(isOpen) => {
           if (!isOpen) {
             setInputPastConfirmOpen(false);
             setPendingInputDate(null);
+            setInputPastStage("warning");
           }
         }}
         onConfirm={handleConfirmInputPast}
-        title="Past Date Selection"
-        message="You are selecting a past date. Are you sure?"
+        title={inputPastStage === "warning" ? "Past Date Warning" : "Confirm Past Date Selection"}
+        message={
+          inputPastStage === "warning"
+            ? `You are selecting a past date for ${pendingInputDate?.field === "pickup" ? "pickup" : "return"}. Admin authorization is required to record past-dated bookings.`
+            : `Warning accepted. Please click 'Confirm Past Date' below to proceed with ${pendingInputDate?.value}.`
+        }
+        confirmLabel={inputPastStage === "warning" ? "Accept Warning" : "Confirm Past Date"}
+        cancelLabel={inputPastStage === "warning" ? "Cancel" : "Go Back"}
       />
 
       {/* Step 3 Final Submit Confirmation Modal */}

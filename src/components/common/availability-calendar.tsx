@@ -39,6 +39,7 @@ export function AvailabilityCalendar({
   // Past date confirmation state
   const [pendingPastDay, setPendingPastDay] = React.useState<string | null>(null);
   const [confirmModalOpen, setConfirmModalOpen] = React.useState(false);
+  const [pastStage, setPastStage] = React.useState<"warning" | "confirm">("warning");
   const [internalPastUnlocked, setInternalPastUnlocked] = React.useState(false);
 
   const isPastUnlocked = pastUnlocked || internalPastUnlocked;
@@ -144,6 +145,7 @@ export function AvailabilityCalendar({
     if (isPast && !isPastUnlocked) {
       // Step 1: Warning modal on first past date interaction
       setPendingPastDay(dayStr);
+      setPastStage("warning");
       setConfirmModalOpen(true);
     } else {
       // Step 2: Past dates unlocked - freely click start and end date
@@ -152,17 +154,26 @@ export function AvailabilityCalendar({
   };
 
   const handleConfirmPast = () => {
+    if (pastStage === "warning") {
+      // Admin accepted the warning: transition to final confirmation step
+      setPastStage("confirm");
+      return;
+    }
+
+    // Admin confirmed the past date: unlock and apply selection
     setInternalPastUnlocked(true);
     onUnlockPast?.();
     if (pendingPastDay) {
       applyDaySelection(pendingPastDay);
     }
     setPendingPastDay(null);
+    setPastStage("warning");
     setConfirmModalOpen(false);
   };
 
   const handleCancelPast = () => {
     setPendingPastDay(null);
+    setPastStage("warning");
     setConfirmModalOpen(false);
   };
 
@@ -314,15 +325,21 @@ export function AvailabilityCalendar({
         </span>
       </div>
 
-      {/* Step 1 Past Date Confirmation Modal */}
+      {/* Step 1 & 2 Past Date Warning & Confirmation Modal */}
       <PastDateConfirmDialog
         open={confirmModalOpen}
         onOpenChange={(isOpen) => {
           if (!isOpen) handleCancelPast();
         }}
         onConfirm={handleConfirmPast}
-        title="Past Date Selection"
-        message="You are selecting a past date. Are you sure?"
+        title={pastStage === "warning" ? "Past Date Warning" : "Confirm Past Date Selection"}
+        message={
+          pastStage === "warning"
+            ? `You are selecting a past date (${pendingPastDay || "historical date"}). Admin authorization is required to record past-dated bookings. Click Accept Warning to proceed.`
+            : `You have accepted the past-date warning. Click 'Confirm Past Date' below to set ${pendingPastDay} as your date.`
+        }
+        confirmLabel={pastStage === "warning" ? "Accept Warning" : "Confirm Past Date"}
+        cancelLabel={pastStage === "warning" ? "Cancel" : "Go Back"}
       />
     </div>
   );

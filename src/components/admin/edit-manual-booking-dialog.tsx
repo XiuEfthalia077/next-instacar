@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/common/loading-button";
 import { AvailabilityCalendar } from "@/components/common/availability-calendar";
 import { PastDateConfirmDialog } from "@/components/common/past-date-confirm-dialog";
-import { TimePicker } from "@/components/common/time-picker";
+import { TimePicker, getCurrentTime24 } from "@/components/common/time-picker";
 import {
   Dialog,
   DialogClose,
@@ -403,8 +403,9 @@ export function EditManualBookingDialog({
                 pastUnlocked={pastUnlocked}
                 onUnlockPast={() => setPastUnlocked(true)}
                 onSelectRange={(startDay, endDay) => {
-                  const pTime = pickupTime || "10:00";
-                  const rTime = returnTime || "10:00";
+                  const nowTime = getCurrentTime24();
+                  const pTime = pickupTime || nowTime;
+                  const rTime = returnTime || nowTime;
                   setPickupDatetime(`${startDay}T${pTime}`);
                   setReturnDatetime(`${endDay}T${rTime}`);
                 }}
@@ -421,7 +422,7 @@ export function EditManualBookingDialog({
                 value={startDate}
                 onChange={(event) => {
                   const d = event.target.value;
-                  const t = pickupTime || "10:00";
+                  const t = pickupTime || getCurrentTime24();
                   setPickupDatetime(`${d}T${t}`);
                 }}
                 required
@@ -452,7 +453,7 @@ export function EditManualBookingDialog({
                 value={endDate}
                 onChange={(event) => {
                   const d = event.target.value;
-                  const t = returnTime || "10:00";
+                  const t = returnTime || getCurrentTime24();
                   setReturnDatetime(`${d}T${t}`);
                 }}
                 required
