@@ -285,23 +285,21 @@ export function UberInteractiveMapDialog({
       // Add Zoom control at top-right
       L.control.zoom({ position: "topright" }).addTo(map);
 
-      // Custom Gold Uber Pin Icon
+      // Precision Needle Tip Pin Icon (The sharp bottom point touches exact geographic coordinate)
       const pinIcon = L.divIcon({
         className: "custom-uber-pin",
         html: `
-          <div style="position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-            <div style="position: absolute; width: 36px; height: 36px; border-radius: 50%; background: rgba(255, 204, 0, 0.35); animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
-            <div style="width: 32px; height: 32px; border-radius: 50%; background: #ffcc00; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.4); border: 2.5px solid #000;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
-                <circle cx="12" cy="10" r="3"/>
-              </svg>
-            </div>
-            <div style="position: absolute; bottom: 0; width: 6px; height: 6px; border-radius: 50%; background: #000;"></div>
+          <div style="position: relative; width: 34px; height: 44px; pointer-events: none;">
+            <svg width="34" height="44" viewBox="0 0 34 44" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 3px 6px rgba(0,0,0,0.5));">
+              <path d="M17 1C8.163 1 1 8.163 1 17C1 28.5 17 43 17 43C17 43 33 28.5 33 17C33 8.163 25.837 1 17 1Z" fill="#ffcc00" stroke="#000000" stroke-width="2"/>
+              <circle cx="17" cy="17" r="7" fill="#000000"/>
+              <circle cx="17" cy="17" r="3" fill="#ffffff"/>
+            </svg>
           </div>
         `,
-        iconSize: [40, 40],
-        iconAnchor: [20, 36],
+        iconSize: [34, 44],
+        iconAnchor: [17, 43],
+        popupAnchor: [0, -43],
       });
 
       // Draggable marker
@@ -350,8 +348,8 @@ export function UberInteractiveMapDialog({
 
     if (mapInstanceRef.current && markerRef.current) {
       markerRef.current.setLatLng([lat, lng]);
-      mapInstanceRef.current.flyTo([lat, lng], 15, {
-        duration: 1.2,
+      mapInstanceRef.current.flyTo([lat, lng], 16, {
+        duration: 1.0,
       });
     }
 
@@ -379,10 +377,10 @@ export function UberInteractiveMapDialog({
         alert(
           err.code === 1
             ? "Location permission denied. Please allow location access or choose a destination from the list."
-            : "Could not retrieve your current location. Please search for your address.",
+            : "Could not retrieve your current location. Please search for your address or click directly on the map."
         );
       },
-      { enableHighAccuracy: true, timeout: 10000 },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
     );
   };
 
@@ -455,15 +453,16 @@ export function UberInteractiveMapDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl p-0 h-[92vh] sm:h-[82vh] border-border bg-card overflow-hidden sm:rounded-3xl flex flex-col shadow-2xl">
+      <DialogContent className="w-[96vw] max-w-5xl p-0 h-[92vh] sm:h-[86vh] border-border bg-card overflow-hidden rounded-2xl sm:rounded-3xl flex flex-col shadow-2xl">
         <DialogHeader className="hidden">
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
 
-        {/* TOP FLOATING CONTROLS (DESKTOP & TABLET): MODE SWITCHER & SEARCH / BRANCH CARDS */}
-        <div className="absolute top-4 left-4 right-16 sm:right-auto sm:w-[400px] z-[400] pointer-events-auto space-y-2">
+        {/* TOP DEDICATED TOOLBAR (Fixed header, zero overlap on map) */}
+        <div className="bg-card border-b border-border/80 px-4 py-2.5 sm:px-5 sm:py-3 flex items-center justify-between gap-3 shrink-0 z-30">
+          {/* Mode Switcher Tabs */}
           {allowBranchSelection && (
-            <div className="inline-flex rounded-2xl bg-card/95 backdrop-blur-md p-1 border border-border shadow-xl gap-1">
+            <div className="inline-flex rounded-xl bg-muted/60 p-1 border border-border/80 gap-1 shrink-0">
               <button
                 type="button"
                 onClick={() => {
@@ -475,7 +474,7 @@ export function UberInteractiveMapDialog({
                   }
                 }}
                 className={cn(
-                  "px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer",
+                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer",
                   activeMode === "branch"
                     ? "bg-[#ffcc00] text-black font-black shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
@@ -488,7 +487,7 @@ export function UberInteractiveMapDialog({
                 type="button"
                 onClick={() => setActiveMode("delivery")}
                 className={cn(
-                  "px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer",
+                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer",
                   activeMode === "delivery"
                     ? "bg-[#ffcc00] text-black font-black shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
@@ -500,72 +499,31 @@ export function UberInteractiveMapDialog({
             </div>
           )}
 
-          {activeMode === "branch" ? (
-            <div className="rounded-2xl bg-card/95 backdrop-blur-md shadow-xl border border-border p-2.5 space-y-1.5">
-              <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground block px-1">
-                Select Pickup Branch
-              </span>
-              <div className="space-y-1">
-                {branchList.map((b) => {
-                  const isSel = selectedBranchId === b.id;
-                  return (
-                    <button
-                      key={b.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedBranchId(b.id);
-                        setAddress(b.address);
-                        flyToCoords(b.lat, b.lng, b.address);
-                      }}
-                      className={cn(
-                        "w-full flex items-center justify-between p-2 rounded-xl text-left transition cursor-pointer border",
-                        isSel
-                          ? "bg-[#ffcc00]/15 border-[#ffcc00]/50 text-foreground"
-                          : "border-transparent hover:bg-muted text-foreground"
-                      )}
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Building2 className={cn("size-4 shrink-0", isSel ? "text-[#ffcc00]" : "text-muted-foreground")} />
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold truncate">{b.name}</p>
-                          <p className="text-[10px] text-muted-foreground truncate">{b.address}</p>
-                        </div>
-                      </div>
-                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full shrink-0">
-                        Free
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            <div className="relative rounded-2xl bg-card/95 backdrop-blur-md shadow-xl border border-border p-2">
-              <div className="relative flex items-center">
-                <Search className="absolute left-3 size-4 text-muted-foreground" />
-                <Input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search street, hotel, mall in Iloilo..."
-                  className="pl-9 pr-8 h-10 rounded-xl border-none bg-muted/50 text-xs text-foreground focus-visible:ring-1 focus-visible:ring-[#ffcc00]"
-                />
-                {isSearching && (
-                  <Loader2 className="absolute right-3 size-4 animate-spin text-muted-foreground" />
-                )}
-                {searchQuery && !isSearching && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-3 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="size-3.5" />
-                  </button>
-                )}
-              </div>
-
+          {/* Autocomplete Search Input (when in Delivery mode) */}
+          {activeMode === "delivery" ? (
+            <div className="relative flex-1 max-w-md hidden sm:block">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search street, hotel, mall in Iloilo..."
+                className="pl-9 pr-8 h-9 rounded-xl border border-border bg-muted/40 text-xs text-foreground focus-visible:ring-1 focus-visible:ring-[#ffcc00]"
+              />
+              {isSearching && (
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 size-3.5 animate-spin text-muted-foreground" />
+              )}
+              {searchQuery && !isSearching && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="size-3.5" />
+                </button>
+              )}
               {/* Autocomplete Search Dropdown */}
               {searchResults.length > 0 && (
-                <div className="mt-2 divide-y divide-border/60 rounded-xl border border-border bg-card max-h-56 overflow-y-auto shadow-lg">
+                <div className="absolute top-full left-0 right-0 mt-1 divide-y divide-border/60 rounded-xl border border-border bg-card max-h-56 overflow-y-auto shadow-2xl z-[1000]">
                   {searchResults.map((item, idx) => (
                     <button
                       key={idx}
@@ -582,27 +540,99 @@ export function UberInteractiveMapDialog({
                 </div>
               )}
             </div>
+          ) : (
+            /* Branch Quick Selector in Header */
+            <div className="hidden sm:flex items-center gap-2 overflow-x-auto flex-1 max-w-md">
+              {branchList.map((b) => {
+                const isSel = selectedBranchId === b.id;
+                return (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedBranchId(b.id);
+                      setAddress(b.address);
+                      flyToCoords(b.lat, b.lng, b.address);
+                    }}
+                    className={cn(
+                      "px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border shrink-0 cursor-pointer",
+                      isSel
+                        ? "bg-[#ffcc00]/15 border-[#ffcc00] text-foreground font-black"
+                        : "border-border/60 hover:bg-muted text-muted-foreground"
+                    )}
+                  >
+                    <Building2 className="size-3" />
+                    <span className="truncate max-w-[160px]">{b.name}</span>
+                  </button>
+                );
+              })}
+            </div>
           )}
+
+          {/* Close Modal Button */}
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer"
+            aria-label="Close map"
+          >
+            <X className="size-4" />
+          </button>
         </div>
 
-        {/* FULLSCREEN / DESKTOP INTERACTIVE MAP CONTAINER */}
-        <div className="relative flex-1 w-full h-full min-h-[300px]">
+        {/* MOBILE SEARCH (Visible on < sm when in delivery mode) */}
+        {activeMode === "delivery" && (
+          <div className="sm:hidden px-3 py-2 bg-card border-b border-border/80">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search street, hotel, mall in Iloilo..."
+                className="pl-9 pr-8 h-9 rounded-xl border border-border bg-muted/40 text-xs text-foreground focus-visible:ring-1 focus-visible:ring-[#ffcc00]"
+              />
+              {isSearching && (
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 size-3.5 animate-spin text-muted-foreground" />
+              )}
+              {searchResults.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 divide-y divide-border/60 rounded-xl border border-border bg-card max-h-48 overflow-y-auto shadow-2xl z-[1000]">
+                  {searchResults.map((item, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleSelectSearchResult(item)}
+                      className="flex w-full items-start gap-2 p-2 text-left text-xs hover:bg-[#ffcc00]/10 transition cursor-pointer"
+                    >
+                      <MapPin className="size-3.5 shrink-0 text-[#ffcc00] mt-0.5" />
+                      <span className="line-clamp-2 text-foreground font-medium">
+                        {item.display_name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* EXPANDED FULL INTERACTIVE MAP CANVAS (Maximized size) */}
+        <div className="relative flex-1 w-full h-full min-h-[350px]">
           <div ref={mapContainerRef} className="size-full z-0 outline-none" />
 
           {/* Quick Floating Action Controls */}
-          <div className="absolute right-4 bottom-28 sm:bottom-6 z-[400] flex flex-col gap-2">
+          <div className="absolute right-4 bottom-4 z-[400] flex flex-col gap-2">
             {/* GPS "Use My Location" Button */}
             <button
               type="button"
               onClick={handleUseCurrentLocation}
               disabled={isLocating}
               title="Use My Current Location"
-              className="flex size-11 items-center justify-center rounded-2xl bg-card border border-border shadow-xl text-foreground hover:border-[#ffcc00] hover:text-[#b38a00] dark:hover:text-[#ffcc00] transition active:scale-95 cursor-pointer disabled:opacity-50"
+              className="flex size-10 items-center justify-center rounded-xl bg-card border border-border shadow-xl text-foreground hover:border-[#ffcc00] hover:text-[#b38a00] dark:hover:text-[#ffcc00] transition active:scale-95 cursor-pointer disabled:opacity-50"
             >
               {isLocating ? (
-                <Loader2 className="size-5 animate-spin text-[#ffcc00]" />
+                <Loader2 className="size-4 animate-spin text-[#ffcc00]" />
               ) : (
-                <Navigation className="size-5 fill-current" />
+                <Navigation className="size-4 fill-current" />
               )}
             </button>
 
@@ -611,116 +641,94 @@ export function UberInteractiveMapDialog({
               type="button"
               onClick={() => flyToCoords(BRANCH_COORDS.lat, BRANCH_COORDS.lng, BRANCH_COORDS.address)}
               title="Reset to InstaCar Hub"
-              className="flex size-11 items-center justify-center rounded-2xl bg-card border border-border shadow-xl text-foreground hover:border-[#ffcc00] transition active:scale-95 cursor-pointer"
+              className="flex size-10 items-center justify-center rounded-xl bg-card border border-border shadow-xl text-foreground hover:border-[#ffcc00] transition active:scale-95 cursor-pointer"
             >
-              <Compass className="size-5 text-[#ffcc00]" />
+              <Compass className="size-4 text-[#ffcc00]" />
             </button>
           </div>
         </div>
 
-        {/* BOTTOM SHEET UI (Mobile & Desktop Unified Card) */}
-        <div
-          className={cn(
-            "z-[500] bg-card border-t border-border shadow-2xl transition-all duration-300 flex flex-col shrink-0",
-            "sm:static sm:border-t sm:p-5",
-            bottomSheetExpanded ? "p-4 max-h-[55vh]" : "p-3 max-h-16 overflow-hidden",
-          )}
-        >
-          {/* Mobile Drag Handle */}
-          <div
-            onClick={() => setBottomSheetExpanded(!bottomSheetExpanded)}
-            className="sm:hidden flex items-center justify-center pb-2 cursor-pointer"
-          >
-            <div className="h-1.5 w-12 rounded-full bg-muted-foreground/30" />
+        {/* SLEEK, COMPACT BOTTOM CONFIRMATION SHEET */}
+        <div className="bg-card border-t border-border px-4 py-3 sm:px-6 sm:py-3.5 shrink-0 z-30 space-y-2.5">
+          {/* Row 1: Selected Address + Quick Distance & Fee Badges */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
+                  {activeMode === "branch" ? "Pickup Branch" : "Selected Destination"}
+                </span>
+                <span className="inline-flex items-center gap-1 text-[10px] text-amber-600 dark:text-[#ffcc00] font-semibold">
+                  <Sparkles className="size-3" /> Drag pin or click map to reposition
+                </span>
+                {isGeocoding && (
+                  <span className="inline-flex items-center gap-1 text-[10px] text-[#ffcc00] font-semibold">
+                    <Loader2 className="size-3 animate-spin" /> Resolving address...
+                  </span>
+                )}
+              </div>
+              <p className="mt-0.5 text-xs sm:text-sm font-bold text-foreground truncate">
+                {address}
+              </p>
+            </div>
+
+            {/* Distance & Fee Badges */}
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="rounded-lg border border-border bg-muted/40 px-2.5 py-1 text-right">
+                <span className="block text-[9px] text-muted-foreground font-semibold">Distance</span>
+                <span className="text-xs font-black text-foreground">{distanceKm} km</span>
+              </div>
+              <div className="rounded-lg border border-[#ffcc00]/50 bg-[#ffcc00]/10 px-2.5 py-1 text-right">
+                <span className="block text-[9px] font-bold text-[#b38a00] dark:text-[#ffcc00]">Fee</span>
+                <span className="text-xs font-black text-foreground">
+                  {activeMode === "branch" ? "₱0 (Free)" : `₱${deliveryFee.toLocaleString()}`}
+                </span>
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-3">
-            {/* Address & Fee Header Summary */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
-                    Selected Destination
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-[10px] text-amber-600 dark:text-[#ffcc00] font-semibold">
-                    <Sparkles className="size-3" /> Drag gold pin or click map to move
-                  </span>
-                  {isGeocoding && (
-                    <span className="inline-flex items-center gap-1 text-[10px] text-[#ffcc00] font-semibold">
-                      <Loader2 className="size-3 animate-spin" /> Resolving address...
-                    </span>
-                  )}
-                </div>
-                <p className="mt-0.5 text-xs sm:text-sm font-bold text-foreground truncate">
-                  {address}
-                </p>
-              </div>
-
-              {/* Distance & Fee Badge */}
-              <div className="flex items-center gap-2 shrink-0">
-                <div className="rounded-xl border border-border bg-muted/40 px-3 py-1.5 text-right">
-                  <span className="block text-[10px] text-muted-foreground font-semibold">
-                    Distance from Hub
-                  </span>
-                  <span className="text-xs font-black text-foreground">
-                    {distanceKm} km
-                  </span>
-                </div>
-                <div className="rounded-xl border border-[#ffcc00]/50 bg-[#ffcc00]/10 px-3 py-1.5 text-right">
-                  <span className="block text-[10px] font-bold text-[#b38a00] dark:text-[#ffcc00]">
-                    Calculated Fee
-                  </span>
-                  <span className="text-xs sm:text-sm font-black text-foreground">
-                    ₱{deliveryFee.toLocaleString()}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Destination Pills */}
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                Popular Quick Drop-offs
+          {/* Row 2: Popular Destination Quick Chips (compact horizontal row) */}
+          {activeMode === "delivery" && (
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground shrink-0">
+                Quick:
               </span>
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-                {POPULAR_DESTINATIONS.map((dest, i) => {
-                  const Icon = dest.icon;
-                  return (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => flyToCoords(dest.lat, dest.lng, `${dest.name}, ${dest.subtitle}`)}
-                      className="inline-flex items-center gap-1.5 shrink-0 rounded-lg border border-border bg-secondary/60 px-2.5 py-1 text-[11px] font-bold text-foreground hover:border-[#ffcc00] hover:bg-[#ffcc00]/10 transition cursor-pointer"
-                    >
-                      <Icon className="size-3 text-[#ffcc00]" />
-                      <span>{dest.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
+              {POPULAR_DESTINATIONS.map((dest, i) => {
+                const Icon = dest.icon;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => flyToCoords(dest.lat, dest.lng, `${dest.name}, ${dest.subtitle}`)}
+                    className="inline-flex items-center gap-1 shrink-0 rounded-md border border-border bg-secondary/50 px-2 py-0.5 text-[10px] font-semibold text-foreground hover:border-[#ffcc00] hover:bg-[#ffcc00]/15 transition cursor-pointer"
+                  >
+                    <Icon className="size-2.5 text-[#ffcc00]" />
+                    <span>{dest.name}</span>
+                  </button>
+                );
+              })}
             </div>
+          )}
 
-            {/* Action Buttons */}
-            <div className="flex items-center gap-2 pt-1">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                className="rounded-xl text-xs font-semibold h-10 px-4"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                onClick={handleConfirm}
-                className="flex-1 rounded-xl bg-[#ffcc00] text-black font-black text-xs h-10 hover:bg-[#ffd633] shadow-md transition-all active:scale-[0.98] cursor-pointer"
-              >
-                <Check className="size-4 mr-1.5 stroke-[2.5]" />
-                {activeMode === "branch"
-                  ? "Confirm Branch Pickup (Free)"
-                  : `Confirm Delivery Location (₱${deliveryFee.toLocaleString()})`}
-              </Button>
-            </div>
+          {/* Row 3: Action Buttons */}
+          <div className="flex items-center gap-2 pt-0.5">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="rounded-xl text-xs font-semibold h-9 px-4"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleConfirm}
+              className="flex-1 rounded-xl bg-[#ffcc00] text-black font-black text-xs h-9 hover:bg-[#ffd633] shadow-md transition-all active:scale-[0.98] cursor-pointer"
+            >
+              <Check className="size-3.5 mr-1 stroke-[2.5]" />
+              {activeMode === "branch"
+                ? "Confirm Branch Pickup (Free)"
+                : `Confirm Delivery Location (₱${deliveryFee.toLocaleString()})`}
+            </Button>
           </div>
         </div>
       </DialogContent>
