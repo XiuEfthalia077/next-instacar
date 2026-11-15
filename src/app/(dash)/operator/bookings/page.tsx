@@ -77,6 +77,7 @@ type OperatorOnlineBooking = {
     name: string | null;
     email: string | null;
     phone: string | null;
+    id_verified?: boolean | null;
   } | null;
 };
 
@@ -118,7 +119,7 @@ export default async function OperatorBookingsPage({
             id, booking_type, status, total_price, start_date, end_date, created_at,
             guest_name, gmail, phone_number,
             cars!bookings_car_id_fkey ( id, brand, model, plate_number, user_id ),
-            users!bookings_user_id_fkey ( id, name, email, phone )
+            users!bookings_user_id_fkey ( id, name, email, phone, id_verified )
           `,
           )
           .eq("booking_type", "online")
@@ -223,9 +224,16 @@ export default async function OperatorBookingsPage({
       header: "Customer",
       cell: (booking) => (
         <div className="min-w-[150px]">
-          <p className="font-bold text-foreground">
-            {booking.users?.name ?? booking.guest_name ?? "Guest User"}
-          </p>
+          <div className="flex items-center gap-1.5">
+            <p className="font-bold text-foreground">
+              {booking.users?.name ?? booking.guest_name ?? "Guest User"}
+            </p>
+            {booking.users?.id_verified ? (
+              <span className="inline-flex items-center rounded bg-emerald-500/20 px-1.5 py-0.2 text-[9px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                Verified
+              </span>
+            ) : null}
+          </div>
           <Badge
             variant="outline"
             className="mt-1 border-border bg-muted/50 px-2 py-0 text-[9px] font-bold uppercase tracking-wide text-muted-foreground"

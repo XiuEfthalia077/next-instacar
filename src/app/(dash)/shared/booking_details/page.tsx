@@ -2,9 +2,12 @@ import {
   ArrowLeft,
   CalendarClock,
   CarFront,
+  CheckCircle2,
   ClipboardList,
+  Clock,
   FileText,
   MapPin,
+  ShieldCheck,
   StickyNote,
   Truck,
   UserCircle,
@@ -34,12 +37,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { addCustomerInfoAction, deleteBookingItemAction } from "@/lib/actions/bookings";
+import { toggleUserVerificationAction } from "@/lib/actions/users";
 import { getBooking } from "@/lib/data/bookings";
 import { getCar } from "@/lib/data/cars";
 import { getSupabase, requireSession } from "@/lib/auth";
 import { formatDate } from "@/lib/datetime";
 import { readFlash, searchParam } from "@/lib/flash";
-import { BUCKETS, carImageUrls, signedFileUrls } from "@/lib/storage";
+import { BUCKETS, carImageUrls, signedFileUrl, signedFileUrls } from "@/lib/storage";
 
 function isPdf(path: string | null | undefined) {
   return (path ?? "").toLowerCase().endsWith(".pdf");
@@ -113,10 +117,14 @@ export default async function SharedBookingDetailsPage({
 
   const [uploadUrls, photoUrls] = await Promise.all([
     uploadEntries.length
-      ? signedFileUrls(
-          supabase,
-          BUCKETS.bookingUploads,
-          uploadEntries.map((entry) => entry.path ?? ""),
+      ? Promise.all(
+          uploadEntries.map(async (entry) => {
+            if (!entry.path) return "";
+            // Check booking-uploads bucket first, fallback to user-documents bucket
+            const url = await signedFileUrl(supabase, BUCKETS.bookingUploads, entry.path);
+            if (url) return url;
+            return signedFileUrl(supabase, BUCKETS.userDocuments, entry.path);
+          }),
         )
       : Promise.resolve<string[]>([]),
     photos.length
@@ -324,6 +332,49 @@ export default async function SharedBookingDetailsPage({
           </SectionCard>
 
           <SectionCard icon={UserCircle} title="Customer Information">
+            <div className="p-4 md:p-5 pb-0">
+              {/* Customer ID Verification Banner */}
+              {booking.users?.id_verified ? (
+                <div className="flex items-center justify-between rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 mb-2">
+                  <div className="flex items-center gap-2.5">
+                    <ShieldCheck className="size-5 text-emerald-500 dark:text-emerald-400 shrink-0" />
+                    <div>
+                      <p className="text-xs font-bold text-foreground">Verified Driver</p>
+                      <p className="text-[11px] text-muted-foreground">ID documents verified and saved on customer profile.</p>
+                    </div>
+                  </div>
+                  <span className="rounded-md bg-emerald-500/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                    Verified
+                  </span>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 mb-2">
+                  <div className="flex items-center gap-2.5">
+                    <Clock className="size-5 text-amber-500 shrink-0" />
+                    <div>
+                      <p className="text-xs font-bold text-foreground">Pending ID Verification</p>
+                      <p className="text-[11px] text-muted-foreground">Review uploaded documents below before vehicle handover.</p>
+                    </div>
+                  </div>
+                  {canStatus && booking.user_id && (
+                    <form action={toggleUserVerificationAction}>
+                      <input type="hidden" name="user_id" value={booking.user_id} />
+                      <input type="hidden" name="verified" value="true" />
+                      <input type="hidden" name="return_to" value={`/shared/booking_details?id=${booking.id}`} />
+                      <LoadingButton
+                        type="submit"
+                        size="sm"
+                        className="h-8 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
+                      >
+                        <CheckCircle2 className="size-3.5 mr-1" />
+                        Approve ID
+                      </LoadingButton>
+                    </form>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="grid gap-4 p-4 md:grid-cols-2 md:p-5">
               <div>
                 <Label className="text-xs text-muted-foreground">Full Name</Label>

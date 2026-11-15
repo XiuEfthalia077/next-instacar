@@ -363,3 +363,42 @@ export async function toggleBranchAction(formData: FormData) {
   revalidatePath("/admin/branches");
   flashRedirect("/admin/branches", "success", "Branch status updated.");
 }
+
+/* ------------------------------------------------------------------ */
+/* Customer ID Verification (Admin & Staff)                           */
+/* ------------------------------------------------------------------ */
+
+export async function toggleUserVerificationAction(formData: FormData) {
+  await requireRole("admin", "staff");
+  const userId = int(formData, "user_id");
+  const returnTo = str(formData, "return_to") || "/admin/users?role=user";
+  const verified = str(formData, "verified") === "true";
+
+  if (!userId) {
+    flashRedirect(returnTo, "error", "User ID is required.");
+  }
+
+  const supabase = await getSupabase();
+  const { error } = await supabase
+    .from("users")
+    .update({ id_verified: verified })
+    .eq("id", userId);
+
+  if (error) {
+    flashRedirect(returnTo, "error", `Failed to update verification: ${error.message}`);
+  }
+
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/bookings_online");
+  revalidatePath("/staff/customers");
+  revalidatePath("/staff/bookings");
+  revalidatePath("/shared/booking_details");
+
+  flashRedirect(
+    returnTo,
+    "success",
+    verified
+      ? "Customer identity marked as Verified! Customer can now enjoy 1-click booking."
+      : "Customer identity verification status revoked.",
+  );
+}

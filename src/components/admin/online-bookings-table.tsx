@@ -106,9 +106,21 @@ export function OnlineBookingsTable({
       cell: (booking) => {
         const name = booking.users?.name ?? booking.guest_name ?? "Guest User";
         const email = booking.users?.email ?? booking.gmail ?? "No Email";
+        const isVerified = Boolean(booking.users?.id_verified);
         return (
           <div className="min-w-[170px]">
-            <p className="font-bold text-foreground">{name}</p>
+            <div className="flex items-center gap-1.5">
+              <p className="font-bold text-foreground">{name}</p>
+              {isVerified && (
+                <span
+                  title="Customer ID Verified on File"
+                  className="inline-flex items-center gap-0.5 rounded bg-emerald-500/20 px-1.5 py-0.2 text-[9px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400"
+                >
+                  <CheckCircle2 className="size-2.5" />
+                  Verified
+                </span>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground">{email}</p>
             <Badge
               variant="outline"

@@ -3,6 +3,7 @@ import {
   Mail,
   Phone,
   Search,
+  ShieldCheck,
   UserCheck,
   UserRound,
   Users,
@@ -15,6 +16,7 @@ import { Money } from "@/components/common/money";
 import { PageHeader } from "@/components/common/page-header";
 import { SectionCard } from "@/components/common/section-card";
 import { StatCard } from "@/components/common/stat-card";
+import { ViewCustomerDocumentsDialog } from "@/components/admin/user-dialogs";
 import { requireRole } from "@/lib/auth";
 import { customerDirectory, listUsers } from "@/lib/data/users";
 import { formatDate } from "@/lib/datetime";
@@ -46,6 +48,10 @@ export default async function StaffCustomersPage({
       active_bookings: 0,
       total_spent: 0,
       last_booking: null,
+      id_verified: u.id_verified,
+      primary_id_url: u.primary_id_url,
+      secondary_id_url: u.secondary_id_url,
+      proof_of_billing_url: u.proof_of_billing_url,
     }));
   }
 
@@ -126,10 +132,12 @@ export default async function StaffCustomersPage({
                 <tr className="border-b border-border bg-muted/60 text-[11px] uppercase tracking-wide text-muted-foreground">
                   <th className="px-3 py-3 text-left font-bold">Customer</th>
                   <th className="px-3 py-3 text-left font-bold">Contact</th>
+                  <th className="px-3 py-3 text-center font-bold">ID Status</th>
                   <th className="px-3 py-3 text-center font-bold">Total Trips</th>
                   <th className="px-3 py-3 text-center font-bold">Active Trips</th>
                   <th className="px-3 py-3 text-left font-bold">Total Spent</th>
                   <th className="px-3 py-3 text-right font-bold">Last Booking</th>
+                  <th className="px-3 py-3 text-right font-bold">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -162,6 +170,20 @@ export default async function StaffCustomersPage({
                         ) : null}
                       </div>
                     </td>
+                    <td className="px-3 py-3 text-center">
+                      {customer.id_verified ? (
+                        <span className="inline-flex items-center gap-1 rounded bg-emerald-500/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                          <ShieldCheck className="size-3" />
+                          Verified
+                        </span>
+                      ) : customer.primary_id_url ? (
+                        <span className="inline-flex items-center gap-1 rounded bg-amber-500/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                          Review
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-muted-foreground">None</span>
+                      )}
+                    </td>
                     <td className="px-3 py-3 text-center font-semibold text-foreground">
                       {customer.total_bookings}
                     </td>
@@ -186,6 +208,21 @@ export default async function StaffCustomersPage({
                       ) : (
                         "—"
                       )}
+                    </td>
+                    <td className="px-3 py-3 text-right">
+                      <ViewCustomerDocumentsDialog
+                        customer={{
+                          id: customer.id,
+                          name: customer.name || "Customer",
+                          email: customer.email || "",
+                          phone: customer.phone,
+                          id_verified: customer.id_verified,
+                          primary_id_url: customer.primary_id_url,
+                          secondary_id_url: customer.secondary_id_url,
+                          proof_of_billing_url: customer.proof_of_billing_url,
+                        }}
+                        returnTo="/staff/customers"
+                      />
                     </td>
                   </tr>
                 ))}

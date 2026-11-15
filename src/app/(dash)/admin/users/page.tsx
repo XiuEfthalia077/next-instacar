@@ -16,6 +16,7 @@ import {
   AddUserDialog,
   DeleteUserDialog,
   EditUserDialog,
+  ViewCustomerDocumentsDialog,
 } from "@/components/admin/user-dialogs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -248,13 +249,38 @@ export default async function AdminUsersPage({
                         className="gap-1 border-amber-200 bg-amber-100 px-2.5 py-0.5 text-[11px] font-bold text-amber-900 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-200"
                       >
                         <TriangleAlert className="size-3" />
-                        Unverified
+                        Unverified Email
                       </Badge>
                     </div>
                   ) : null}
+
+                  {role === "user" && (
+                    <div className="mt-2.5 flex items-center gap-2">
+                      {user.id_verified ? (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 px-2 py-0.5 text-[11px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                          <ShieldCheck className="size-3" />
+                          Verified ID
+                        </span>
+                      ) : user.primary_id_url ? (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/15 px-2 py-0.5 text-[11px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                          ID Review Pending
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+                          No ID On File
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
-                <div className="mt-4 flex justify-end gap-2 border-t border-border pt-3">
+                <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-border pt-3">
+                  {role === "user" && (
+                    <ViewCustomerDocumentsDialog
+                      customer={user}
+                      returnTo={`/admin/users?role=${role}`}
+                    />
+                  )}
                   <EditUserDialog
                     role={role}
                     branches={branchOptions}

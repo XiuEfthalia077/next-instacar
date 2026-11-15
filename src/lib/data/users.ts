@@ -148,21 +148,25 @@ export async function getUser(userId: number): Promise<UserWithBranch | null> {
  * `20260101000600_customer_directory.sql`) because the customer list is the
  * union of every customer that has a booking in the staff member's branch.
  */
+export type CustomerDirectoryItem = {
+  id: number;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  total_bookings: number;
+  active_bookings: number;
+  total_spent: number;
+  last_booking: string | null;
+  id_verified?: boolean | null;
+  primary_id_url?: string | null;
+  secondary_id_url?: string | null;
+  proof_of_billing_url?: string | null;
+};
+
 export async function customerDirectory(
   session: AppSession,
   search?: string | null,
-): Promise<
-  {
-    id: number;
-    name: string | null;
-    email: string | null;
-    phone: string | null;
-    total_bookings: number;
-    active_bookings: number;
-    total_spent: number;
-    last_booking: string | null;
-  }[]
-> {
+): Promise<CustomerDirectoryItem[]> {
   const supabase = await import("@/lib/auth").then((m) => m.getSupabase());
 
   const { data, error } = await supabase.rpc("customer_directory", {
@@ -175,7 +179,30 @@ export async function customerDirectory(
     return [];
   }
 
-  return (data ?? []) as Awaited<ReturnType<typeof customerDirectory>>;
+  const items = (data ?? []) as CustomerDirectoryItem[];
+
+  if (items.length > 0) {
+    const userIds = items.map((item) => item.id);
+    const { data: userDocs } = await supabase
+      .from("users")
+      .select("id, id_verified, primary_id_url, secondary_id_url, proof_of_billing_url")
+      .in("id", userIds);
+
+    if (userDocs) {
+      const docMap = new Map(userDocs.map((u) => [u.id, u]));
+      for (const item of items) {
+        const doc = docMap.get(item.id);
+        if (doc) {
+          item.id_verified = doc.id_verified;
+          item.primary_id_url = doc.primary_id_url;
+          item.secondary_id_url = doc.secondary_id_url;
+          item.proof_of_billing_url = doc.proof_of_billing_url;
+        }
+      }
+    }
+  }
+
+  return items;
 }
 
 /** Counts of the users by role — used by the admin dashboard. */

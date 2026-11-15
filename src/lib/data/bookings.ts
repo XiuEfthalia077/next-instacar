@@ -38,6 +38,10 @@ export type BookingCustomer = {
   name: string | null;
   email: string | null;
   phone: string | null;
+  id_verified?: boolean | null;
+  primary_id_url?: string | null;
+  secondary_id_url?: string | null;
+  proof_of_billing_url?: string | null;
 };
 
 export type BookingBranch = {
@@ -85,7 +89,7 @@ const BOOKING_SELECT = `
   cars!bookings_car_id_fkey (
     id, brand, model, plate_number, branch_id, user_id, status, type
   ),
-  users!bookings_user_id_fkey ( id, name, email, phone ),
+  users!bookings_user_id_fkey ( id, name, email, phone, id_verified, primary_id_url, secondary_id_url, proof_of_billing_url ),
   branches!bookings_branch_id_fkey ( id, name )
 `;
 

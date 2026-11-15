@@ -1,7 +1,18 @@
 "use client";
 
 import { useId, useState } from "react";
-import { Eye, EyeOff, Pencil, Trash, UserPlus } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  FileText,
+  Pencil,
+  ShieldCheck,
+  Trash,
+  UserPlus,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/common/loading-button";
@@ -24,7 +35,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { deleteUserAction, saveUserAction } from "@/lib/actions/users";
+import {
+  deleteUserAction,
+  saveUserAction,
+  toggleUserVerificationAction,
+} from "@/lib/actions/users";
 import { cn } from "@/lib/utils";
 
 /**
@@ -405,6 +420,215 @@ export function DeleteUserDialog({
             </LoadingButton>
           </DialogFooter>
         </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* View Customer Documents & Verification Dialog                     */
+/* ------------------------------------------------------------------ */
+
+export type CustomerDocProfile = {
+  id: number;
+  name: string;
+  email: string;
+  phone: string | null;
+  id_verified?: boolean | null;
+  primary_id_url?: string | null;
+  secondary_id_url?: string | null;
+  proof_of_billing_url?: string | null;
+};
+
+export function ViewCustomerDocumentsDialog({
+  customer,
+  returnTo,
+}: {
+  customer: CustomerDocProfile;
+  returnTo?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const isVerified = Boolean(customer.id_verified);
+  const hasPrimary = Boolean(customer.primary_id_url);
+  const hasSecondary = Boolean(customer.secondary_id_url);
+  const hasBilling = Boolean(customer.proof_of_billing_url);
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className={cn(
+            "h-8 gap-1.5 rounded-lg text-xs font-bold transition",
+            isVerified
+              ? "border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
+              : hasPrimary
+                ? "border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
+                : "border-border text-muted-foreground",
+          )}
+        >
+          <ShieldCheck className="size-3.5" />
+          <span>{isVerified ? "Verified" : hasPrimary ? "Review ID" : "Documents"}</span>
+        </Button>
+      </DialogTrigger>
+
+      <DialogContent className="rounded-2xl p-6 sm:p-7 sm:max-w-xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="border-b border-border/70 pb-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <DialogTitle className="text-base sm:text-lg font-bold">
+                Customer Documents &amp; Verification
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                {customer.name} ({customer.email})
+              </DialogDescription>
+            </div>
+            <span
+              className={cn(
+                "rounded-md px-2.5 py-1 text-[11px] font-black uppercase tracking-wider",
+                isVerified
+                  ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                  : hasPrimary
+                    ? "bg-amber-500/20 text-amber-600 dark:text-amber-400"
+                    : "bg-muted text-muted-foreground",
+              )}
+            >
+              {isVerified ? "Verified Driver" : hasPrimary ? "Pending Review" : "No ID On File"}
+            </span>
+          </div>
+        </DialogHeader>
+
+        <div className="space-y-4 py-3">
+          {/* 1. PRIMARY ID */}
+          <div className="rounded-xl border border-border bg-card p-3.5 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <FileText className="size-4 text-[#ffcc00]" />
+                <span>Primary ID (Driver&apos;s License)</span>
+              </span>
+              <span
+                className={cn(
+                  "text-[10px] font-bold uppercase",
+                  hasPrimary ? "text-emerald-500" : "text-muted-foreground",
+                )}
+              >
+                {hasPrimary ? "Uploaded" : "Missing"}
+              </span>
+            </div>
+            {hasPrimary ? (
+              <div className="rounded-lg bg-muted/40 p-2.5 text-xs text-foreground flex items-center justify-between">
+                <span className="truncate max-w-[280px] font-mono text-[11px]">
+                  {customer.primary_id_url?.split("/").pop()}
+                </span>
+                <span className="text-[11px] font-bold text-[#b38a00] dark:text-[#ffcc00]">
+                  Stored in Vault
+                </span>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">Customer has not uploaded a Primary ID.</p>
+            )}
+          </div>
+
+          {/* 2. SECONDARY ID */}
+          <div className="rounded-xl border border-border bg-card p-3.5 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <FileText className="size-4 text-[#ffcc00]" />
+                <span>Secondary ID</span>
+              </span>
+              <span
+                className={cn(
+                  "text-[10px] font-bold uppercase",
+                  hasSecondary ? "text-emerald-500" : "text-muted-foreground",
+                )}
+              >
+                {hasSecondary ? "Uploaded" : "Optional / None"}
+              </span>
+            </div>
+            {hasSecondary ? (
+              <div className="rounded-lg bg-muted/40 p-2.5 text-xs text-foreground flex items-center justify-between">
+                <span className="truncate max-w-[280px] font-mono text-[11px]">
+                  {customer.secondary_id_url?.split("/").pop()}
+                </span>
+                <span className="text-[11px] font-bold text-[#b38a00] dark:text-[#ffcc00]">
+                  Stored in Vault
+                </span>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">No secondary ID on file.</p>
+            )}
+          </div>
+
+          {/* 3. PROOF OF BILLING */}
+          <div className="rounded-xl border border-border bg-card p-3.5 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <FileText className="size-4 text-[#ffcc00]" />
+                <span>Proof of Billing</span>
+              </span>
+              <span
+                className={cn(
+                  "text-[10px] font-bold uppercase",
+                  hasBilling ? "text-emerald-500" : "text-muted-foreground",
+                )}
+              >
+                {hasBilling ? "Uploaded" : "Optional / None"}
+              </span>
+            </div>
+            {hasBilling ? (
+              <div className="rounded-lg bg-muted/40 p-2.5 text-xs text-foreground flex items-center justify-between">
+                <span className="truncate max-w-[280px] font-mono text-[11px]">
+                  {customer.proof_of_billing_url?.split("/").pop()}
+                </span>
+                <span className="text-[11px] font-bold text-[#b38a00] dark:text-[#ffcc00]">
+                  Stored in Vault
+                </span>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">No proof of billing on file.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Verification Action Buttons */}
+        <DialogFooter className="flex-row items-center justify-between gap-3 border-t border-border/70 pt-4">
+          <DialogClose asChild>
+            <Button type="button" variant="outline" className="rounded-xl text-xs font-semibold">
+              Close
+            </Button>
+          </DialogClose>
+
+          <form action={toggleUserVerificationAction} className="flex items-center gap-2">
+            <input type="hidden" name="user_id" value={customer.id} />
+            {returnTo && <input type="hidden" name="return_to" value={returnTo} />}
+
+            {isVerified ? (
+              <>
+                <input type="hidden" name="verified" value="false" />
+                <LoadingButton
+                  type="submit"
+                  variant="outline"
+                  className="rounded-xl border-rose-500/40 text-rose-500 hover:bg-rose-500/10 text-xs font-bold"
+                >
+                  Revoke Verification
+                </LoadingButton>
+              </>
+            ) : (
+              <>
+                <input type="hidden" name="verified" value="true" />
+                <LoadingButton
+                  type="submit"
+                  className="rounded-xl bg-emerald-600 text-white hover:bg-emerald-500 text-xs font-black"
+                >
+                  <CheckCircle2 className="size-3.5 mr-1" />
+                  Approve &amp; Verify Driver ID
+                </LoadingButton>
+              </>
+            )}
+          </form>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
