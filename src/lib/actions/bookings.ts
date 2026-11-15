@@ -275,6 +275,19 @@ async function hasOverlap(options: {
     }
   }
 
+  for (const sched of (schedulesRes.data ?? []) as {
+    id: number;
+    start_date: string;
+    end_date: string;
+  }[]) {
+    const schedStart = wallClockTimestamp(sched.start_date, "00:00:00");
+    const schedEnd = wallClockTimestamp(sched.end_date, "23:59:59");
+
+    if (requestedStart < schedEnd && requestedEnd > schedStart) {
+      return true;
+    }
+  }
+
   return false;
 }
 
