@@ -20,10 +20,10 @@ const PUBLIC_PATHS = ["/user/forgot", "/user/reset"];
  *   user     -> /user
  */
 const ROLE_ROOTS: Record<UserRole, string[]> = {
-  admin: ["/admin", "/shared"],
-  operator: ["/operator", "/shared"],
-  staff: ["/staff", "/shared"],
-  user: ["/user", "/shared"],
+  admin: ["/admin", "/shared", "/profile"],
+  operator: ["/operator", "/shared", "/profile"],
+  staff: ["/staff", "/shared", "/profile"],
+  user: ["/user", "/shared", "/profile"],
 };
 
 function isPublicPath(pathname: string) {

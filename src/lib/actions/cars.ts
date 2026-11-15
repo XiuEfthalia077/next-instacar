@@ -159,10 +159,11 @@ export async function saveCarAction(formData: FormData) {
 
   const mainPhotoName = str(formData, "main_photo_name");
   let designatedMainFileName: string | null = null;
+  const storageClient = getAdminClient() ?? supabase;
 
   for (const upload of files(formData, "car_images")) {
     const fileName = buildFileName("car", upload);
-    const result = await uploadFile(supabase, {
+    const result = await uploadFile(storageClient, {
       bucket: BUCKETS.carImages,
       fileName,
       file: upload,
@@ -174,6 +175,8 @@ export async function saveCarAction(formData: FormData) {
       if (mainPhotoName && upload.name === mainPhotoName) {
         designatedMainFileName = fileName;
       }
+    } else {
+      console.warn(`[saveCarAction] Car image upload failed: ${result.error}`);
     }
   }
 
@@ -238,7 +241,7 @@ export async function saveCarAction(formData: FormData) {
     fuel_type: str(formData, "fuel_type"),
     type: str(formData, "type"),
     transmission: str(formData, "transmission", "Manual"),
-    capacity: int(formData, "capacity"),
+    capacity: int(formData, "capacity") || 5,
     color: str(formData, "color"),
     image_path: images.join(","),
     ...(statusVal ? { status: statusVal as import("@/lib/types").CarStatus } : {}),
@@ -268,11 +271,12 @@ export async function saveCarAction(formData: FormData) {
   }
 
   const db = getAdminClient() ?? supabase;
+  const initialStatus = (statusVal as import("@/lib/types").CarStatus) || "Available";
   const { data: inserted, error } = await db
     .from("cars")
     .insert({
       ...payload,
-      status: "Available",
+      status: initialStatus,
     })
     .select("id")
     .maybeSingle();
