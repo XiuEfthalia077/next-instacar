@@ -602,8 +602,8 @@ export async function calendarBookings(
   let query = supabase
     .from("bookings")
     .select(BOOKING_SELECT)
-    .gte("start_date", from)
-    .lte("end_date", to)
+    .lte("start_date", to)
+    .gte("end_date", from)
     .order("start_date", { ascending: true });
 
   if (branch !== null) {
@@ -705,7 +705,17 @@ export async function calendarBookings(
     });
   }
 
-  return [...bookingRows, ...maintenanceEvents];
+  const visibleBookings =
+    session.role === "operator"
+      ? bookingRows.filter(
+          (b) =>
+            b.cars?.user_id === session.userId ||
+            b.created_by === session.userId ||
+            b.user_id === session.userId,
+        )
+      : bookingRows;
+
+  return [...visibleBookings, ...maintenanceEvents];
 }
 
 /** Status distribution used by the charts of the dashboards. */

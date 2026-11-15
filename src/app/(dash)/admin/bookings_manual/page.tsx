@@ -19,6 +19,7 @@ import {
   DocumentPreviewButton,
   type BookingDocument,
 } from "@/components/admin/document-preview";
+import { VerificationFiles } from "@/components/common/verification-files";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/common/empty-state";
 import {
@@ -487,26 +488,42 @@ export default async function AdminBookingsManualPage({
     {
       key: "files",
       header: "Verification Files",
-      cell: (_booking, index) => {
-        const files = documents[index].filter(
-          (document) => document.key === "primary" || document.key === "billing",
-        );
+      cell: (booking, index) => {
+        const docs = documents[index] || [];
+        const docMap = new Map(docs.map((d) => [d.key, d]));
 
-        return (
-          <div className="flex min-w-[110px] flex-wrap gap-1">
-            {files.length ? (
-              files.map((document) => (
-                <DocumentPreviewButton
-                  key={document.key}
-                  document={document}
-                  compact
-                />
-              ))
-            ) : (
-              <span className="text-sm text-muted-foreground">&mdash;</span>
-            )}
-          </div>
-        );
+        const fileItems = [
+          {
+            key: "primary",
+            label: "ID 1",
+            hasFile: Boolean(booking.primary_id_path),
+            url: docMap.get("primary")?.url,
+            isPdf: docMap.get("primary")?.isPdf,
+          },
+          {
+            key: "secondary",
+            label: "ID 2",
+            hasFile: Boolean(booking.secondary_id_path),
+            url: docMap.get("secondary")?.url,
+            isPdf: docMap.get("secondary")?.isPdf,
+          },
+          {
+            key: "billing",
+            label: "Billing",
+            hasFile: Boolean(booking.proof_billing_path),
+            url: docMap.get("billing")?.url,
+            isPdf: docMap.get("billing")?.isPdf,
+          },
+          {
+            key: "payment",
+            label: "Payment",
+            hasFile: Boolean(booking.proof_payment_path),
+            url: docMap.get("payment")?.url,
+            isPdf: docMap.get("payment")?.isPdf,
+          },
+        ];
+
+        return <VerificationFiles files={fileItems} />;
       },
     },
     {

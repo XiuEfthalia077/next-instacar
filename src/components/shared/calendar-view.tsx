@@ -69,18 +69,6 @@ export function CalendarView({
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
   const [dateFilter, setDateFilter] = React.useState<string>("");
 
-  // Auto-switch to list on mobile screens and lock to list on mobile
-  React.useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 768) {
-        setViewMode("list");
-      }
-    };
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
   // Filter bookings based on List View search, status, and date filter
   const filteredBookings = React.useMemo(() => {
     return bookings.filter((b) => {
@@ -161,178 +149,292 @@ export function CalendarView({
           </Link>
         </div>
 
-        {/* View Switcher (Desktop toggle, mobile forced to list) */}
-        <div className="flex items-center gap-1 rounded-xl border border-border bg-card p-1">
-          <button
-            type="button"
-            onClick={() => setViewMode("month")}
-            className={cn(
-              "hidden items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition md:inline-flex",
-              viewMode === "month"
-                ? "bg-[#ffcc00] text-black shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <CalendarDays className="size-3.5" />
-            <span>Month View</span>
-          </button>
+        {/* View Switcher: Responsive Segmented Control [ List View | Calendar View ] */}
+        <div className="flex items-center gap-1 rounded-xl border border-border bg-card p-1 shadow-xs">
           <button
             type="button"
             onClick={() => setViewMode("list")}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition",
+              "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer",
               viewMode === "list"
-                ? "bg-[#ffcc00] text-black shadow-sm"
+                ? "bg-[#ffcc00] text-black shadow-xs font-black"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
             <List className="size-3.5" />
-            <span>List View (Grouped by Date)</span>
-            <span className="rounded-full bg-black/10 px-1.5 py-0.2 text-[10px]">
+            <span>List View</span>
+            <span
+              className={cn(
+                "rounded-full px-1.5 py-0.2 text-[10px]",
+                viewMode === "list"
+                  ? "bg-black/15 font-black text-black"
+                  : "bg-muted text-muted-foreground",
+              )}
+            >
               {bookings.length}
             </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("month")}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer",
+              viewMode === "month"
+                ? "bg-[#ffcc00] text-black shadow-xs font-black"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <CalendarDays className="size-3.5" />
+            <span>Calendar View</span>
           </button>
         </div>
       </div>
 
-      {/* MONTH GRID VIEW (Desktop / Tablet only) */}
+      {/* MONTH GRID VIEW (Desktop / Tablet & Condensed Mobile) */}
       {viewMode === "month" ? (
-        <div className="hidden rounded-2xl border border-border bg-card p-4 shadow-sm md:block">
-          {/* Weekday headers */}
-          <div className="grid grid-cols-7 gap-1 border-b border-border pb-2.5 text-center text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
-            <span>Sun</span>
-            <span>Mon</span>
-            <span>Tue</span>
-            <span>Wed</span>
-            <span>Thu</span>
-            <span>Fri</span>
-            <span>Sat</span>
+        <>
+          {/* DESKTOP / TABLET MONTH VIEW (>= md) */}
+          <div className="hidden rounded-2xl border border-border bg-card p-4 shadow-sm md:block">
+            {/* Weekday headers */}
+            <div className="grid grid-cols-7 gap-1 border-b border-border pb-2.5 text-center text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
+              <span>Sun</span>
+              <span>Mon</span>
+              <span>Tue</span>
+              <span>Wed</span>
+              <span>Thu</span>
+              <span>Fri</span>
+              <span>Sat</span>
+            </div>
+
+            {/* Days grid */}
+            <div className="grid grid-cols-7 gap-1.5 pt-2">
+              {/* Empty cells before month starts */}
+              {Array.from({ length: firstDayWeekday }).map((_, i) => (
+                <div
+                  key={`empty-${i}`}
+                  className="min-h-[120px] rounded-xl bg-muted/10 p-1 border border-transparent"
+                />
+              ))}
+
+              {/* Calendar Days */}
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const dayNum = i + 1;
+                const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
+                const isToday = dateStr === todayStr;
+
+                // Find bookings that cover this date
+                const dayBookings = bookings.filter((b) => {
+                  if (!b.start_date || !b.end_date) return false;
+                  return b.start_date <= dateStr && b.end_date >= dateStr;
+                });
+
+                const hasMaintenance = dayBookings.some((b) => b.status === "Maintenance");
+
+                return (
+                  <div
+                    key={dayNum}
+                    onClick={() => setSelectedDate(dateStr)}
+                    className={cn(
+                      "group relative flex min-h-[120px] cursor-pointer flex-col rounded-xl border p-2 transition hover:border-[#ffcc00] hover:bg-muted/30 hover:shadow-md",
+                      hasMaintenance
+                        ? "border-rose-500/80 bg-rose-500/10 ring-1 ring-rose-500/40"
+                        : isToday
+                          ? "border-[#ffcc00] bg-[#ffcc00]/5 ring-1 ring-[#ffcc00]"
+                          : "border-border/60 bg-card",
+                    )}
+                  >
+                    {/* Day header */}
+                    <div className="flex items-center justify-between pb-1.5 text-xs">
+                      <span
+                        className={cn(
+                          "flex size-6 items-center justify-center rounded-full text-xs font-extrabold transition",
+                          isToday
+                            ? "bg-[#ffcc00] text-black shadow-sm"
+                            : hasMaintenance
+                              ? "bg-rose-500 text-white"
+                              : "text-foreground group-hover:text-[#ffcc00]",
+                        )}
+                      >
+                        {dayNum}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        {hasMaintenance ? (
+                          <span className="rounded bg-rose-500/20 px-1 py-0.2 text-[9px] font-black text-rose-400 border border-rose-500/30">
+                            🔧 Maint
+                          </span>
+                        ) : null}
+                        {dayBookings.length > 0 ? (
+                          <span className="rounded-full bg-muted/80 px-1.5 py-0.2 text-[10px] font-bold text-muted-foreground">
+                            {dayBookings.length} trip{dayBookings.length > 1 ? "s" : ""}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    {/* Booking Chips */}
+                    <div className="flex flex-1 flex-col gap-1 overflow-hidden">
+                      {dayBookings.slice(0, 2).map((b) => {
+                        const carName =
+                          [b.cars?.brand, b.cars?.model].filter(Boolean).join(" ") ||
+                          "Vehicle";
+
+                        const isMaintenance = b.status === "Maintenance";
+                        const statusDot = isMaintenance
+                          ? "bg-rose-500"
+                          : b.status === "Confirmed" || b.status === "Released"
+                            ? "bg-emerald-500"
+                            : b.status === "Pending"
+                              ? "bg-amber-400"
+                              : b.status === "Completed"
+                                ? "bg-sky-400"
+                                : "bg-muted-foreground";
+
+                        return (
+                          <div
+                            key={b.id}
+                            className={cn(
+                              "flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold transition",
+                              isMaintenance
+                                ? "border-rose-500/40 bg-rose-500/20 text-rose-300 hover:border-rose-400"
+                                : "border-border/40 bg-muted/40 text-foreground hover:border-[#ffcc00] hover:bg-[#ffcc00]/10",
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                "size-1.5 shrink-0 rounded-full",
+                                statusDot,
+                              )}
+                            />
+                            <span className="font-mono text-[9px] text-muted-foreground">
+                              {b.id < 0 ? "MAINT" : `#${b.id}`}
+                            </span>
+                            <span className="truncate">{carName}</span>
+                          </div>
+                        );
+                      })}
+
+                      {dayBookings.length > 2 ? (
+                        <span className="text-[10px] font-bold text-[#ffcc00]">
+                          +{dayBookings.length - 2} more trips
+                        </span>
+                      ) : null}
+
+                      {/* Clear Hover Overlay indicating the cell is clickable */}
+                      <div className="mt-auto opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 rounded bg-[#ffcc00]/15 py-0.5 text-[9px] font-extrabold text-[#ffcc00]">
+                        <Eye className="size-2.5" />
+                        <span>Click to view</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Days grid */}
-          <div className="grid grid-cols-7 gap-1.5 pt-2">
-            {/* Empty cells before month starts */}
-            {Array.from({ length: firstDayWeekday }).map((_, i) => (
-              <div
-                key={`empty-${i}`}
-                className="min-h-[120px] rounded-xl bg-muted/10 p-1 border border-transparent"
-              />
-            ))}
+          {/* CONDENSED MOBILE MONTH VIEW (< md) */}
+          <div className="block rounded-2xl border border-border bg-card p-3.5 shadow-sm md:hidden space-y-3">
+            {/* Weekday headers */}
+            <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-black uppercase text-muted-foreground border-b border-border/70 pb-2">
+              <span>S</span>
+              <span>M</span>
+              <span>T</span>
+              <span>W</span>
+              <span>T</span>
+              <span>F</span>
+              <span>S</span>
+            </div>
 
-            {/* Calendar Days */}
-            {Array.from({ length: daysInMonth }).map((_, i) => {
-              const dayNum = i + 1;
-              const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
-              const isToday = dateStr === todayStr;
+            {/* Days Grid */}
+            <div className="grid grid-cols-7 gap-1.5">
+              {Array.from({ length: firstDayWeekday }).map((_, i) => (
+                <div key={`m-empty-${i}`} className="aspect-square rounded-xl bg-muted/10 border border-transparent" />
+              ))}
 
-              // Find bookings that cover this date
-              const dayBookings = bookings.filter((b) => {
-                if (!b.start_date || !b.end_date) return false;
-                return b.start_date <= dateStr && b.end_date >= dateStr;
-              });
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const dayNum = i + 1;
+                const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
+                const isToday = dateStr === todayStr;
 
-              const hasMaintenance = dayBookings.some((b) => b.status === "Maintenance");
+                const dayBookings = bookings.filter((b) => {
+                  if (!b.start_date || !b.end_date) return false;
+                  return b.start_date <= dateStr && b.end_date >= dateStr;
+                });
 
-              return (
-                <div
-                  key={dayNum}
-                  onClick={() => setSelectedDate(dateStr)}
-                  className={cn(
-                    "group relative flex min-h-[120px] cursor-pointer flex-col rounded-xl border p-2 transition hover:border-[#ffcc00] hover:bg-muted/30 hover:shadow-md",
-                    hasMaintenance
-                      ? "border-rose-500/80 bg-rose-500/10 ring-1 ring-rose-500/40"
-                      : isToday
-                        ? "border-[#ffcc00] bg-[#ffcc00]/5 ring-1 ring-[#ffcc00]"
-                        : "border-border/60 bg-card",
-                  )}
-                >
-                  {/* Day header */}
-                  <div className="flex items-center justify-between pb-1.5 text-xs">
+                const hasMaintenance = dayBookings.some((b) => b.status === "Maintenance");
+                const hasActive = dayBookings.some(
+                  (b) => b.status === "Confirmed" || b.status === "Released",
+                );
+                const hasPending = dayBookings.some((b) => b.status === "Pending");
+
+                return (
+                  <button
+                    key={`m-day-${dayNum}`}
+                    type="button"
+                    onClick={() => setSelectedDate(dateStr)}
+                    className={cn(
+                      "aspect-square flex flex-col items-center justify-between p-1 rounded-xl border transition active:scale-95 cursor-pointer relative",
+                      hasMaintenance
+                        ? "border-rose-500/80 bg-rose-500/10 ring-1 ring-rose-500/40"
+                        : isToday
+                          ? "border-[#ffcc00] bg-[#ffcc00]/10 ring-1 ring-[#ffcc00]"
+                          : dayBookings.length > 0
+                            ? "border-border/80 bg-muted/40 hover:border-[#ffcc00]"
+                            : "border-border/40 bg-card hover:bg-muted/30",
+                    )}
+                  >
                     <span
                       className={cn(
-                        "flex size-6 items-center justify-center rounded-full text-xs font-extrabold transition",
+                        "flex size-5 items-center justify-center rounded-full text-[11px] font-black",
                         isToday
-                          ? "bg-[#ffcc00] text-black shadow-sm"
+                          ? "bg-[#ffcc00] text-black shadow-xs"
                           : hasMaintenance
                             ? "bg-rose-500 text-white"
-                            : "text-foreground group-hover:text-[#ffcc00]",
+                            : "text-foreground",
                       )}
                     >
                       {dayNum}
                     </span>
-                    <div className="flex items-center gap-1">
-                      {hasMaintenance ? (
-                        <span className="rounded bg-rose-500/20 px-1 py-0.2 text-[9px] font-black text-rose-400 border border-rose-500/30">
-                          🔧 Maint
-                        </span>
-                      ) : null}
-                      {dayBookings.length > 0 ? (
-                        <span className="rounded-full bg-muted/80 px-1.5 py-0.2 text-[10px] font-bold text-muted-foreground">
-                          {dayBookings.length} trip{dayBookings.length > 1 ? "s" : ""}
-                        </span>
-                      ) : null}
+
+                    {/* Booking Indicator Dots */}
+                    <div className="flex items-center justify-center gap-0.5 min-h-[6px] w-full">
+                      {hasMaintenance && (
+                        <span className="size-1.5 rounded-full bg-rose-500" />
+                      )}
+                      {hasActive && (
+                        <span className="size-1.5 rounded-full bg-emerald-500" />
+                      )}
+                      {hasPending && (
+                        <span className="size-1.5 rounded-full bg-amber-400" />
+                      )}
+                      {!hasMaintenance && !hasActive && !hasPending && dayBookings.length > 0 && (
+                        <span className="size-1.5 rounded-full bg-sky-400" />
+                      )}
                     </div>
-                  </div>
+                  </button>
+                );
+              })}
+            </div>
 
-                  {/* Booking Chips */}
-                  <div className="flex flex-1 flex-col gap-1 overflow-hidden">
-                    {dayBookings.slice(0, 2).map((b) => {
-                      const carName =
-                        [b.cars?.brand, b.cars?.model].filter(Boolean).join(" ") ||
-                        "Vehicle";
-
-                      const isMaintenance = b.status === "Maintenance";
-                      const statusDot = isMaintenance
-                        ? "bg-rose-500"
-                        : b.status === "Confirmed" || b.status === "Released"
-                          ? "bg-emerald-500"
-                          : b.status === "Pending"
-                            ? "bg-amber-400"
-                            : b.status === "Completed"
-                              ? "bg-sky-400"
-                              : "bg-muted-foreground";
-
-                      return (
-                        <div
-                          key={b.id}
-                          className={cn(
-                            "flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold transition",
-                            isMaintenance
-                              ? "border-rose-500/40 bg-rose-500/20 text-rose-300 hover:border-rose-400"
-                              : "border-border/40 bg-muted/40 text-foreground hover:border-[#ffcc00] hover:bg-[#ffcc00]/10",
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              "size-1.5 shrink-0 rounded-full",
-                              statusDot,
-                            )}
-                          />
-                          <span className="font-mono text-[9px] text-muted-foreground">
-                            {b.id < 0 ? "MAINT" : `#${b.id}`}
-                          </span>
-                          <span className="truncate">{carName}</span>
-                        </div>
-                      );
-                    })}
-
-                    {dayBookings.length > 2 ? (
-                      <span className="text-[10px] font-bold text-[#ffcc00]">
-                        +{dayBookings.length - 2} more trips
-                      </span>
-                    ) : null}
-
-                    {/* Clear Hover Overlay indicating the cell is clickable */}
-                    <div className="mt-auto opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 rounded bg-[#ffcc00]/15 py-0.5 text-[9px] font-extrabold text-[#ffcc00]">
-                      <Eye className="size-2.5" />
-                      <span>Click to view</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {/* Mobile Legend & Help Note */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/60 text-[10px] text-muted-foreground">
+              <span className="font-semibold text-foreground">💡 Tap a date to inspect trips</span>
+              <div className="flex items-center gap-2.5">
+                <span className="inline-flex items-center gap-1 font-bold">
+                  <span className="size-1.5 rounded-full bg-emerald-500" />
+                  Active
+                </span>
+                <span className="inline-flex items-center gap-1 font-bold">
+                  <span className="size-1.5 rounded-full bg-amber-400" />
+                  Pending
+                </span>
+                <span className="inline-flex items-center gap-1 font-bold">
+                  <span className="size-1.5 rounded-full bg-rose-500" />
+                  Maint
+                </span>
+              </div>
+            </div>
           </div>
-        </div>
+        </>
       ) : null}
 
       {/* STRICT DATE-GROUPED LIST VIEW (Mobile Default & Desktop View) */}

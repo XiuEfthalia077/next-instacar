@@ -11,6 +11,7 @@ import { BookingAttentionBadge } from "@/components/common/booking-attention-bad
 import { BookingMobileCard } from "@/components/dashboard/booking-mobile-card";
 import { OnlineBookingActions } from "@/components/admin/online-booking-actions";
 import { DocumentPreviewButton, type BookingDocument } from "@/components/admin/document-preview";
+import { VerificationFiles } from "@/components/common/verification-files";
 import { Badge } from "@/components/ui/badge";
 import { Money } from "@/components/common/money";
 import { formatDate } from "@/lib/datetime";
@@ -217,57 +218,43 @@ export function OnlineBookingsTable({
     },
     {
       key: "files",
-      header: "Files",
+      header: "Verification Files",
       cell: (booking, index) => {
         const docs = documents[index] || [];
         const docMap = new Map(docs.map((d) => [d.key, d]));
 
-        const docTypes = [
-          { key: "primary", label: "ID 1", hasFile: Boolean(booking.primary_id_path) },
-          { key: "secondary", label: "ID 2", hasFile: Boolean(booking.secondary_id_path) },
-          { key: "billing", label: "Billing", hasFile: Boolean(booking.proof_billing_path) },
-          { key: "payment", label: "Payment", hasFile: Boolean(booking.proof_payment_path) },
+        const fileItems = [
+          {
+            key: "primary",
+            label: "ID 1",
+            hasFile: Boolean(booking.primary_id_path),
+            url: docMap.get("primary")?.url,
+            isPdf: docMap.get("primary")?.isPdf,
+          },
+          {
+            key: "secondary",
+            label: "ID 2",
+            hasFile: Boolean(booking.secondary_id_path),
+            url: docMap.get("secondary")?.url,
+            isPdf: docMap.get("secondary")?.isPdf,
+          },
+          {
+            key: "billing",
+            label: "Billing",
+            hasFile: Boolean(booking.proof_billing_path),
+            url: docMap.get("billing")?.url,
+            isPdf: docMap.get("billing")?.isPdf,
+          },
+          {
+            key: "payment",
+            label: "Payment",
+            hasFile: Boolean(booking.proof_payment_path),
+            url: docMap.get("payment")?.url,
+            isPdf: docMap.get("payment")?.isPdf,
+          },
         ];
 
-        return (
-          <div className="flex max-w-[190px] flex-wrap gap-1.5">
-            {docTypes.map((item) => {
-              const doc = docMap.get(item.key);
-              if (doc && doc.url) {
-                return (
-                  <DocumentPreviewButton
-                    key={item.key}
-                    document={{ ...doc, label: item.label }}
-                    compact
-                    className="border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-500/20 rounded-full px-2 py-0.5 text-[10px] font-bold"
-                  />
-                );
-              }
-              if (item.hasFile) {
-                return (
-                  <span
-                    key={item.key}
-                    className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400"
-                    title={`${item.label} uploaded but generating preview`}
-                  >
-                    <CheckCircle2 className="size-2.5" />
-                    {item.label}
-                  </span>
-                );
-              }
-              return (
-                <span
-                  key={item.key}
-                  className="inline-flex items-center gap-1 rounded-full border border-neutral-200 dark:border-neutral-800 bg-muted/30 px-2 py-0.5 text-[10px] font-medium text-muted-foreground/60"
-                  title={`${item.label} missing`}
-                >
-                  <AlertCircle className="size-2.5 text-muted-foreground/50" />
-                  {item.label}
-                </span>
-              );
-            })}
-          </div>
-        );
+        return <VerificationFiles files={fileItems} />;
       },
     },
     {

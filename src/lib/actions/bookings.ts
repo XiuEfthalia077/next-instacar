@@ -108,6 +108,10 @@ function bookingsHome(session: AppSession, source: string): string {
     return manual ? "/staff/bookings_manual" : "/staff/bookings";
   }
 
+  if (session.role === "operator") {
+    return manual ? "/shared/calendar" : "/operator/bookings";
+  }
+
   return manual ? "/admin/bookings_manual" : "/admin/bookings_online";
 }
 
@@ -118,6 +122,12 @@ function refreshBookingViews(bookingId: number) {
   revalidatePath("/staff/bookings_manual");
   revalidatePath("/staff/dashboard");
   revalidatePath("/admin/dashboard");
+  revalidatePath("/operator/bookings");
+  revalidatePath("/operator/dashboard");
+  revalidatePath("/operator/revenue");
+  revalidatePath("/shared/calendar");
+  revalidatePath("/shared/cars");
+  revalidatePath("/shared/my_car_schedules");
   revalidatePath("/shared/booking_details");
   revalidatePath(`/shared/booking_details/${bookingId}`);
   revalidatePath("/user/mybookings");
@@ -358,7 +368,7 @@ function timeValue(raw: string): string {
 /* ------------------------------------------------------------------ */
 
 export async function updateBookingStatusAction(formData: FormData) {
-  const session = await requireRole("admin", "staff");
+  const session = await requireRole("admin", "staff", "operator");
 
   const bookingId = int(formData, "id");
   const newStatus = str(formData, "status");
@@ -381,12 +391,13 @@ export async function updateBookingStatusAction(formData: FormData) {
   const { data: current } = await supabase
     .from("bookings")
     .select(
-      "id, car_id, status, start_date, end_date, pickup_time, return_time, total_price, user_id, guest_name, gmail, branch_id, users!bookings_user_id_fkey ( name, email )",
+      "id, car_id, status, start_date, end_date, pickup_time, return_time, total_price, user_id, guest_name, gmail, branch_id, created_by, users!bookings_user_id_fkey ( name, email )",
     )
     .eq("id", bookingId)
     .maybeSingle();
 
   const booking = current as (BookingRow & {
+    created_by?: number | null;
     users?: { name: string | null; email: string | null } | { name: string | null; email: string | null }[] | null;
   }) | null;
 
@@ -395,6 +406,18 @@ export async function updateBookingStatusAction(formData: FormData) {
   }
 
   assertBranchAccess(session, booking.branch_id, back);
+
+  // If operator, verify they own the vehicle or created the booking
+  if (session.role === "operator" && booking.car_id) {
+    const { data: carData } = await supabase
+      .from("cars")
+      .select("user_id")
+      .eq("id", booking.car_id)
+      .maybeSingle();
+    if (carData?.user_id !== session.userId && booking.created_by !== session.userId) {
+      flashRedirect(back, "error", "Unauthorized: You do not own the vehicle for this reservation.");
+    }
+  }
 
   const rawUser = Array.isArray(booking.users) ? booking.users[0] : booking.users;
   const customerName = rawUser?.name ?? booking.guest_name ?? "Customer";
@@ -645,7 +668,7 @@ export async function updateBookingStatusAction(formData: FormData) {
 /* ------------------------------------------------------------------ */
 
 export async function addManualBookingAction(formData: FormData) {
-  const session = await requireRole("admin", "staff");
+  const session = await requireRole("admin", "staff", "operator");
 
   const carId = parseVehicleId(formData);
   const startDate = str(formData, "start_date");
@@ -655,7 +678,11 @@ export async function addManualBookingAction(formData: FormData) {
   const overrideConflict = str(formData, "override_conflict") === "true";
 
   const home =
-    session.role === "staff" ? "/staff/bookings_manual" : "/admin/bookings_manual";
+    session.role === "staff"
+      ? "/staff/bookings_manual"
+      : session.role === "operator"
+        ? "/shared/calendar"
+        : "/admin/bookings_manual";
 
   if (!carId || !startDate || !endDate) {
     flashRedirect(home, "error", "Please fill in all required fields (vehicle and rental dates).");

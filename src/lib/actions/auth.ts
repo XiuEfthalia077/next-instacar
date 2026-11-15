@@ -77,12 +77,15 @@ function loginErrorMessage(error: { code?: string; message?: string }): string {
   return LEGACY_INVALID_CREDENTIALS;
 }
 
+import { getAdminClient } from "@/lib/supabase-admin";
+
 /** The legacy `users` row that belongs to the signed-in Supabase account. */
 async function loadLegacyProfile(
   supabase: Awaited<ReturnType<typeof getSupabase>>,
   authId: string,
 ): Promise<{ id: number; role: UserRole } | null> {
-  const { data, error } = await supabase
+  const db = getAdminClient() ?? supabase;
+  const { data, error } = await db
     .from("users")
     .select("id, role")
     .eq("auth_id", authId)

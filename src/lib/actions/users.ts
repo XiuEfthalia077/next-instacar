@@ -116,6 +116,8 @@ export async function saveUserAction(formData: FormData) {
 
     let userSyncError = null;
 
+    const nowIso = new Date().toISOString();
+
     if (existingRow) {
       const { error: updateErr } = await supabase
         .from("users")
@@ -127,6 +129,8 @@ export async function saveUserAction(formData: FormData) {
           role,
           branch_id: branchId,
           is_verified: 1,
+          terms_accepted_at: nowIso,
+          terms_version: "v1.0",
         })
         .eq("id", (existingRow as { id: number }).id);
       userSyncError = updateErr;
@@ -139,6 +143,8 @@ export async function saveUserAction(formData: FormData) {
         role,
         branch_id: branchId,
         is_verified: 1,
+        terms_accepted_at: nowIso,
+        terms_version: "v1.0",
       });
       userSyncError = insertErr;
     }

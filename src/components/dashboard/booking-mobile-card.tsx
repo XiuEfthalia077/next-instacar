@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { BookingAttentionBadge } from "@/components/common/booking-attention-badge";
+import { VerificationFiles, type VerificationFileItem } from "@/components/common/verification-files";
 import { DocumentPreviewButton } from "@/components/admin/document-preview";
 import type { BookingDocument } from "@/components/admin/document-preview";
 import { Money } from "@/components/common/money";
@@ -201,21 +202,27 @@ export function BookingMobileCard({
       </div>
 
       {/* Bottom Footer: Verification Files & Actions with Touch-Friendly Targets */}
-      <div className="flex items-center justify-between gap-3 pt-1">
-        <div className="flex items-center gap-2 flex-wrap min-w-0">
+      <div className="space-y-2 pt-1 border-t border-border/40">
+        <div className="w-full">
           {files.length > 0 ? (
-            files.map((document) => (
-              <DocumentPreviewButton key={document.key} document={document} compact />
-            ))
+            <VerificationFiles
+              files={files.map((d) => ({
+                key: d.key,
+                label: d.label,
+                url: d.url,
+                hasFile: true,
+                isPdf: d.isPdf,
+              }))}
+            />
           ) : (
-            <span className="flex items-center gap-1.5 text-xs text-muted-foreground italic">
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground italic py-1">
               <FileText className="size-3.5 opacity-50" />
               No documents
             </span>
           )}
         </div>
 
-        <div className="shrink-0">{actions}</div>
+        <div className="flex justify-end pt-1">{actions}</div>
       </div>
     </div>
   );
