@@ -18,7 +18,7 @@ import { revalidatePath } from "next/cache";
 
 import { getSupabase, requireRole, requireSession } from "@/lib/auth";
 import { flashRedirect } from "@/lib/flash";
-import { BUCKETS, uploadFile } from "@/lib/storage";
+import { BUCKETS, buildFileName, uploadFile } from "@/lib/storage";
 
 const PROFILE_PATH = "/shared/profile";
 
@@ -204,4 +204,102 @@ export async function saveRentalAgreementAction(formData: FormData) {
   revalidatePath(PROFILE_PATH);
   revalidatePath("/");
   flashRedirect(PROFILE_PATH, "success", "Rental agreement updated successfully!");
+}
+
+/* ------------------------------------------------------------------ */
+/* User Documents (Hassle-Free Verification)                          */
+/* ------------------------------------------------------------------ */
+
+export async function updateUserDocumentsAction(formData: FormData) {
+  const session = await requireSession();
+  const returnTo = str(formData, "return_to") || "/user/profile";
+
+  const primaryFile = file(formData, "primary_id");
+  const secondaryFile = file(formData, "secondary_id");
+  const billingFile = file(formData, "proof_of_billing");
+
+  if (!primaryFile && !secondaryFile && !billingFile) {
+    flashRedirect(returnTo, "error", "Please select a document to upload.");
+  }
+
+  const supabase = await getSupabase();
+  const folder = `user_${session.userId}`;
+  const updates: Record<string, string> = {};
+
+  if (primaryFile) {
+    const fileName = buildFileName("primary", primaryFile);
+    const res = await uploadFile(supabase, {
+      bucket: BUCKETS.userDocuments,
+      folder,
+      fileName,
+      file: primaryFile,
+    });
+    if (res.ok) updates.primary_id_url = `${folder}/${fileName}`;
+    else flashRedirect(returnTo, "error", `Primary ID upload failed: ${res.error}`);
+  }
+
+  if (secondaryFile) {
+    const fileName = buildFileName("secondary", secondaryFile);
+    const res = await uploadFile(supabase, {
+      bucket: BUCKETS.userDocuments,
+      folder,
+      fileName,
+      file: secondaryFile,
+    });
+    if (res.ok) updates.secondary_id_url = `${folder}/${fileName}`;
+    else flashRedirect(returnTo, "error", `Secondary ID upload failed: ${res.error}`);
+  }
+
+  if (billingFile) {
+    const fileName = buildFileName("billing", billingFile);
+    const res = await uploadFile(supabase, {
+      bucket: BUCKETS.userDocuments,
+      folder,
+      fileName,
+      file: billingFile,
+    });
+    if (res.ok) updates.proof_of_billing_url = `${folder}/${fileName}`;
+    else flashRedirect(returnTo, "error", `Proof of Billing upload failed: ${res.error}`);
+  }
+
+  if (Object.keys(updates).length > 0) {
+    const { error } = await supabase
+      .from("users")
+      .update(updates)
+      .eq("id", session.userId);
+
+    if (error) {
+      flashRedirect(returnTo, "error", `Failed to save documents: ${error.message}`);
+    }
+  }
+
+  revalidatePath(returnTo);
+  flashRedirect(
+    returnTo,
+    "success",
+    "Documents updated successfully! They will now automatically appear on your bookings.",
+  );
+}
+
+export async function deleteUserDocumentAction(formData: FormData) {
+  const session = await requireSession();
+  const returnTo = str(formData, "return_to") || "/user/profile";
+  const docType = str(formData, "doc_type");
+
+  const columnMap: Record<string, string> = {
+    primary: "primary_id_url",
+    secondary: "secondary_id_url",
+    billing: "proof_of_billing_url",
+  };
+
+  const col = columnMap[docType];
+  if (!col) {
+    flashRedirect(returnTo, "error", "Invalid document type.");
+  }
+
+  const supabase = await getSupabase();
+  await supabase.from("users").update({ [col]: null }).eq("id", session.userId);
+
+  revalidatePath(returnTo);
+  flashRedirect(returnTo, "success", "Document removed.");
 }

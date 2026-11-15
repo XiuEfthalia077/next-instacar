@@ -52,6 +52,11 @@ export interface User {
   is_verified: boolean;
   terms_accepted_at?: string | null;
   terms_version?: string | null;
+  primary_id_url?: string | null;
+  secondary_id_url?: string | null;
+  proof_of_billing_url?: string | null;
+  stripe_customer_id?: string | null;
+  id_verified?: boolean;
 }
 
 export interface Branch {
