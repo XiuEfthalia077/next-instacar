@@ -9,6 +9,7 @@ import {
   FileCheck,
   FileText,
   MapPin,
+  PhoneCall,
   QrCode,
   ShieldCheck,
   Truck,
@@ -134,10 +135,14 @@ export function RentCarFlowDialog({
   }, [controlledOpen, controlledOnOpenChange]);
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [preFinalizeOpen, setPreFinalizeOpen] = React.useState(false);
+  const preFinalizeConfirmedRef = React.useRef(false);
   const isModalOpen = flowStep !== "idle" || !!controlledOpen;
 
   const handleCloseAll = React.useCallback(() => {
     setIsSubmitting(false);
+    preFinalizeConfirmedRef.current = false;
+    setPreFinalizeOpen(false);
     setFlowStep("idle");
     setReadingTermsInForm(false);
   }, []);
@@ -391,6 +396,11 @@ export function RentCarFlowDialog({
       return;
     }
 
+    if (!preFinalizeConfirmedRef.current) {
+      setPreFinalizeOpen(true);
+      return;
+    }
+
     setIsSubmitting(true);
     formRef.current?.requestSubmit();
   };
@@ -436,6 +446,11 @@ export function RentCarFlowDialog({
               if (isPast && !pastConfirmedRef.current) {
                 e.preventDefault();
                 setPastConfirmOpen(true);
+                return;
+              }
+              if (!preFinalizeConfirmedRef.current) {
+                e.preventDefault();
+                setPreFinalizeOpen(true);
                 return;
               }
               setIsSubmitting(true);
@@ -686,16 +701,16 @@ export function RentCarFlowDialog({
                   placeholder="Enter complete street address, landmark, subdivision, hotel or delivery instructions..."
                   className="w-full min-h-[56px] rounded-xl border border-border bg-muted/30 p-3 text-sm text-foreground outline-none transition focus:border-[#ffcc00] focus:ring-1 focus:ring-[#ffcc00]/50 placeholder:text-muted-foreground/60"
                 />
-                {estimatedDeliveryFee !== null && (
-                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-[#ffcc00]/15 border border-[#ffcc00]/40 px-3.5 py-2.5 text-xs sm:text-sm">
-                    <span className="text-muted-foreground font-medium">
-                      Estimated Distance: <strong className="text-foreground font-bold">{estimatedDeliveryKm} km</strong> from Hub
-                    </span>
-                    <span className="font-extrabold text-[#b38a00] dark:text-[#ffcc00]">
-                      Delivery Fee: ₱{estimatedDeliveryFee.toLocaleString()}
+                <div className="flex items-start gap-2.5 rounded-xl border border-[#ffcc00] bg-[#ffcc00]/15 p-3.5 text-xs text-neutral-900 dark:text-neutral-100 shadow-xs">
+                  <PhoneCall className="size-4 text-[#b38a00] dark:text-[#ffcc00] shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-extrabold block text-foreground mb-0.5">Delivery &amp; Pickup Fee Notice</span>
+                    <span>Delivery and pickup fees are negotiated manually to ensure the best rate. Please call or text our staff to arrange this:{" "}
+                      <a href="tel:09915907335" className="font-bold underline text-[#b38a00] dark:text-[#ffcc00]">(0991) 590 7335</a> or{" "}
+                      <a href="tel:09175540394" className="font-bold underline text-[#b38a00] dark:text-[#ffcc00]">09175540394</a>.
                     </span>
                   </div>
-                )}
+                </div>
                 <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                   <MapPin className="size-3.5 text-[#ffcc00] shrink-0" />
                   <span>Our staff will deliver the vehicle directly to this address before your rental start time.</span>
@@ -776,6 +791,18 @@ export function RentCarFlowDialog({
                 className="w-full min-h-[56px] rounded-xl border border-border bg-muted/30 p-3 text-sm text-foreground outline-none transition focus:border-[#ffcc00] focus:ring-1 focus:ring-[#ffcc00]/50 placeholder:text-muted-foreground/60"
               />
               <input type="hidden" name="return_delivery_address" value={returnAddress} />
+              {returnAddress && returnAddress !== branchAddress && (
+                <div className="flex items-start gap-2.5 rounded-xl border border-[#ffcc00] bg-[#ffcc00]/15 p-3.5 text-xs text-neutral-900 dark:text-neutral-100 shadow-xs">
+                  <PhoneCall className="size-4 text-[#b38a00] dark:text-[#ffcc00] shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-extrabold block text-foreground mb-0.5">Return Fee Notice</span>
+                    <span>Delivery and pickup fees are negotiated manually to ensure the best rate. Please call or text our staff to arrange this:{" "}
+                      <a href="tel:09915907335" className="font-bold underline text-[#b38a00] dark:text-[#ffcc00]">(0991) 590 7335</a> or{" "}
+                      <a href="tel:09175540394" className="font-bold underline text-[#b38a00] dark:text-[#ffcc00]">09175540394</a>.
+                    </span>
+                  </div>
+                </div>
+              )}
               <p className="text-xs text-muted-foreground">
                 Specify where the vehicle will be returned or collected at the end of the rental.
               </p>
@@ -1324,17 +1351,58 @@ export function RentCarFlowDialog({
         message="This booking is set in the past. Are you sure you want to proceed?"
       />
 
+      {/* PRE-FINALIZATION MODAL */}
+      <Dialog open={preFinalizeOpen} onOpenChange={setPreFinalizeOpen}>
+        <DialogContent className="max-w-md border-border bg-card p-6 text-card-foreground sm:rounded-2xl shadow-xl">
+          <div className="flex flex-col items-center text-center space-y-3">
+            <div className="flex size-12 items-center justify-center rounded-2xl bg-[#ffcc00]/15 text-[#b38a00] dark:text-[#ffcc00] border border-[#ffcc00]/30 shadow-xs">
+              <PhoneCall className="size-6" />
+            </div>
+            <DialogTitle className="text-lg font-black text-foreground">
+              Delivery / Pickup Fee Notice
+            </DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              Almost done! To finalize your delivery/pickup fee or confirm your schedule, please call or text us at{" "}
+              <a href="tel:09915907335" className="font-bold text-[#b38a00] dark:text-[#ffcc00] underline">(0991) 590 7335</a> or{" "}
+              <a href="tel:09175540394" className="font-bold text-[#b38a00] dark:text-[#ffcc00] underline">09175540394</a>. Our staff will manually add the negotiated fee to your booking.
+            </DialogDescription>
+            <div className="grid grid-cols-2 gap-3 w-full pt-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setPreFinalizeOpen(false)}
+                className="rounded-xl border-border text-xs font-bold"
+              >
+                Review Details
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  preFinalizeConfirmedRef.current = true;
+                  setPreFinalizeOpen(false);
+                  setIsSubmitting(true);
+                  setTimeout(() => {
+                    formRef.current?.requestSubmit();
+                  }, 50);
+                }}
+                className="rounded-xl bg-[#ffcc00] text-xs font-black text-black hover:bg-[#ffd633] transition"
+              >
+                Proceed to Payment
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* INTERACTIVE UBER-STYLE MAP MODAL */}
       <UberInteractiveMapDialog
         open={mapDialogOpen}
         onOpenChange={setMapDialogOpen}
         initialAddress={mapTarget === "delivery" ? deliveryAddress : returnAddress}
         title={mapTarget === "delivery" ? "Pin Delivery Location" : "Pin Return Location"}
-        onConfirmLocation={({ address: resolvedAddr, distanceKm, deliveryFee }) => {
+        onConfirmLocation={({ address: resolvedAddr }) => {
           if (mapTarget === "delivery") {
             setDeliveryAddress(resolvedAddr);
-            setEstimatedDeliveryFee(deliveryFee);
-            setEstimatedDeliveryKm(distanceKm);
           } else {
             setReturnAddress(resolvedAddr);
           }

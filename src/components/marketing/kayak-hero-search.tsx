@@ -559,10 +559,6 @@ export function KayakHeroSearch({
       age: driverAge,
     });
 
-    if (locationMode === "delivery" && deliveryFee > 0) {
-      params.set("delivery_fee", String(deliveryFee));
-    }
-
     // Smooth-scroll down to the availability schedule section
     router.push(`/#availability-schedule?${params.toString()}`);
 
@@ -737,7 +733,6 @@ export function KayakHeroSearch({
             // Picked custom doorstep delivery location
             setLocationMode("delivery");
             setDeliveryAddress(data.address);
-            setDeliveryFee(data.deliveryFee);
           }
           setMapOpen(false);
         }}

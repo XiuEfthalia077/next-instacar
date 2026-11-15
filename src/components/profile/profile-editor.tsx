@@ -260,7 +260,7 @@ export function ProfileEditor({
           <form action={updateUserDocumentsAction} className="space-y-6">
             <input type="hidden" name="return_to" value={returnTo} />
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 lg:gap-6">
               {/* COLUMN 1: PRIMARY ID */}
               <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 space-y-3 shadow-xs flex flex-col justify-between">
                 <div>
@@ -336,7 +336,7 @@ export function ProfileEditor({
                   <div className="flex items-center justify-between mb-3">
                     <Label className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
                       <FileText className="size-4 text-[#ffcc00]" />
-                      <span>Secondary ID (Passport, UMID, Postal ID)</span>
+                      <span>Secondary ID (Passport, UMID, Postal ID, etc.)</span>
                     </Label>
                     {hasSecondaryDoc && (
                       <span className="rounded-md bg-emerald-500/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">

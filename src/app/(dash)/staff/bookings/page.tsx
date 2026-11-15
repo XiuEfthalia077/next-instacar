@@ -397,17 +397,24 @@ export default async function StaffBookingsPage({
       cell: (booking) => {
         const total = Number(booking.total_price ?? 0);
         const down = Number(booking.down_payment ?? 0);
+        const balance = Math.max(0, total - down);
         return (
-          <div className="min-w-[130px]">
-            <Money value={total} className="block font-bold text-foreground" />
+          <div className="min-w-[130px] space-y-0.5">
+            <Money value={total} className="block font-black text-sm text-foreground" />
             {down > 0 ? (
-              <span className="block text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+              <span className="block text-[11px] font-semibold text-muted-foreground">
                 DP: <Money value={down} />
               </span>
             ) : null}
-            <span className="block text-[11px] font-bold text-[#b38a00] dark:text-[#ffd700]">
-              Bal: <Money value={Math.max(0, total - down)} />
-            </span>
+            {balance > 0 ? (
+              <span className="block text-[11px] font-extrabold text-rose-600 dark:text-rose-400">
+                Bal: <Money value={balance} />
+              </span>
+            ) : (
+              <span className="block text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                Fully Paid
+              </span>
+            )}
           </div>
         );
       },

@@ -15,6 +15,7 @@ import {
   Sparkles,
   Loader2,
   Truck,
+  PhoneCall,
 } from "lucide-react";
 import {
   Dialog,
@@ -706,21 +707,19 @@ export function UberInteractiveMapDialog({
                 {address}
               </p>
             </div>
-
-            {/* Distance & Fee Badges */}
-            <div className="flex items-center gap-2 shrink-0">
-              <div className="rounded-lg border border-[#333333] bg-[#222222] px-2.5 py-1 text-right">
-                <span className="block text-[9px] text-gray-400 font-semibold">Distance</span>
-                <span className="text-xs font-black text-white">{distanceKm} km</span>
-              </div>
-              <div className="rounded-lg border border-[#ffcc00]/50 bg-[#ffcc00]/10 px-2.5 py-1 text-right">
-                <span className="block text-[9px] font-bold text-[#ffcc00]">Fee</span>
-                <span className="text-xs font-black text-white">
-                  {activeMode === "branch" ? "₱0 (Free)" : `₱${deliveryFee.toLocaleString()}`}
-                </span>
-              </div>
-            </div>
           </div>
+
+          {/* Delivery Fee Notice (Negotiated Manually) */}
+          {activeMode === "delivery" && (
+            <div className="flex items-start gap-2 rounded-xl border border-[#ffcc00]/50 bg-[#ffcc00]/10 p-2.5 text-xs text-amber-200">
+              <PhoneCall className="size-3.5 text-[#ffcc00] shrink-0 mt-0.5" />
+              <p className="text-[11px] leading-snug">
+                Delivery and pickup fees are negotiated manually. Call/text our staff:{" "}
+                <span className="font-bold text-[#ffcc00]">(0991) 590 7335</span> or{" "}
+                <span className="font-bold text-[#ffcc00]">09175540394</span>.
+              </p>
+            </div>
+          )}
 
           {/* Row 2: Popular Destination Quick Chips (compact horizontal row) */}
           {activeMode === "delivery" && (
@@ -766,7 +765,7 @@ export function UberInteractiveMapDialog({
               <Check className="size-3.5 mr-1 stroke-[2.5]" />
               {activeMode === "branch"
                 ? "Confirm Branch Pickup (Free)"
-                : `Confirm Delivery Location (₱${deliveryFee.toLocaleString()})`}
+                : "Confirm Delivery Location"}
             </Button>
           </div>
         </div>
