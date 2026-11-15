@@ -90,56 +90,14 @@ export const POPULAR_DESTINATIONS = [
   },
 ];
 
-// High-quality dark-mode map style definition using Geoapify Yellow Roads or universal OpenStreetMap fallback
-const getMapStyle = (apiKey: string): any => {
+// Classic "Normal" Map Style via Geoapify OSM-Carto (or universal OSM fallback if no key is supplied)
+const getClassicMapStyle = (apiKey: string): string => {
   if (apiKey) {
-    return {
-      version: 8,
-      sources: {
-        "geoapify-tiles": {
-          type: "raster",
-          tiles: [
-            `https://maps.geoapify.com/v1/tile/dark-matter-yellow-roads/{z}/{x}/{y}@2x.png?apiKey=${apiKey}`,
-          ],
-          tileSize: 256,
-          attribution:
-            'Powered by <a href="https://www.geoapify.com/" target="_blank" rel="noopener">Geoapify</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
-        },
-      },
-      layers: [
-        {
-          id: "geoapify-layer",
-          type: "raster",
-          source: "geoapify-tiles",
-          minzoom: 0,
-          maxzoom: 20,
-        },
-      ],
-    };
+    // Geoapify's classic, normal light OpenStreetMap cartography vector style
+    return `https://maps.geoapify.com/v1/styles/osm-carto/style.json?apiKey=${apiKey}`;
   }
-
-  // Universal free OpenStreetMap raster fallback (never requires an API key and never shows watermarks)
-  return {
-    version: 8,
-    sources: {
-      "osm-tiles": {
-        type: "raster",
-        tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-        tileSize: 256,
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
-      },
-    },
-    layers: [
-      {
-        id: "osm-layer",
-        type: "raster",
-        source: "osm-tiles",
-        minzoom: 0,
-        maxzoom: 19,
-      },
-    ],
-  };
+  // Universal standard fallback
+  return "https://demotiles.maplibre.org/style.json";
 };
 
 export function calculateDistanceKm(
@@ -235,7 +193,8 @@ export function UberInteractiveMapDialog({
 
   const geoapifyApiKey = process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY || "";
 
-  const mapStyle = React.useMemo(() => getMapStyle(geoapifyApiKey), [geoapifyApiKey]);
+  // Classic Light OpenStreetMap cartography style
+  const mapStyleUrl = React.useMemo(() => getClassicMapStyle(geoapifyApiKey), [geoapifyApiKey]);
 
   const distanceKm = React.useMemo(() => {
     return calculateDistanceKm(
@@ -250,19 +209,23 @@ export function UberInteractiveMapDialog({
     return calculateDeliveryFee(distanceKm);
   }, [distanceKm]);
 
-  // Reverse Geocoding with Geoapify (accurate Philippines lookups with Nominatim fallback)
+  // Reverse Geocoding with Geoapify (filtered to PH)
   const reverseGeocode = React.useCallback(async (lat: number, lng: number) => {
     setIsGeocoding(true);
     try {
       if (geoapifyApiKey) {
-        // Geoapify Reverse Geocoding API
-        const url = `https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lng}&format=json&apiKey=${geoapifyApiKey}`;
+        // Geoapify Reverse Geocoding API with country filter
+        const url = `https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lng}&filter=countrycode:ph&apiKey=${geoapifyApiKey}`;
         const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
-          if (data.results && data.results.length > 0) {
-            const first = data.results[0];
-            const formatted = first.formatted || `${first.name || first.street || "Location"}, ${first.city || first.county || "Iloilo"}`;
+          const firstFeature = data.features?.[0]?.properties;
+          const firstResult = data.results?.[0];
+          const best = firstFeature || firstResult;
+          if (best) {
+            const formatted =
+              best.formatted ||
+              `${best.name || best.street || "Location"}, ${best.city || best.county || "Iloilo"}`;
             setAddress(formatted);
             return;
           }
@@ -315,7 +278,7 @@ export function UberInteractiveMapDialog({
     }
   }, [reverseGeocode]);
 
-  // Forward Geocoding / Autocomplete (Geoapify biased to Philippines & Iloilo)
+  // Forward Geocoding / Autocomplete (Geoapify biased to Iloilo City 122.56, 10.72 and countrycode:ph)
   React.useEffect(() => {
     if (!searchQuery.trim() || searchQuery.length < 3) {
       setSearchResults([]);
@@ -326,10 +289,10 @@ export function UberInteractiveMapDialog({
       setIsSearching(true);
       try {
         if (geoapifyApiKey) {
-          // Geoapify Autocomplete API with country filter (PH) and proximity bias (Iloilo)
+          // Geoapify Autocomplete API with country filter (PH) and proximity bias (Iloilo City: 122.56, 10.72)
           const url = `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(
             searchQuery.trim()
-          )}&filter=countrycode:ph&bias=proximity:${BRANCH_COORDS.lng},${BRANCH_COORDS.lat}&limit=6&apiKey=${geoapifyApiKey}`;
+          )}&filter=countrycode:ph&bias=proximity:122.56,10.72&limit=6&apiKey=${geoapifyApiKey}`;
           const res = await fetch(url);
           if (res.ok) {
             const data = await res.json();
@@ -463,17 +426,17 @@ export function UberInteractiveMapDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="w-[96vw] max-w-5xl p-0 h-[92vh] sm:h-[86vh] border border-border bg-card overflow-hidden rounded-2xl sm:rounded-3xl flex flex-col shadow-2xl"
+        className="w-[96vw] max-w-5xl p-0 h-[92vh] sm:h-[86vh] border border-[#2b2b2b] bg-[#121212] text-white overflow-hidden rounded-2xl sm:rounded-3xl flex flex-col shadow-2xl"
       >
         <DialogHeader className="hidden">
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
 
         {/* ── TOP DEDICATED TOOLBAR (Sleek Dark Theme with Yellow Accents, Zero Overlap) ── */}
-        <div className="bg-card border-b border-border/80 px-4 py-2.5 sm:px-5 sm:py-3 flex items-center justify-between gap-3 shrink-0 z-30">
+        <div className="bg-[#181818] border-b border-[#282828] px-4 py-2.5 sm:px-5 sm:py-3 flex items-center justify-between gap-3 shrink-0 z-30">
           {/* Mode Switcher Tabs */}
           {allowBranchSelection && (
-            <div className="inline-flex rounded-xl bg-muted/60 p-1 border border-border/80 gap-1 shrink-0">
+            <div className="inline-flex rounded-xl bg-[#222222] p-1 border border-[#333333] gap-1 shrink-0">
               <button
                 type="button"
                 onClick={() => {
@@ -488,7 +451,7 @@ export function UberInteractiveMapDialog({
                   "px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer",
                   activeMode === "branch"
                     ? "bg-[#ffcc00] text-black font-black shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
+                    : "text-gray-400 hover:text-white"
                 )}
               >
                 <Building2 className="size-3.5" />
@@ -501,7 +464,7 @@ export function UberInteractiveMapDialog({
                   "px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer",
                   activeMode === "delivery"
                     ? "bg-[#ffcc00] text-black font-black shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
+                    : "text-gray-400 hover:text-white"
                 )}
               >
                 <Truck className="size-3.5" />
@@ -513,12 +476,12 @@ export function UberInteractiveMapDialog({
           {/* Autocomplete Search Input (when in Delivery mode) */}
           {activeMode === "delivery" ? (
             <div className="relative flex-1 max-w-md hidden sm:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search street, hotel, mall in Iloilo (Geoapify)..."
-                className="pl-9 pr-8 h-9 rounded-xl border border-border bg-muted/40 text-xs text-foreground focus-visible:ring-1 focus-visible:ring-[#ffcc00]"
+                className="pl-9 pr-8 h-9 rounded-xl border border-[#333333] bg-[#222222] text-xs text-white placeholder:text-gray-400 focus-visible:ring-1 focus-visible:ring-[#ffcc00]"
               />
               {isSearching && (
                 <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 size-3.5 animate-spin text-[#ffcc00]" />
@@ -527,23 +490,23 @@ export function UberInteractiveMapDialog({
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white cursor-pointer"
                 >
                   <X className="size-3.5" />
                 </button>
               )}
               {/* Autocomplete Search Dropdown */}
               {searchResults.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 divide-y divide-border/60 rounded-xl border border-border bg-card max-h-56 overflow-y-auto shadow-2xl z-[1000]">
+                <div className="absolute top-full left-0 right-0 mt-1 divide-y divide-[#333333] rounded-xl border border-[#333333] bg-[#1a1a1a] max-h-56 overflow-y-auto shadow-2xl z-[1000]">
                   {searchResults.map((item, idx) => (
                     <button
                       key={idx}
                       type="button"
                       onClick={() => handleSelectSearchResult(item)}
-                      className="flex w-full items-start gap-2.5 p-2.5 text-left text-xs hover:bg-[#ffcc00]/10 transition cursor-pointer"
+                      className="flex w-full items-start gap-2.5 p-2.5 text-left text-xs hover:bg-[#ffcc00]/15 transition cursor-pointer"
                     >
                       <MapPin className="size-4 shrink-0 text-[#ffcc00] mt-0.5" />
-                      <span className="line-clamp-2 text-foreground font-medium">
+                      <span className="line-clamp-2 text-white font-medium">
                         {item.display_name}
                       </span>
                     </button>
@@ -568,8 +531,8 @@ export function UberInteractiveMapDialog({
                     className={cn(
                       "px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border shrink-0 cursor-pointer",
                       isSel
-                        ? "bg-[#ffcc00]/15 border-[#ffcc00] text-foreground font-black"
-                        : "border-border/60 hover:bg-muted text-muted-foreground"
+                        ? "bg-[#ffcc00]/15 border-[#ffcc00] text-[#ffcc00] font-black"
+                        : "border-[#333333] bg-[#222222] hover:bg-[#2c2c2c] text-gray-400 hover:text-white"
                     )}
                   >
                     <Building2 className="size-3" />
@@ -584,7 +547,7 @@ export function UberInteractiveMapDialog({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="flex size-9 items-center justify-center rounded-xl border border-border bg-secondary/80 text-foreground hover:bg-[#ffcc00] hover:text-black hover:border-[#ffcc00] transition active:scale-95 cursor-pointer shrink-0"
+            className="flex size-9 items-center justify-center rounded-xl border border-[#333333] bg-[#222222] text-gray-300 hover:bg-[#ffcc00] hover:text-black hover:border-[#ffcc00] transition active:scale-95 cursor-pointer shrink-0"
             aria-label="Close location picker"
           >
             <X className="size-4" />
@@ -593,29 +556,29 @@ export function UberInteractiveMapDialog({
 
         {/* MOBILE SEARCH (Visible on < sm when in delivery mode) */}
         {activeMode === "delivery" && (
-          <div className="sm:hidden px-3 py-2 bg-card border-b border-border/80">
+          <div className="sm:hidden px-3 py-2 bg-[#181818] border-b border-[#282828]">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search street, hotel, mall in Iloilo..."
-                className="pl-9 pr-8 h-9 rounded-xl border border-border bg-muted/40 text-xs text-foreground focus-visible:ring-1 focus-visible:ring-[#ffcc00]"
+                className="pl-9 pr-8 h-9 rounded-xl border border-[#333333] bg-[#222222] text-xs text-white placeholder:text-gray-400 focus-visible:ring-1 focus-visible:ring-[#ffcc00]"
               />
               {isSearching && (
                 <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 size-3.5 animate-spin text-[#ffcc00]" />
               )}
               {searchResults.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 divide-y divide-border/60 rounded-xl border border-border bg-card max-h-48 overflow-y-auto shadow-2xl z-[1000]">
+                <div className="absolute top-full left-0 right-0 mt-1 divide-y divide-[#333333] rounded-xl border border-[#333333] bg-[#1a1a1a] max-h-48 overflow-y-auto shadow-2xl z-[1000]">
                   {searchResults.map((item, idx) => (
                     <button
                       key={idx}
                       type="button"
                       onClick={() => handleSelectSearchResult(item)}
-                      className="flex w-full items-start gap-2 p-2 text-left text-xs hover:bg-[#ffcc00]/10 transition cursor-pointer"
+                      className="flex w-full items-start gap-2 p-2 text-left text-xs hover:bg-[#ffcc00]/15 transition cursor-pointer"
                     >
                       <MapPin className="size-3.5 shrink-0 text-[#ffcc00] mt-0.5" />
-                      <span className="line-clamp-2 text-foreground font-medium">
+                      <span className="line-clamp-2 text-white font-medium">
                         {item.display_name}
                       </span>
                     </button>
@@ -626,8 +589,8 @@ export function UberInteractiveMapDialog({
           </div>
         )}
 
-        {/* ── EXPANDED FULL INTERACTIVE MAP CANVAS (MapLibre GL + CARTO Dark Matter) ── */}
-        <div className="relative flex-1 w-full h-full min-h-[350px] bg-[#121212]">
+        {/* ── EXPANDED FULL INTERACTIVE MAP CANVAS (MapLibre GL + Classic Light OSM-Carto Vector Map) ── */}
+        <div className="relative flex-1 w-full h-full min-h-[350px] bg-[#e5e3df]">
           <Map
             ref={mapRef}
             mapLib={maplibregl}
@@ -636,7 +599,7 @@ export function UberInteractiveMapDialog({
               longitude: currentCoords.lng,
               zoom: 15,
             }}
-            mapStyle={mapStyle}
+            mapStyle={mapStyleUrl}
             onClick={handleMapClick}
             cursor="crosshair"
             attributionControl={false}
@@ -658,7 +621,7 @@ export function UberInteractiveMapDialog({
                 title="Drag to adjust exact location"
               >
                 {/* Pulsing ring indicator */}
-                <div className="absolute -inset-1.5 rounded-full bg-[#ffcc00]/30 animate-ping opacity-60 pointer-events-none" />
+                <div className="absolute -inset-1.5 rounded-full bg-[#ffcc00]/50 animate-ping opacity-60 pointer-events-none" />
 
                 {/* SVG Needle Pin with bottom center anchor */}
                 <svg
@@ -667,7 +630,7 @@ export function UberInteractiveMapDialog({
                   viewBox="0 0 36 46"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
-                  style={{ filter: "drop-shadow(0 4px 10px rgba(0,0,0,0.65))" }}
+                  style={{ filter: "drop-shadow(0 4px 10px rgba(0,0,0,0.55))" }}
                 >
                   <path
                     d="M18 1C8.611 1 1 8.611 1 18C1 30.2 18 45 18 45C18 45 35 30.2 35 18C35 8.611 27.389 1 18 1Z"
@@ -690,7 +653,7 @@ export function UberInteractiveMapDialog({
               onClick={handleUseCurrentLocation}
               disabled={isLocating}
               title="Use My Current Location"
-              className="flex size-10 items-center justify-center rounded-xl bg-card border border-border shadow-xl text-foreground hover:border-[#ffcc00] hover:text-[#b38a00] dark:hover:text-[#ffcc00] transition active:scale-95 cursor-pointer disabled:opacity-50"
+              className="flex size-10 items-center justify-center rounded-xl bg-[#1e1e1e] border border-[#333333] shadow-xl text-white hover:border-[#ffcc00] hover:text-[#ffcc00] transition active:scale-95 cursor-pointer disabled:opacity-50"
             >
               {isLocating ? (
                 <Loader2 className="size-4 animate-spin text-[#ffcc00]" />
@@ -704,23 +667,23 @@ export function UberInteractiveMapDialog({
               type="button"
               onClick={() => flyToCoords(BRANCH_COORDS.lat, BRANCH_COORDS.lng, BRANCH_COORDS.address)}
               title="Reset to InstaCar Pavia Hub"
-              className="flex size-10 items-center justify-center rounded-xl bg-card border border-border shadow-xl text-foreground hover:border-[#ffcc00] transition active:scale-95 cursor-pointer"
+              className="flex size-10 items-center justify-center rounded-xl bg-[#1e1e1e] border border-[#333333] shadow-xl text-white hover:border-[#ffcc00] transition active:scale-95 cursor-pointer"
             >
               <Compass className="size-4 text-[#ffcc00]" />
             </button>
           </div>
         </div>
 
-        {/* ── SLEEK, COMPACT BOTTOM CONFIRMATION SHEET ── */}
-        <div className="bg-card border-t border-border px-4 py-3 sm:px-6 sm:py-3.5 shrink-0 z-30 space-y-2.5">
+        {/* ── SLEEK DARK THEME BOTTOM CONFIRMATION SHEET ── */}
+        <div className="bg-[#181818] border-t border-[#282828] px-4 py-3 sm:px-6 sm:py-3.5 shrink-0 z-30 space-y-2.5">
           {/* Row 1: Selected Address + Quick Distance & Fee Badges */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400">
                   {activeMode === "branch" ? "Pickup Branch" : "Selected Destination"}
                 </span>
-                <span className="inline-flex items-center gap-1 text-[10px] text-amber-600 dark:text-[#ffcc00] font-semibold">
+                <span className="inline-flex items-center gap-1 text-[10px] text-[#ffcc00] font-semibold">
                   <Sparkles className="size-3" /> Drag pin or click map to reposition
                 </span>
                 {isGeocoding && (
@@ -729,20 +692,20 @@ export function UberInteractiveMapDialog({
                   </span>
                 )}
               </div>
-              <p className="mt-0.5 text-xs sm:text-sm font-bold text-foreground truncate">
+              <p className="mt-0.5 text-xs sm:text-sm font-bold text-white truncate">
                 {address}
               </p>
             </div>
 
             {/* Distance & Fee Badges */}
             <div className="flex items-center gap-2 shrink-0">
-              <div className="rounded-lg border border-border bg-muted/40 px-2.5 py-1 text-right">
-                <span className="block text-[9px] text-muted-foreground font-semibold">Distance</span>
-                <span className="text-xs font-black text-foreground">{distanceKm} km</span>
+              <div className="rounded-lg border border-[#333333] bg-[#222222] px-2.5 py-1 text-right">
+                <span className="block text-[9px] text-gray-400 font-semibold">Distance</span>
+                <span className="text-xs font-black text-white">{distanceKm} km</span>
               </div>
               <div className="rounded-lg border border-[#ffcc00]/50 bg-[#ffcc00]/10 px-2.5 py-1 text-right">
-                <span className="block text-[9px] font-bold text-[#b38a00] dark:text-[#ffcc00]">Fee</span>
-                <span className="text-xs font-black text-foreground">
+                <span className="block text-[9px] font-bold text-[#ffcc00]">Fee</span>
+                <span className="text-xs font-black text-white">
                   {activeMode === "branch" ? "₱0 (Free)" : `₱${deliveryFee.toLocaleString()}`}
                 </span>
               </div>
@@ -752,7 +715,7 @@ export function UberInteractiveMapDialog({
           {/* Row 2: Popular Destination Quick Chips (compact horizontal row) */}
           {activeMode === "delivery" && (
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground shrink-0">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400 shrink-0">
                 Quick:
               </span>
               {POPULAR_DESTINATIONS.map((dest, i) => {
@@ -762,7 +725,7 @@ export function UberInteractiveMapDialog({
                     key={i}
                     type="button"
                     onClick={() => flyToCoords(dest.lat, dest.lng, `${dest.name}, ${dest.subtitle}`)}
-                    className="inline-flex items-center gap-1 shrink-0 rounded-md border border-border bg-secondary/50 px-2 py-0.5 text-[10px] font-semibold text-foreground hover:border-[#ffcc00] hover:bg-[#ffcc00]/15 transition cursor-pointer"
+                    className="inline-flex items-center gap-1 shrink-0 rounded-md border border-[#333333] bg-[#222222] px-2 py-0.5 text-[10px] font-semibold text-gray-200 hover:border-[#ffcc00] hover:bg-[#ffcc00]/15 transition cursor-pointer"
                   >
                     <Icon className="size-2.5 text-[#ffcc00]" />
                     <span>{dest.name}</span>
@@ -778,7 +741,7 @@ export function UberInteractiveMapDialog({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="rounded-xl text-xs font-semibold h-9 px-4"
+              className="rounded-xl text-xs font-semibold h-9 px-4 border-[#333333] bg-[#222222] text-gray-300 hover:bg-[#2c2c2c] hover:text-white"
             >
               Cancel
             </Button>
