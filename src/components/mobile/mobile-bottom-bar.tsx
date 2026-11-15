@@ -29,11 +29,12 @@ export function MobileBottomBar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
 
-  // Hide bottom bar on admin, staff, and operator portal routes
+  // Hide bottom bar on admin, staff, operator, and shared portal routes
   if (
     pathname.startsWith("/admin") ||
     pathname.startsWith("/staff") ||
-    pathname.startsWith("/operator")
+    pathname.startsWith("/operator") ||
+    pathname.startsWith("/shared")
   ) {
     return null;
   }

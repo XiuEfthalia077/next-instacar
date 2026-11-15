@@ -232,6 +232,11 @@ export async function saveCarAction(formData: FormData) {
 
   const statusVal = str(formData, "status");
 
+  // Safeguard: handle price_24_hours safely. If the Supabase column is currently an integer,
+  // round decimal inputs (e.g. 1500.5 -> 1501) to completely eliminate Postgres 22P02 syntax errors.
+  const rawPrice24 = num(formData, "price_24_hours");
+  const safePrice24 = Number.isInteger(rawPrice24) ? rawPrice24 : Math.round(rawPrice24);
+
   const payload = {
     user_id: ownerId,
     branch_id: Number.isFinite(branchId as number) ? branchId : null,
@@ -249,7 +254,7 @@ export async function saveCarAction(formData: FormData) {
     operator_10_hours: num(formData, "operator_10_hours"),
     price_12_hours: num(formData, "price_12_hours"),
     operator_12_hours: num(formData, "operator_12_hours"),
-    price_24_hours: num(formData, "price_24_hours"),
+    price_24_hours: safePrice24,
     operator_24_hours: num(formData, "operator_24_hours"),
     ext_price_1_6: num(formData, "ext_price_1_6"),
     ext_price_7_10: num(formData, "ext_price_7_10"),
@@ -264,7 +269,10 @@ export async function saveCarAction(formData: FormData) {
       .update(payload)
       .eq("id", carId);
 
-    if (error) flashRedirect(home, "error", `Update failed: ${error.message}`);
+    if (error) {
+      console.error("[saveCarAction] Update failed:", error);
+      flashRedirect(home, "error", `Update failed: ${error.message}`);
+    }
 
     revalidateFleet();
     flashRedirect(home, "success", "Vehicle updated successfully!");
@@ -281,7 +289,10 @@ export async function saveCarAction(formData: FormData) {
     .select("id")
     .maybeSingle();
 
-  if (error) flashRedirect(home, "error", `Insert failed: ${error.message}`);
+  if (error) {
+    console.error("[saveCarAction] Insert failed:", error);
+    flashRedirect(home, "error", `Insert failed: ${error.message}`);
+  }
 
   let message = "Car added successfully!";
 
