@@ -1,8 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Map, { Marker, NavigationControl, type MapRef, type MarkerDragEvent } from "react-map-gl/maplibre";
-import * as maplibregl from "maplibre-gl";
+import dynamic from "next/dynamic";
 import {
   MapPin,
   Navigation,
@@ -26,6 +25,20 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+
+// Dynamic import for Leaflet map to ensure 100% SSR safety in Next.js App Router
+const LeafletMapView = dynamic(
+  () => import("./leaflet-map-view").then((mod) => mod.LeafletMapView),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="size-full flex flex-col items-center justify-center bg-[#e5e3df] text-muted-foreground gap-2">
+        <Loader2 className="size-6 animate-spin text-[#ffcc00]" />
+        <span className="text-xs font-semibold text-gray-700">Loading interactive map...</span>
+      </div>
+    ),
+  }
+);
 
 // Real accurate coordinates for InstaCar Pavia Hub, Iloilo
 export const BRANCH_COORDS = {
@@ -90,16 +103,6 @@ export const POPULAR_DESTINATIONS = [
   },
 ];
 
-// Classic "Normal" Map Style via Geoapify OSM-Carto (or universal OSM fallback if no key is supplied)
-const getClassicMapStyle = (apiKey: string): string => {
-  if (apiKey) {
-    // Geoapify's classic, normal light OpenStreetMap cartography vector style
-    return `https://maps.geoapify.com/v1/styles/osm-carto/style.json?apiKey=${apiKey}`;
-  }
-  // Universal standard fallback
-  return "https://demotiles.maplibre.org/style.json";
-};
-
 export function calculateDistanceKm(
   lat1: number,
   lon1: number,
@@ -156,8 +159,6 @@ export function UberInteractiveMapDialog({
   initialMode = "branch",
   allowBranchSelection = true,
 }: UberInteractiveMapProps) {
-  const mapRef = React.useRef<MapRef>(null);
-
   // Map branches list with coordinates fallback
   const branchList = React.useMemo(() => {
     if (!branches || branches.length === 0) return DEFAULT_MAP_BRANCHES;
@@ -191,10 +192,30 @@ export function UberInteractiveMapDialog({
   const [isGeocoding, setIsGeocoding] = React.useState(false);
   const [isLocating, setIsLocating] = React.useState(false);
 
+  // Programmatic map fly-to trigger state
+  const [flyToTrigger, setFlyToTrigger] = React.useState({
+    lat: BRANCH_COORDS.lat,
+    lng: BRANCH_COORDS.lng,
+    zoom: 15,
+    key: 0,
+  });
+
   const geoapifyApiKey = process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY || "";
 
-  // Classic Light OpenStreetMap cartography style
-  const mapStyleUrl = React.useMemo(() => getClassicMapStyle(geoapifyApiKey), [geoapifyApiKey]);
+  // Classic normal light raster tiles via Geoapify osm-carto (with universal OSM fallback)
+  const tileUrl = React.useMemo(() => {
+    if (geoapifyApiKey) {
+      return `https://maps.geoapify.com/v1/tile/osm-carto/{z}/{x}/{y}.png?apiKey=${geoapifyApiKey}`;
+    }
+    return "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+  }, [geoapifyApiKey]);
+
+  const tileAttribution = React.useMemo(() => {
+    if (geoapifyApiKey) {
+      return 'Powered by <a href="https://www.geoapify.com/" target="_blank" rel="noopener">Geoapify</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
+    }
+    return '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
+  }, [geoapifyApiKey]);
 
   const distanceKm = React.useMemo(() => {
     return calculateDistanceKm(
@@ -209,19 +230,17 @@ export function UberInteractiveMapDialog({
     return calculateDeliveryFee(distanceKm);
   }, [distanceKm]);
 
-  // Reverse Geocoding with Geoapify (filtered to PH)
+  // Reverse Geocoding with Geoapify (exact Philippines country filter)
   const reverseGeocode = React.useCallback(async (lat: number, lng: number) => {
     setIsGeocoding(true);
     try {
       if (geoapifyApiKey) {
-        // Geoapify Reverse Geocoding API with country filter
+        // Geoapify Reverse Geocoding API with countrycode:ph
         const url = `https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lng}&filter=countrycode:ph&apiKey=${geoapifyApiKey}`;
         const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
-          const firstFeature = data.features?.[0]?.properties;
-          const firstResult = data.results?.[0];
-          const best = firstFeature || firstResult;
+          const best = data.features?.[0]?.properties || data.results?.[0];
           if (best) {
             const formatted =
               best.formatted ||
@@ -264,18 +283,22 @@ export function UberInteractiveMapDialog({
     setCurrentCoords({ lat, lng });
     if (label) setAddress(label);
 
-    if (mapRef.current) {
-      mapRef.current.flyTo({
-        center: [lng, lat],
-        zoom: 16,
-        duration: 1000,
-        essential: true,
-      });
-    }
+    setFlyToTrigger((prev) => ({
+      lat,
+      lng,
+      zoom: 16,
+      key: prev.key + 1,
+    }));
 
     if (!label) {
       reverseGeocode(lat, lng);
     }
+  }, [reverseGeocode]);
+
+  // Pin moved by drag or map click
+  const handlePinMoved = React.useCallback((lat: number, lng: number) => {
+    setCurrentCoords({ lat, lng });
+    reverseGeocode(lat, lng);
   }, [reverseGeocode]);
 
   // Forward Geocoding / Autocomplete (Geoapify biased to Iloilo City 122.56, 10.72 and countrycode:ph)
@@ -343,22 +366,6 @@ export function UberInteractiveMapDialog({
     flyToCoords(item.lat, item.lng, item.display_name);
   };
 
-  // Dragging the pin
-  const handleMarkerDragEnd = (event: MarkerDragEvent) => {
-    const nextLat = event.lngLat.lat;
-    const nextLng = event.lngLat.lng;
-    setCurrentCoords({ lat: nextLat, lng: nextLng });
-    reverseGeocode(nextLat, nextLng);
-  };
-
-  // Clicking on map moves the pin
-  const handleMapClick = (event: any) => {
-    const clickedLat = event.lngLat.lat;
-    const clickedLng = event.lngLat.lng;
-    setCurrentCoords({ lat: clickedLat, lng: clickedLng });
-    reverseGeocode(clickedLat, clickedLng);
-  };
-
   // Geolocation trigger ("Use My Current Location")
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -411,16 +418,6 @@ export function UberInteractiveMapDialog({
     }
     onOpenChange(false);
   };
-
-  // Reset viewport when dialog opens
-  React.useEffect(() => {
-    if (open && mapRef.current) {
-      const timer = setTimeout(() => {
-        mapRef.current?.resize();
-      }, 150);
-      return () => clearTimeout(timer);
-    }
-  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -589,64 +586,19 @@ export function UberInteractiveMapDialog({
           </div>
         )}
 
-        {/* ── EXPANDED FULL INTERACTIVE MAP CANVAS (MapLibre GL + Classic Light OSM-Carto Vector Map) ── */}
+        {/* ── EXPANDED FULL INTERACTIVE LEAFLET MAP CANVAS (Normal Colored osm-carto Tiles) ── */}
         <div className="relative flex-1 w-full h-full min-h-[350px] bg-[#e5e3df]">
-          <Map
-            ref={mapRef}
-            mapLib={maplibregl}
-            initialViewState={{
-              latitude: currentCoords.lat,
-              longitude: currentCoords.lng,
-              zoom: 15,
-            }}
-            mapStyle={mapStyleUrl}
-            onClick={handleMapClick}
-            cursor="crosshair"
-            attributionControl={false}
-            style={{ width: "100%", height: "100%" }}
-          >
-            {/* Top-Right Navigation Controls (Zoom & Pitch) */}
-            <NavigationControl position="top-right" showCompass={false} />
-
-            {/* Precision Draggable Needle-Tip Pin Marker */}
-            <Marker
-              latitude={currentCoords.lat}
-              longitude={currentCoords.lng}
-              anchor="bottom"
-              draggable
-              onDragEnd={handleMarkerDragEnd}
-            >
-              <div
-                className="group relative cursor-grab active:cursor-grabbing select-none transition-transform duration-200 hover:scale-110"
-                title="Drag to adjust exact location"
-              >
-                {/* Pulsing ring indicator */}
-                <div className="absolute -inset-1.5 rounded-full bg-[#ffcc00]/50 animate-ping opacity-60 pointer-events-none" />
-
-                {/* SVG Needle Pin with bottom center anchor */}
-                <svg
-                  width="36"
-                  height="46"
-                  viewBox="0 0 36 46"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  style={{ filter: "drop-shadow(0 4px 10px rgba(0,0,0,0.55))" }}
-                >
-                  <path
-                    d="M18 1C8.611 1 1 8.611 1 18C1 30.2 18 45 18 45C18 45 35 30.2 35 18C35 8.611 27.389 1 18 1Z"
-                    fill="#ffcc00"
-                    stroke="#000000"
-                    strokeWidth="2.5"
-                  />
-                  <circle cx="18" cy="18" r="7.5" fill="#000000" />
-                  <circle cx="18" cy="18" r="3.5" fill="#ffffff" />
-                </svg>
-              </div>
-            </Marker>
-          </Map>
+          <LeafletMapView
+            lat={currentCoords.lat}
+            lng={currentCoords.lng}
+            tileUrl={tileUrl}
+            attribution={tileAttribution}
+            onPinMoved={handlePinMoved}
+            flyToTrigger={flyToTrigger}
+          />
 
           {/* Quick Floating Action Controls */}
-          <div className="absolute right-4 bottom-4 z-20 flex flex-col gap-2">
+          <div className="absolute right-4 bottom-4 z-[400] flex flex-col gap-2 pointer-events-auto">
             {/* GPS "Use My Location" Button */}
             <button
               type="button"
