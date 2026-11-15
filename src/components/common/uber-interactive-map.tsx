@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-// Dynamic import for Leaflet map to ensure 100% SSR safety in Next.js App Router
+// Dynamic import for Leaflet map to guarantee SSR safety in Next.js App Router
 const LeafletMapView = dynamic(
   () => import("./leaflet-map-view").then((mod) => mod.LeafletMapView),
   {
@@ -40,7 +40,14 @@ const LeafletMapView = dynamic(
   }
 );
 
-// Real accurate coordinates for InstaCar Pavia Hub, Iloilo
+// Fallback coordinates for Iloilo branch [10.72, 122.56]
+export const DEFAULT_ILOILO_FALLBACK = {
+  lat: 10.72,
+  lng: 122.56,
+  name: "InstaCar Iloilo Branch",
+  address: "Benigno Aquino Ave, Mandurriao, Iloilo City, 5000 Iloilo",
+};
+
 export const BRANCH_COORDS = {
   lat: 10.7766,
   lng: 122.5444,
@@ -183,6 +190,11 @@ export function UberInteractiveMapDialog({
     lat: BRANCH_COORDS.lat,
     lng: BRANCH_COORDS.lng,
   });
+  const [mapCenter, setMapCenter] = React.useState({
+    lat: BRANCH_COORDS.lat,
+    lng: BRANCH_COORDS.lng,
+  });
+
   const [address, setAddress] = React.useState(initialAddress || BRANCH_COORDS.address);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [searchResults, setSearchResults] = React.useState<
@@ -230,22 +242,55 @@ export function UberInteractiveMapDialog({
     return calculateDeliveryFee(distanceKm);
   }, [distanceKm]);
 
-  // Reverse Geocoding with Geoapify (exact Philippines country filter)
+  // Center/Fly to coordinate smoothly
+  const flyToCoords = React.useCallback((lat: number, lng: number, label?: string) => {
+    setCurrentCoords({ lat, lng });
+    setMapCenter({ lat, lng });
+    if (label) setAddress(label);
+
+    setFlyToTrigger((prev) => ({
+      lat,
+      lng,
+      zoom: 16,
+      key: prev.key + 1,
+    }));
+  }, []);
+
+  // Reverse Geocoding with Geoapify with street snapping (&type=street &categories=building,street)
   const reverseGeocode = React.useCallback(async (lat: number, lng: number) => {
     setIsGeocoding(true);
     try {
       if (geoapifyApiKey) {
-        // Geoapify Reverse Geocoding API with countrycode:ph
-        const url = `https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lng}&filter=countrycode:ph&apiKey=${geoapifyApiKey}`;
+        // Strict street & building snapping to prevent pins from landing in water
+        const url = `https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lng}&type=street&categories=building,street&filter=countrycode:ph&apiKey=${geoapifyApiKey}`;
         const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
-          const best = data.features?.[0]?.properties || data.results?.[0];
+          let best = data.features?.[0]?.properties || data.results?.[0];
+
+          // If strict building/street query yielded 0 results, fall back to broader reverse query
+          if (!best) {
+            const fallbackRes = await fetch(
+              `https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lng}&filter=countrycode:ph&apiKey=${geoapifyApiKey}`
+            );
+            if (fallbackRes.ok) {
+              const fallbackData = await fallbackRes.json();
+              best = fallbackData.features?.[0]?.properties || fallbackData.results?.[0];
+            }
+          }
+
           if (best) {
             const formatted =
               best.formatted ||
               `${best.name || best.street || "Location"}, ${best.city || best.county || "Iloilo"}`;
             setAddress(formatted);
+
+            // If the API snapped to a real road or building coordinate, gently align coordinates
+            if (best.lat && (best.lon || best.lng)) {
+              const snappedLat = Number(best.lat);
+              const snappedLng = Number(best.lon || best.lng);
+              setCurrentCoords({ lat: snappedLat, lng: snappedLng });
+            }
             return;
           }
         }
@@ -278,30 +323,41 @@ export function UberInteractiveMapDialog({
     setAddress(`Pinned Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
   }, [geoapifyApiKey]);
 
-  // Center/Fly to coordinate smoothly
-  const flyToCoords = React.useCallback((lat: number, lng: number, label?: string) => {
-    setCurrentCoords({ lat, lng });
-    if (label) setAddress(label);
-
-    setFlyToTrigger((prev) => ({
-      lat,
-      lng,
-      zoom: 16,
-      key: prev.key + 1,
-    }));
-
-    if (!label) {
-      reverseGeocode(lat, lng);
-    }
-  }, [reverseGeocode]);
-
-  // Pin moved by drag or map click
+  // Handle pin moved by dragging or map click (triggers street-snapping reverse geocoding)
   const handlePinMoved = React.useCallback((lat: number, lng: number) => {
     setCurrentCoords({ lat, lng });
+    setMapCenter({ lat, lng });
     reverseGeocode(lat, lng);
   }, [reverseGeocode]);
 
-  // Forward Geocoding / Autocomplete (Geoapify biased to Iloilo City 122.56, 10.72 and countrycode:ph)
+  // GPS Centering on Modal Open (Defaults to physical GPS, fallback to Iloilo branch: [10.72, 122.56])
+  React.useEffect(() => {
+    if (!open) return;
+
+    if (navigator.geolocation) {
+      setIsLocating(true);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setIsLocating(false);
+          const { latitude, longitude } = pos.coords;
+          flyToCoords(latitude, longitude);
+          reverseGeocode(latitude, longitude);
+        },
+        () => {
+          setIsLocating(false);
+          // Fallback if user denies GPS: Iloilo coordinates [10.72, 122.56]
+          flyToCoords(DEFAULT_ILOILO_FALLBACK.lat, DEFAULT_ILOILO_FALLBACK.lng, DEFAULT_ILOILO_FALLBACK.address);
+          reverseGeocode(DEFAULT_ILOILO_FALLBACK.lat, DEFAULT_ILOILO_FALLBACK.lng);
+        },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+      );
+    } else {
+      flyToCoords(DEFAULT_ILOILO_FALLBACK.lat, DEFAULT_ILOILO_FALLBACK.lng, DEFAULT_ILOILO_FALLBACK.address);
+      reverseGeocode(DEFAULT_ILOILO_FALLBACK.lat, DEFAULT_ILOILO_FALLBACK.lng);
+    }
+  }, [open, flyToCoords, reverseGeocode]);
+
+  // Forward Geocoding / Autocomplete (Dynamic proximity bias to map center + strict categories)
   React.useEffect(() => {
     if (!searchQuery.trim() || searchQuery.length < 3) {
       setSearchResults([]);
@@ -312,10 +368,10 @@ export function UberInteractiveMapDialog({
       setIsSearching(true);
       try {
         if (geoapifyApiKey) {
-          // Geoapify Autocomplete API with country filter (PH) and proximity bias (Iloilo City: 122.56, 10.72)
+          // Dynamic proximity bias based on where user is currently looking
           const url = `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(
             searchQuery.trim()
-          )}&filter=countrycode:ph&bias=proximity:122.56,10.72&limit=6&apiKey=${geoapifyApiKey}`;
+          )}&filter=countrycode:ph&bias=proximity:${mapCenter.lng},${mapCenter.lat}&categories=building,street,amenity&limit=6&apiKey=${geoapifyApiKey}`;
           const res = await fetch(url);
           if (res.ok) {
             const data = await res.json();
@@ -332,7 +388,7 @@ export function UberInteractiveMapDialog({
         }
 
         // Fallback to Nominatim if Geoapify key is not provided yet
-        const queryWithContext = `${searchQuery.trim()}, Iloilo, Philippines`;
+        const queryWithContext = `${searchQuery.trim()}, Philippines`;
         const nomRes = await fetch(
           `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
             queryWithContext
@@ -357,7 +413,7 @@ export function UberInteractiveMapDialog({
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [searchQuery, geoapifyApiKey]);
+  }, [searchQuery, geoapifyApiKey, mapCenter]);
 
   // Handle autocomplete search selection
   const handleSelectSearchResult = (item: { display_name: string; lat: number; lng: number }) => {
@@ -366,7 +422,7 @@ export function UberInteractiveMapDialog({
     flyToCoords(item.lat, item.lng, item.display_name);
   };
 
-  // Geolocation trigger ("Use My Current Location")
+  // Manual GPS Button trigger
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
       alert("Geolocation is not supported by your browser.");
@@ -379,6 +435,7 @@ export function UberInteractiveMapDialog({
         setIsLocating(false);
         const { latitude, longitude } = pos.coords;
         flyToCoords(latitude, longitude);
+        reverseGeocode(latitude, longitude);
       },
       (err) => {
         setIsLocating(false);
@@ -477,7 +534,7 @@ export function UberInteractiveMapDialog({
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search street, hotel, mall in Iloilo (Geoapify)..."
+                placeholder="Search street, hotel, mall in Philippines..."
                 className="pl-9 pr-8 h-9 rounded-xl border border-[#333333] bg-[#222222] text-xs text-white placeholder:text-gray-400 focus-visible:ring-1 focus-visible:ring-[#ffcc00]"
               />
               {isSearching && (
@@ -559,7 +616,7 @@ export function UberInteractiveMapDialog({
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search street, hotel, mall in Iloilo..."
+                placeholder="Search street, hotel, mall..."
                 className="pl-9 pr-8 h-9 rounded-xl border border-[#333333] bg-[#222222] text-xs text-white placeholder:text-gray-400 focus-visible:ring-1 focus-visible:ring-[#ffcc00]"
               />
               {isSearching && (
@@ -594,6 +651,7 @@ export function UberInteractiveMapDialog({
             tileUrl={tileUrl}
             attribution={tileAttribution}
             onPinMoved={handlePinMoved}
+            onMapCenterChange={(cLat, cLng) => setMapCenter({ lat: cLat, lng: cLng })}
             flyToTrigger={flyToTrigger}
           />
 
@@ -614,11 +672,11 @@ export function UberInteractiveMapDialog({
               )}
             </button>
 
-            {/* Reset to Pavia Hub */}
+            {/* Reset to Iloilo Branch */}
             <button
               type="button"
-              onClick={() => flyToCoords(BRANCH_COORDS.lat, BRANCH_COORDS.lng, BRANCH_COORDS.address)}
-              title="Reset to InstaCar Pavia Hub"
+              onClick={() => flyToCoords(DEFAULT_ILOILO_FALLBACK.lat, DEFAULT_ILOILO_FALLBACK.lng, DEFAULT_ILOILO_FALLBACK.address)}
+              title="Reset to InstaCar Iloilo Branch"
               className="flex size-10 items-center justify-center rounded-xl bg-[#1e1e1e] border border-[#333333] shadow-xl text-white hover:border-[#ffcc00] transition active:scale-95 cursor-pointer"
             >
               <Compass className="size-4 text-[#ffcc00]" />
@@ -640,7 +698,7 @@ export function UberInteractiveMapDialog({
                 </span>
                 {isGeocoding && (
                   <span className="inline-flex items-center gap-1 text-[10px] text-[#ffcc00] font-semibold">
-                    <Loader2 className="size-3 animate-spin" /> Resolving address...
+                    <Loader2 className="size-3 animate-spin" /> Snapping to nearest road...
                   </span>
                 )}
               </div>
@@ -676,7 +734,10 @@ export function UberInteractiveMapDialog({
                   <button
                     key={i}
                     type="button"
-                    onClick={() => flyToCoords(dest.lat, dest.lng, `${dest.name}, ${dest.subtitle}`)}
+                    onClick={() => {
+                      flyToCoords(dest.lat, dest.lng, `${dest.name}, ${dest.subtitle}`);
+                      reverseGeocode(dest.lat, dest.lng);
+                    }}
                     className="inline-flex items-center gap-1 shrink-0 rounded-md border border-[#333333] bg-[#222222] px-2 py-0.5 text-[10px] font-semibold text-gray-200 hover:border-[#ffcc00] hover:bg-[#ffcc00]/15 transition cursor-pointer"
                   >
                     <Icon className="size-2.5 text-[#ffcc00]" />

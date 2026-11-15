@@ -10,16 +10,19 @@ interface LeafletMapViewProps {
   tileUrl: string;
   attribution: string;
   onPinMoved: (lat: number, lng: number) => void;
+  onMapCenterChange?: (lat: number, lng: number) => void;
   flyToTrigger: { lat: number; lng: number; zoom: number; key: number };
 }
 
-// Controller component to handle programmatic flying, resizing, and clicking
+// Controller component to handle programmatic flying, resizing, center tracking, and clicking
 function MapEventHandler({
   flyToTrigger,
   onMapClick,
+  onMapCenterChange,
 }: {
   flyToTrigger: { lat: number; lng: number; zoom: number; key: number };
   onMapClick: (lat: number, lng: number) => void;
+  onMapCenterChange?: (lat: number, lng: number) => void;
 }) {
   const map = useMap();
 
@@ -40,10 +43,16 @@ function MapEventHandler({
     };
   }, [map]);
 
-  // Click on map moves the pin
+  // Track map center on pan/zoom and handle clicks
   useMapEvents({
     click(e) {
       onMapClick(e.latlng.lat, e.latlng.lng);
+    },
+    moveend() {
+      if (onMapCenterChange) {
+        const center = map.getCenter();
+        onMapCenterChange(center.lat, center.lng);
+      }
     },
   });
 
@@ -73,6 +82,7 @@ export function LeafletMapView({
   tileUrl,
   attribution,
   onPinMoved,
+  onMapCenterChange,
   flyToTrigger,
 }: LeafletMapViewProps) {
   const eventHandlers = React.useMemo(
@@ -108,7 +118,11 @@ export function LeafletMapView({
       <ZoomControl position="topright" />
 
       {/* Interactive Map Controller */}
-      <MapEventHandler flyToTrigger={flyToTrigger} onMapClick={onPinMoved} />
+      <MapEventHandler
+        flyToTrigger={flyToTrigger}
+        onMapClick={onPinMoved}
+        onMapCenterChange={onMapCenterChange}
+      />
 
       {/* Draggable Needle Pin Marker */}
       <Marker
