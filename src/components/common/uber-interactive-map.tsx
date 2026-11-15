@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import Map, { Marker, NavigationControl, type MapRef, type MarkerDragEvent } from "react-map-gl/maplibre";
+import * as maplibregl from "maplibre-gl";
 import {
   MapPin,
   Navigation,
@@ -13,7 +15,6 @@ import {
   ShoppingBag,
   Sparkles,
   Loader2,
-  ChevronUp,
   Truck,
 } from "lucide-react";
 import {
@@ -26,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
+// Real accurate coordinates for InstaCar Pavia Hub, Iloilo
 export const BRANCH_COORDS = {
   lat: 10.7766,
   lng: 122.5444,
@@ -88,6 +90,34 @@ export const POPULAR_DESTINATIONS = [
   },
 ];
 
+// Free high-quality CARTO Dark Matter style definition for MapLibre
+const CARTO_DARK_MATTER_STYLE: any = {
+  version: 8,
+  sources: {
+    "carto-dark": {
+      type: "raster",
+      tiles: [
+        "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
+        "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
+        "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
+        "https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
+      ],
+      tileSize: 256,
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>',
+    },
+  },
+  layers: [
+    {
+      id: "carto-dark-layer",
+      type: "raster",
+      source: "carto-dark",
+      minzoom: 0,
+      maxzoom: 20,
+    },
+  ],
+};
+
 export function calculateDistanceKm(
   lat1: number,
   lon1: number,
@@ -144,9 +174,7 @@ export function UberInteractiveMapDialog({
   initialMode = "branch",
   allowBranchSelection = true,
 }: UberInteractiveMapProps) {
-  const mapContainerRef = React.useRef<HTMLDivElement>(null);
-  const mapInstanceRef = React.useRef<any>(null);
-  const markerRef = React.useRef<any>(null);
+  const mapRef = React.useRef<MapRef>(null);
 
   // Map branches list with coordinates fallback
   const branchList = React.useMemo(() => {
@@ -175,12 +203,13 @@ export function UberInteractiveMapDialog({
   const [address, setAddress] = React.useState(initialAddress || BRANCH_COORDS.address);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [searchResults, setSearchResults] = React.useState<
-    Array<{ display_name: string; lat: string; lon: string }>
+    Array<{ display_name: string; lat: number; lng: number }>
   >([]);
   const [isSearching, setIsSearching] = React.useState(false);
   const [isGeocoding, setIsGeocoding] = React.useState(false);
   const [isLocating, setIsLocating] = React.useState(false);
-  const [bottomSheetExpanded, setBottomSheetExpanded] = React.useState(true);
+
+  const geoapifyApiKey = process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY || "";
 
   const distanceKm = React.useMemo(() => {
     return calculateDistanceKm(
@@ -195,170 +224,153 @@ export function UberInteractiveMapDialog({
     return calculateDeliveryFee(distanceKm);
   }, [distanceKm]);
 
-  // Reverse geocoding on pin drag / location change
+  // Reverse Geocoding with Geoapify (accurate Philippines lookups with Nominatim fallback)
   const reverseGeocode = React.useCallback(async (lat: number, lng: number) => {
     setIsGeocoding(true);
     try {
-      const res = await fetch(
+      if (geoapifyApiKey) {
+        // Geoapify Reverse Geocoding API
+        const url = `https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lng}&format=json&apiKey=${geoapifyApiKey}`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.results && data.results.length > 0) {
+            const first = data.results[0];
+            const formatted = first.formatted || `${first.name || first.street || "Location"}, ${first.city || first.county || "Iloilo"}`;
+            setAddress(formatted);
+            return;
+          }
+        }
+      }
+
+      // Fallback to OpenStreetMap Nominatim if no Geoapify key is set
+      const nomRes = await fetch(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
-        {
-          headers: {
-            "Accept-Language": "en-US,en;q=0.9",
-          },
-        },
+        { headers: { "Accept-Language": "en-US,en;q=0.9" } }
       );
-      if (res.ok) {
-        const data = await res.json();
+      if (nomRes.ok) {
+        const data = await nomRes.json();
         if (data.display_name) {
-          // Construct clean short address: road, suburb/village, city
           const addr = data.address || {};
           const parts = [
             addr.amenity || addr.building || addr.road,
             addr.suburb || addr.neighbourhood || addr.village,
             addr.city || addr.town || addr.municipality || "Iloilo",
           ].filter(Boolean);
-
           const formatted = parts.length > 0 ? parts.join(", ") : data.display_name;
           setAddress(formatted);
           return;
         }
       }
     } catch {
-      // Fallback to coordinates
+      // Ignore network errors and keep coordinate label
     } finally {
       setIsGeocoding(false);
     }
     setAddress(`Pinned Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
-  }, []);
+  }, [geoapifyApiKey]);
 
-  // Initialize interactive Leaflet map (client-only, strictly no iframes)
-  React.useEffect(() => {
-    if (!open) return;
-
-    let isMounted = true;
-    let leafletModule: any = null;
-
-    const initMap = async () => {
-      // Dynamic import of Leaflet for Next.js SSR compatibility
-      leafletModule = await import("leaflet");
-      const L = leafletModule.default || leafletModule;
-
-      if (!mapContainerRef.current || !isMounted) return;
-
-      // Cleanup existing map instance
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-
-      // Create map
-      const map = L.map(mapContainerRef.current, {
-        center: [currentCoords.lat, currentCoords.lng],
-        zoom: 14,
-        zoomControl: false,
-      });
-
-      // OpenStreetMap standard tiles (universal, reliable, not blocked by privacy extensions)
-      const tileLayer = L.tileLayer(
-        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        {
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-          subdomains: ["a", "b", "c"],
-          maxZoom: 19,
-          crossOrigin: true,
-        },
-      ).addTo(map);
-
-      // Automatic fallback if OSM has connection or rate-limit issues
-      tileLayer.on("tileerror", function (err: any) {
-        const tile = err?.tile as HTMLImageElement;
-        if (tile && !tile.dataset.retried) {
-          tile.dataset.retried = "true";
-          const coords = err.coords;
-          if (coords) {
-            tile.src = `https://a.basemaps.cartocdn.com/rastertiles/voyager/${coords.z}/${coords.x}/${coords.y}.png`;
-          }
-        }
-      });
-
-      // Add Zoom control at top-right
-      L.control.zoom({ position: "topright" }).addTo(map);
-
-      // Precision Needle Tip Pin Icon (The sharp bottom point touches exact geographic coordinate)
-      const pinIcon = L.divIcon({
-        className: "custom-uber-pin",
-        html: `
-          <div style="position: relative; width: 34px; height: 44px; pointer-events: none;">
-            <svg width="34" height="44" viewBox="0 0 34 44" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 3px 6px rgba(0,0,0,0.5));">
-              <path d="M17 1C8.163 1 1 8.163 1 17C1 28.5 17 43 17 43C17 43 33 28.5 33 17C33 8.163 25.837 1 17 1Z" fill="#ffcc00" stroke="#000000" stroke-width="2"/>
-              <circle cx="17" cy="17" r="7" fill="#000000"/>
-              <circle cx="17" cy="17" r="3" fill="#ffffff"/>
-            </svg>
-          </div>
-        `,
-        iconSize: [34, 44],
-        iconAnchor: [17, 43],
-        popupAnchor: [0, -43],
-      });
-
-      // Draggable marker
-      const marker = L.marker([currentCoords.lat, currentCoords.lng], {
-        icon: pinIcon,
-        draggable: true,
-      }).addTo(map);
-
-      marker.on("dragend", async () => {
-        const pos = marker.getLatLng();
-        setCurrentCoords({ lat: pos.lat, lng: pos.lng });
-        reverseGeocode(pos.lat, pos.lng);
-      });
-
-      // Click on map moves the pin
-      map.on("click", (e: any) => {
-        marker.setLatLng(e.latlng);
-        setCurrentCoords({ lat: e.latlng.lat, lng: e.latlng.lng });
-        reverseGeocode(e.latlng.lat, e.latlng.lng);
-      });
-
-      mapInstanceRef.current = map;
-      markerRef.current = marker;
-
-      // Invalidate map size after animation transitions
-      const t1 = setTimeout(() => mapInstanceRef.current?.invalidateSize(), 100);
-      const t2 = setTimeout(() => mapInstanceRef.current?.invalidateSize(), 300);
-      const t3 = setTimeout(() => mapInstanceRef.current?.invalidateSize(), 600);
-    };
-
-    initMap();
-
-    return () => {
-      isMounted = false;
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-    };
-  }, [open, reverseGeocode]);
-
-  // Pan map and update marker
-  const flyToCoords = (lat: number, lng: number, label?: string) => {
+  // Center/Fly to coordinate smoothly
+  const flyToCoords = React.useCallback((lat: number, lng: number, label?: string) => {
     setCurrentCoords({ lat, lng });
     if (label) setAddress(label);
 
-    if (mapInstanceRef.current && markerRef.current) {
-      markerRef.current.setLatLng([lat, lng]);
-      mapInstanceRef.current.flyTo([lat, lng], 16, {
-        duration: 1.0,
+    if (mapRef.current) {
+      mapRef.current.flyTo({
+        center: [lng, lat],
+        zoom: 16,
+        duration: 1000,
+        essential: true,
       });
     }
 
     if (!label) {
       reverseGeocode(lat, lng);
     }
+  }, [reverseGeocode]);
+
+  // Forward Geocoding / Autocomplete (Geoapify biased to Philippines & Iloilo)
+  React.useEffect(() => {
+    if (!searchQuery.trim() || searchQuery.length < 3) {
+      setSearchResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        if (geoapifyApiKey) {
+          // Geoapify Autocomplete API with country filter (PH) and proximity bias (Iloilo)
+          const url = `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(
+            searchQuery.trim()
+          )}&filter=countrycode:ph&bias=proximity:${BRANCH_COORDS.lng},${BRANCH_COORDS.lat}&limit=6&apiKey=${geoapifyApiKey}`;
+          const res = await fetch(url);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.features && Array.isArray(data.features)) {
+              const mapped = data.features.map((f: any) => ({
+                display_name: f.properties.formatted || f.properties.address_line1 || f.properties.name,
+                lat: f.properties.lat,
+                lng: f.properties.lon,
+              }));
+              setSearchResults(mapped);
+              return;
+            }
+          }
+        }
+
+        // Fallback to Nominatim if Geoapify key is not provided yet
+        const queryWithContext = `${searchQuery.trim()}, Iloilo, Philippines`;
+        const nomRes = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+            queryWithContext
+          )}&limit=5&countrycodes=ph`,
+          { headers: { "Accept-Language": "en-US,en;q=0.9" } }
+        );
+        if (nomRes.ok) {
+          const list = await nomRes.json();
+          setSearchResults(
+            list.map((item: any) => ({
+              display_name: item.display_name,
+              lat: parseFloat(item.lat),
+              lng: parseFloat(item.lon),
+            }))
+          );
+        }
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, geoapifyApiKey]);
+
+  // Handle autocomplete search selection
+  const handleSelectSearchResult = (item: { display_name: string; lat: number; lng: number }) => {
+    setSearchQuery("");
+    setSearchResults([]);
+    flyToCoords(item.lat, item.lng, item.display_name);
   };
 
-  // "Use My Current Location" GPS trigger
+  // Dragging the pin
+  const handleMarkerDragEnd = (event: MarkerDragEvent) => {
+    const nextLat = event.lngLat.lat;
+    const nextLng = event.lngLat.lng;
+    setCurrentCoords({ lat: nextLat, lng: nextLng });
+    reverseGeocode(nextLat, nextLng);
+  };
+
+  // Clicking on map moves the pin
+  const handleMapClick = (event: any) => {
+    const clickedLat = event.lngLat.lat;
+    const clickedLng = event.lngLat.lng;
+    setCurrentCoords({ lat: clickedLat, lng: clickedLng });
+    reverseGeocode(clickedLat, clickedLng);
+  };
+
+  // Geolocation trigger ("Use My Current Location")
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
       alert("Geolocation is not supported by your browser.");
@@ -384,47 +396,7 @@ export function UberInteractiveMapDialog({
     );
   };
 
-  // Address search autocomplete
-  React.useEffect(() => {
-    if (!searchQuery.trim() || searchQuery.length < 3) {
-      setSearchResults([]);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      setIsSearching(true);
-      try {
-        const queryWithContext = `${searchQuery.trim()}, Iloilo, Philippines`;
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryWithContext)}&limit=5&countrycodes=ph`,
-          {
-            headers: {
-              "Accept-Language": "en-US,en;q=0.9",
-            },
-          },
-        );
-        if (res.ok) {
-          const list = await res.json();
-          setSearchResults(list);
-        }
-      } catch {
-        setSearchResults([]);
-      } finally {
-        setIsSearching(false);
-      }
-    }, 400);
-
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  const handleSelectSearchResult = (item: { display_name: string; lat: string; lon: string }) => {
-    const lat = parseFloat(item.lat);
-    const lng = parseFloat(item.lon);
-    setSearchQuery("");
-    setSearchResults([]);
-    flyToCoords(lat, lng, item.display_name);
-  };
-
+  // Confirm and save location
   const handleConfirm = () => {
     if (activeMode === "branch") {
       const br = branchList.find((b) => b.id === selectedBranchId) || branchList[0];
@@ -451,14 +423,27 @@ export function UberInteractiveMapDialog({
     onOpenChange(false);
   };
 
+  // Reset viewport when dialog opens
+  React.useEffect(() => {
+    if (open && mapRef.current) {
+      const timer = setTimeout(() => {
+        mapRef.current?.resize();
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [open]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[96vw] max-w-5xl p-0 h-[92vh] sm:h-[86vh] border-border bg-card overflow-hidden rounded-2xl sm:rounded-3xl flex flex-col shadow-2xl">
+      <DialogContent
+        showCloseButton={false}
+        className="w-[96vw] max-w-5xl p-0 h-[92vh] sm:h-[86vh] border border-border bg-card overflow-hidden rounded-2xl sm:rounded-3xl flex flex-col shadow-2xl"
+      >
         <DialogHeader className="hidden">
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
 
-        {/* TOP DEDICATED TOOLBAR (Fixed header, zero overlap on map) */}
+        {/* ── TOP DEDICATED TOOLBAR (Sleek Dark Theme with Yellow Accents, Zero Overlap) ── */}
         <div className="bg-card border-b border-border/80 px-4 py-2.5 sm:px-5 sm:py-3 flex items-center justify-between gap-3 shrink-0 z-30">
           {/* Mode Switcher Tabs */}
           {allowBranchSelection && (
@@ -506,17 +491,17 @@ export function UberInteractiveMapDialog({
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search street, hotel, mall in Iloilo..."
+                placeholder="Search street, hotel, mall in Iloilo (Geoapify)..."
                 className="pl-9 pr-8 h-9 rounded-xl border border-border bg-muted/40 text-xs text-foreground focus-visible:ring-1 focus-visible:ring-[#ffcc00]"
               />
               {isSearching && (
-                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 size-3.5 animate-spin text-muted-foreground" />
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 size-3.5 animate-spin text-[#ffcc00]" />
               )}
               {searchQuery && !isSearching && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
                 >
                   <X className="size-3.5" />
                 </button>
@@ -569,12 +554,12 @@ export function UberInteractiveMapDialog({
             </div>
           )}
 
-          {/* Close Modal Button */}
+          {/* SINGLE PRIMARY CLOSE BUTTON (Cleanly integrated into header bar) */}
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer"
-            aria-label="Close map"
+            className="flex size-9 items-center justify-center rounded-xl border border-border bg-secondary/80 text-foreground hover:bg-[#ffcc00] hover:text-black hover:border-[#ffcc00] transition active:scale-95 cursor-pointer shrink-0"
+            aria-label="Close location picker"
           >
             <X className="size-4" />
           </button>
@@ -592,7 +577,7 @@ export function UberInteractiveMapDialog({
                 className="pl-9 pr-8 h-9 rounded-xl border border-border bg-muted/40 text-xs text-foreground focus-visible:ring-1 focus-visible:ring-[#ffcc00]"
               />
               {isSearching && (
-                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 size-3.5 animate-spin text-muted-foreground" />
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 size-3.5 animate-spin text-[#ffcc00]" />
               )}
               {searchResults.length > 0 && (
                 <div className="absolute top-full left-0 right-0 mt-1 divide-y divide-border/60 rounded-xl border border-border bg-card max-h-48 overflow-y-auto shadow-2xl z-[1000]">
@@ -615,12 +600,64 @@ export function UberInteractiveMapDialog({
           </div>
         )}
 
-        {/* EXPANDED FULL INTERACTIVE MAP CANVAS (Maximized size) */}
-        <div className="relative flex-1 w-full h-full min-h-[350px]">
-          <div ref={mapContainerRef} className="size-full z-0 outline-none" />
+        {/* ── EXPANDED FULL INTERACTIVE MAP CANVAS (MapLibre GL + CARTO Dark Matter) ── */}
+        <div className="relative flex-1 w-full h-full min-h-[350px] bg-[#121212]">
+          <Map
+            ref={mapRef}
+            mapLib={maplibregl}
+            initialViewState={{
+              latitude: currentCoords.lat,
+              longitude: currentCoords.lng,
+              zoom: 15,
+            }}
+            mapStyle={CARTO_DARK_MATTER_STYLE}
+            onClick={handleMapClick}
+            cursor="crosshair"
+            attributionControl={false}
+            style={{ width: "100%", height: "100%" }}
+          >
+            {/* Top-Right Navigation Controls (Zoom & Pitch) */}
+            <NavigationControl position="top-right" showCompass={false} />
+
+            {/* Precision Draggable Needle-Tip Pin Marker */}
+            <Marker
+              latitude={currentCoords.lat}
+              longitude={currentCoords.lng}
+              anchor="bottom"
+              draggable
+              onDragEnd={handleMarkerDragEnd}
+            >
+              <div
+                className="group relative cursor-grab active:cursor-grabbing select-none transition-transform duration-200 hover:scale-110"
+                title="Drag to adjust exact location"
+              >
+                {/* Pulsing ring indicator */}
+                <div className="absolute -inset-1.5 rounded-full bg-[#ffcc00]/30 animate-ping opacity-60 pointer-events-none" />
+
+                {/* SVG Needle Pin with bottom center anchor */}
+                <svg
+                  width="36"
+                  height="46"
+                  viewBox="0 0 36 46"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  style={{ filter: "drop-shadow(0 4px 10px rgba(0,0,0,0.65))" }}
+                >
+                  <path
+                    d="M18 1C8.611 1 1 8.611 1 18C1 30.2 18 45 18 45C18 45 35 30.2 35 18C35 8.611 27.389 1 18 1Z"
+                    fill="#ffcc00"
+                    stroke="#000000"
+                    strokeWidth="2.5"
+                  />
+                  <circle cx="18" cy="18" r="7.5" fill="#000000" />
+                  <circle cx="18" cy="18" r="3.5" fill="#ffffff" />
+                </svg>
+              </div>
+            </Marker>
+          </Map>
 
           {/* Quick Floating Action Controls */}
-          <div className="absolute right-4 bottom-4 z-[400] flex flex-col gap-2">
+          <div className="absolute right-4 bottom-4 z-20 flex flex-col gap-2">
             {/* GPS "Use My Location" Button */}
             <button
               type="button"
@@ -640,7 +677,7 @@ export function UberInteractiveMapDialog({
             <button
               type="button"
               onClick={() => flyToCoords(BRANCH_COORDS.lat, BRANCH_COORDS.lng, BRANCH_COORDS.address)}
-              title="Reset to InstaCar Hub"
+              title="Reset to InstaCar Pavia Hub"
               className="flex size-10 items-center justify-center rounded-xl bg-card border border-border shadow-xl text-foreground hover:border-[#ffcc00] transition active:scale-95 cursor-pointer"
             >
               <Compass className="size-4 text-[#ffcc00]" />
@@ -648,7 +685,7 @@ export function UberInteractiveMapDialog({
           </div>
         </div>
 
-        {/* SLEEK, COMPACT BOTTOM CONFIRMATION SHEET */}
+        {/* ── SLEEK, COMPACT BOTTOM CONFIRMATION SHEET ── */}
         <div className="bg-card border-t border-border px-4 py-3 sm:px-6 sm:py-3.5 shrink-0 z-30 space-y-2.5">
           {/* Row 1: Selected Address + Quick Distance & Fee Badges */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
