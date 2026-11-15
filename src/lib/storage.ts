@@ -29,6 +29,7 @@ export const BUCKETS = {
   remittancePhotos: "remittance-photos",
   siteAssets: "site-assets",
   reviewPhotos: "review-photos",
+  userDocuments: "user-documents",
 } as const;
 
 export type BucketName = (typeof BUCKETS)[keyof typeof BUCKETS];

@@ -85,6 +85,17 @@ export function RentCarFlowDialog({
   const [userLoggedIn, setUserLoggedIn] = React.useState(isLoggedIn);
   const [authError, setAuthError] = React.useState<string | null>(null);
 
+  // Hassle-free documents state: check profile for existing verified IDs
+  const [savedDocs, setSavedDocs] = React.useState<{
+    primaryIdUrl?: string | null;
+    secondaryIdUrl?: string | null;
+    proofBillingUrl?: string | null;
+    isVerified?: boolean;
+  }>({});
+  const [replacePrimaryId, setReplacePrimaryId] = React.useState(false);
+  const [replaceSecondaryId, setReplaceSecondaryId] = React.useState(false);
+  const [replaceProofBilling, setReplaceProofBilling] = React.useState(false);
+
   React.useEffect(() => {
     setUserLoggedIn(isLoggedIn);
   }, [isLoggedIn]);
@@ -92,9 +103,23 @@ export function RentCarFlowDialog({
   React.useEffect(() => {
     try {
       const supabase = createClient();
-      supabase.auth.getUser().then(({ data: { user } }) => {
+      supabase.auth.getUser().then(async ({ data: { user } }) => {
         if (user) {
           setUserLoggedIn(true);
+          const { data: profile } = await supabase
+            .from("users")
+            .select("primary_id_url, secondary_id_url, proof_of_billing_url, id_verified")
+            .eq("auth_id", user.id)
+            .maybeSingle();
+
+          if (profile) {
+            setSavedDocs({
+              primaryIdUrl: profile.primary_id_url,
+              secondaryIdUrl: profile.secondary_id_url,
+              proofBillingUrl: profile.proof_of_billing_url,
+              isVerified: Boolean(profile.id_verified),
+            });
+          }
         }
       });
     } catch {}
@@ -633,11 +658,11 @@ export function RentCarFlowDialog({
 
             {/* 5. ADDRESS BLOCK: CONDITIONAL PICKUP OR DELIVERY */}
             {fulfillmentType === "Delivery" ? (
-              <div className="rounded-xl border border-[#ffcc00]/50 bg-[#ffcc00]/5 p-3.5 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#ffcc00] uppercase tracking-wider">
-                    <Truck className="size-4" />
-                    <span>Delivery Address *</span>
+              <div className="rounded-2xl border border-[#ffcc00]/40 bg-card p-4 sm:p-5 space-y-3 shadow-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-sm font-extrabold text-[#b38a00] dark:text-[#ffcc00] uppercase tracking-wide">
+                    <Truck className="size-4.5" />
+                    <span>Car Delivery Address *</span>
                   </div>
                   <button
                     type="button"
@@ -645,7 +670,7 @@ export function RentCarFlowDialog({
                       setMapTarget("delivery");
                       setMapDialogOpen(true);
                     }}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-[#ffcc00] px-2.5 py-1 text-[11px] font-black text-black hover:bg-[#ffd633] transition shadow-xs cursor-pointer"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-[#ffcc00] bg-[#ffcc00]/10 px-3.5 py-1.5 text-xs font-bold text-[#b38a00] dark:text-[#ffcc00] hover:bg-[#ffcc00]/20 transition shadow-xs cursor-pointer"
                   >
                     <MapPin className="size-3.5 stroke-[2.5]" />
                     <span>Pin on Interactive Map</span>
@@ -659,40 +684,41 @@ export function RentCarFlowDialog({
                   value={deliveryAddress}
                   onChange={(e) => setDeliveryAddress(e.target.value)}
                   placeholder="Enter complete street address, landmark, subdivision, hotel or delivery instructions..."
-                  className="w-full rounded-xl border border-border bg-card p-2.5 text-xs text-foreground outline-none transition focus:border-[#ffcc00] focus:ring-1 focus:ring-[#ffcc00]/50"
+                  className="w-full min-h-[56px] rounded-xl border border-border bg-muted/30 p-3 text-sm text-foreground outline-none transition focus:border-[#ffcc00] focus:ring-1 focus:ring-[#ffcc00]/50 placeholder:text-muted-foreground/60"
                 />
                 {estimatedDeliveryFee !== null && (
-                  <div className="flex items-center justify-between rounded-lg bg-[#ffcc00]/15 border border-[#ffcc00]/40 px-3 py-1.5 text-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-[#ffcc00]/15 border border-[#ffcc00]/40 px-3.5 py-2.5 text-xs sm:text-sm">
                     <span className="text-muted-foreground font-medium">
-                      Estimated Distance: <strong className="text-foreground">{estimatedDeliveryKm} km</strong> from Hub
+                      Estimated Distance: <strong className="text-foreground font-bold">{estimatedDeliveryKm} km</strong> from Hub
                     </span>
-                    <span className="font-bold text-[#b38a00] dark:text-[#ffcc00]">
+                    <span className="font-extrabold text-[#b38a00] dark:text-[#ffcc00]">
                       Delivery Fee: ₱{estimatedDeliveryFee.toLocaleString()}
                     </span>
                   </div>
                 )}
-                <p className="text-[11px] text-muted-foreground">
-                  📍 Our staff will deliver the vehicle directly to this address before your rental start time.
+                <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <MapPin className="size-3.5 text-[#ffcc00] shrink-0" />
+                  <span>Our staff will deliver the vehicle directly to this address before your rental start time.</span>
                 </p>
               </div>
             ) : (
-              <div className="rounded-xl border border-border bg-card p-3.5 space-y-2">
+              <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 space-y-3 shadow-xs">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                  <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-muted-foreground uppercase tracking-wider">
                     <MapPin className="size-4 text-[#ffcc00]" />
                     <span>Pickup Address (Branch Location)</span>
                   </div>
-                  <span className="rounded bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                    Auto-Filled (Read-Only)
+                  <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                    Auto-Filled
                   </span>
                 </div>
                 <input type="hidden" name="delivery_address" value={branchAddress} />
-                <div className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/40 p-3">
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#ffcc00]/20 text-[#ffcc00]">
-                    <MapPin className="size-4" />
+                <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/40 p-3.5">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#ffcc00]/20 text-[#ffcc00]">
+                    <MapPin className="size-4.5" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 mb-0.5">
                       <span className="text-[10px] font-extrabold uppercase text-muted-foreground">
                         Pickup Location
                       </span>
@@ -700,22 +726,23 @@ export function RentCarFlowDialog({
                         href={mapSearchUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-[#ffcc00] hover:underline"
+                        className="inline-flex items-center gap-1 text-xs font-bold text-[#b38a00] dark:text-[#ffcc00] hover:underline"
                       >
-                        <span>↗ Map</span>
+                        <span>↗ View on Google Maps</span>
                       </a>
                     </div>
-                    <p className="text-xs font-bold text-foreground">{branchAddress}</p>
-                    <p className="text-[11px] text-muted-foreground">🏢 {branchName}</p>
+                    <p className="text-sm font-bold text-foreground">{branchAddress}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">🏢 {branchName}</p>
                   </div>
                 </div>
               </div>
             )}
 
             {/* 6. RETURN ADDRESS BLOCK */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="return_address_field" className="text-xs font-bold text-foreground flex items-center gap-1">
+            <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 space-y-3 shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Label htmlFor="return_address_field" className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
+                  <MapPin className="size-4 text-[#ffcc00]" />
                   <span>Custom Return Address</span>
                 </Label>
                 <div className="flex items-center gap-3">
@@ -725,15 +752,15 @@ export function RentCarFlowDialog({
                       setMapTarget("return");
                       setMapDialogOpen(true);
                     }}
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#b38a00] dark:text-[#ffcc00] hover:underline cursor-pointer"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-[#ffcc00] bg-[#ffcc00]/10 px-3.5 py-1.5 text-xs font-bold text-[#b38a00] dark:text-[#ffcc00] hover:bg-[#ffcc00]/20 transition shadow-xs cursor-pointer"
                   >
-                    <MapPin className="size-3" />
-                    <span>Pin on Map</span>
+                    <MapPin className="size-3.5 stroke-[2.5]" />
+                    <span>Pin on Interactive Map</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setReturnAddress(branchAddress)}
-                    className="text-[11px] font-bold text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
+                    className="text-xs font-bold text-muted-foreground hover:text-foreground hover:underline cursor-pointer transition"
                   >
                     Use Branch Address
                   </button>
@@ -745,64 +772,207 @@ export function RentCarFlowDialog({
                 rows={2}
                 value={returnAddress}
                 onChange={(e) => setReturnAddress(e.target.value)}
-                placeholder="Enter address for vehicle return / pickup..."
-                className="w-full rounded-xl border border-border bg-card p-2.5 text-xs text-foreground outline-none transition focus:border-[#ffcc00] focus:ring-1 focus:ring-[#ffcc00]/50"
+                placeholder="Enter address for vehicle return / collection..."
+                className="w-full min-h-[56px] rounded-xl border border-border bg-muted/30 p-3 text-sm text-foreground outline-none transition focus:border-[#ffcc00] focus:ring-1 focus:ring-[#ffcc00]/50 placeholder:text-muted-foreground/60"
               />
               <input type="hidden" name="return_delivery_address" value={returnAddress} />
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Specify where the vehicle will be returned or collected at the end of the rental.
               </p>
             </div>
 
-            {/* 7. DOCUMENT UPLOADS */}
+            {/* 7. DOCUMENT UPLOADS & HASSLE-FREE VERIFIED ID */}
             <div className="space-y-4">
-              <div>
-                <Label className="mb-1 block text-xs font-bold text-rose-500">
-                  Primary ID (e.g. Driver&apos;s License) *
-                </Label>
-                <FileUploadDropzone
-                  name="primary_id"
-                  accept="image/*,.pdf"
-                  maxSizeMB={5}
-                  required
-                  helperText="Click to upload Primary ID (Required)"
-                />
-              </div>
+              {/* PRIMARY ID */}
+              {savedDocs.primaryIdUrl && !replacePrimaryId ? (
+                <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4 sm:p-5 transition">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-500 dark:text-emerald-400">
+                        <CheckCircle2 className="size-6" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-extrabold text-foreground truncate">
+                            Primary ID on File
+                          </p>
+                          <span className="rounded-md bg-emerald-500/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                            {savedDocs.isVerified ? "Verified" : "Saved"}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">
+                          Government ID securely stored on your account. No re-upload required!
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <input type="hidden" name="existing_primary_id" value={savedDocs.primaryIdUrl} />
+                      <button
+                        type="button"
+                        onClick={() => setReplacePrimaryId(true)}
+                        className="rounded-xl border border-border bg-card px-3.5 py-1.5 text-xs font-bold text-foreground hover:border-[#ffcc00] hover:text-[#b38a00] dark:hover:text-[#ffcc00] transition cursor-pointer"
+                      >
+                        Replace
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1">
+                      <span>Primary ID (e.g. Driver&apos;s License)</span>
+                      <span className="text-rose-500 font-black">*</span>
+                    </Label>
+                    {savedDocs.primaryIdUrl && replacePrimaryId && (
+                      <button
+                        type="button"
+                        onClick={() => setReplacePrimaryId(false)}
+                        className="text-xs font-bold text-[#b38a00] dark:text-[#ffcc00] hover:underline cursor-pointer"
+                      >
+                        Keep ID on File
+                      </button>
+                    )}
+                  </div>
+                  <FileUploadDropzone
+                    name="primary_id"
+                    accept="image/*,.pdf"
+                    maxSizeMB={5}
+                    required={!savedDocs.primaryIdUrl || replacePrimaryId}
+                    helperText="Click or drag to upload Primary ID (Required)"
+                  />
+                </div>
+              )}
 
-              <div>
-                <Label className="mb-1 block text-xs font-bold text-foreground">
-                  Secondary ID (Optional)
-                </Label>
-                <FileUploadDropzone
-                  name="secondary_id"
-                  accept="image/*,.pdf"
-                  maxSizeMB={5}
-                  helperText="Click to upload Secondary ID"
-                />
-              </div>
+              {/* SECONDARY ID */}
+              {savedDocs.secondaryIdUrl && !replaceSecondaryId ? (
+                <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4 sm:p-5 transition">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-500 dark:text-emerald-400">
+                        <CheckCircle2 className="size-6" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-extrabold text-foreground truncate">
+                            Secondary ID on File
+                          </p>
+                          <span className="rounded-md bg-emerald-500/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                            Saved
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">
+                          Secondary identification document saved on your account.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <input type="hidden" name="existing_secondary_id" value={savedDocs.secondaryIdUrl} />
+                      <button
+                        type="button"
+                        onClick={() => setReplaceSecondaryId(true)}
+                        className="rounded-xl border border-border bg-card px-3.5 py-1.5 text-xs font-bold text-foreground hover:border-[#ffcc00] hover:text-[#b38a00] dark:hover:text-[#ffcc00] transition cursor-pointer"
+                      >
+                        Replace
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs sm:text-sm font-bold text-foreground">
+                      Secondary ID (Optional)
+                    </Label>
+                    {savedDocs.secondaryIdUrl && replaceSecondaryId && (
+                      <button
+                        type="button"
+                        onClick={() => setReplaceSecondaryId(false)}
+                        className="text-xs font-bold text-[#b38a00] dark:text-[#ffcc00] hover:underline cursor-pointer"
+                      >
+                        Keep ID on File
+                      </button>
+                    )}
+                  </div>
+                  <FileUploadDropzone
+                    name="secondary_id"
+                    accept="image/*,.pdf"
+                    maxSizeMB={5}
+                    helperText="Click or drag to upload Secondary ID"
+                  />
+                </div>
+              )}
 
-              <div>
-                <Label className="mb-1 block text-xs font-bold text-foreground">
-                  Proof of Billing (Optional)
-                </Label>
-                <FileUploadDropzone
-                  name="proof_of_billing"
-                  accept="image/*,.pdf"
-                  maxSizeMB={5}
-                  helperText="Click to upload Proof of Billing"
-                />
-              </div>
+              {/* PROOF OF BILLING */}
+              {savedDocs.proofBillingUrl && !replaceProofBilling ? (
+                <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4 sm:p-5 transition">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-500 dark:text-emerald-400">
+                        <CheckCircle2 className="size-6" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-extrabold text-foreground truncate">
+                            Proof of Billing on File
+                          </p>
+                          <span className="rounded-md bg-emerald-500/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                            Saved
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">
+                          Utility or billing document saved on your account.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <input type="hidden" name="existing_proof_of_billing" value={savedDocs.proofBillingUrl} />
+                      <button
+                        type="button"
+                        onClick={() => setReplaceProofBilling(true)}
+                        className="rounded-xl border border-border bg-card px-3.5 py-1.5 text-xs font-bold text-foreground hover:border-[#ffcc00] hover:text-[#b38a00] dark:hover:text-[#ffcc00] transition cursor-pointer"
+                      >
+                        Replace
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs sm:text-sm font-bold text-foreground">
+                      Proof of Billing (Optional)
+                    </Label>
+                    {savedDocs.proofBillingUrl && replaceProofBilling && (
+                      <button
+                        type="button"
+                        onClick={() => setReplaceProofBilling(false)}
+                        className="text-xs font-bold text-[#b38a00] dark:text-[#ffcc00] hover:underline cursor-pointer"
+                      >
+                        Keep Proof of Billing on File
+                      </button>
+                    )}
+                  </div>
+                  <FileUploadDropzone
+                    name="proof_of_billing"
+                    accept="image/*,.pdf"
+                    maxSizeMB={5}
+                    helperText="Click or drag to upload Proof of Billing"
+                  />
+                </div>
+              )}
 
-              {/* Proof of Payment + Scan QR Button */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold text-rose-500">
-                    Proof of Payment (Required) *
+              {/* PROOF OF PAYMENT + SCAN QR */}
+              <div className="space-y-2 rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Label className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1">
+                    <span>Proof of Payment</span>
+                    <span className="text-rose-500 font-black">*</span>
                   </Label>
                   <button
                     type="button"
                     onClick={() => setQrModalOpen(true)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#ffcc00]/60 bg-[#ffcc00]/10 px-2.5 py-1 text-xs font-bold text-[#ffcc00] hover:bg-[#ffcc00]/20 transition"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-[#ffcc00] bg-[#ffcc00]/10 px-3 py-1.5 text-xs font-bold text-[#b38a00] dark:text-[#ffcc00] hover:bg-[#ffcc00]/20 transition cursor-pointer"
                   >
                     <QrCode className="size-3.5" />
                     <span>Scan QR: Tap to open</span>
@@ -813,15 +983,12 @@ export function RentCarFlowDialog({
                   accept="image/*,.pdf"
                   maxSizeMB={5}
                   required
-                  helperText="Click to upload Proof of Payment"
+                  helperText="Click or drag to upload payment receipt / confirmation screenshot"
                 />
-                <p className="text-[11px] text-muted-foreground">
-                  Scan QR code to pay down payment / full amount, then attach receipt photo.
-                </p>
-                <p className="text-[11px] font-bold text-rose-500 flex items-center gap-1">
-                  <AlertCircle className="size-3" />
-                  <span>Note: Initial down payment must be a minimum of ₱500.</span>
-                </p>
+                <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
+                  <span>Scan QR code to pay down payment or full amount, then attach receipt.</span>
+                  <span className="font-bold text-rose-500 shrink-0">Min down payment: ₱500</span>
+                </div>
               </div>
             </div>
 

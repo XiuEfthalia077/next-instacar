@@ -1829,15 +1829,51 @@ export async function createBookingAction(formData: FormData) {
     return result.ok ? `${folder}/${fileName}` : "";
   };
 
-  const primaryId = await upload("primary_id", "primary");
+  let primaryId = await upload("primary_id", "primary");
+  if (!primaryId) {
+    primaryId = str(formData, "existing_primary_id") || "";
+  }
+  if (!primaryId && effectiveUserId) {
+    const { data: userDoc } = await db
+      .from("users")
+      .select("primary_id_url")
+      .eq("id", effectiveUserId)
+      .maybeSingle();
+    if (userDoc?.primary_id_url) {
+      primaryId = userDoc.primary_id_url;
+    }
+  }
 
   if (!primaryId) {
     flashRedirect(back, "error", "Primary ID is required (JPG, PNG, or PDF only, max 5MB).");
   }
 
-  const secondaryId = await upload("secondary_id", "secondary");
-  const proofBilling = await upload("proof_of_billing", "billing");
+  let secondaryId = await upload("secondary_id", "secondary");
+  if (!secondaryId) {
+    secondaryId = str(formData, "existing_secondary_id") || "";
+  }
+
+  let proofBilling = await upload("proof_of_billing", "billing");
+  if (!proofBilling) {
+    proofBilling = str(formData, "existing_proof_of_billing") || "";
+  }
+
   const proofPayment = await upload("proof_of_payment", "payment");
+
+  // Auto-sync documents to user's profile for seamless repeat bookings
+  if (effectiveUserId) {
+    const docUpdates: Record<string, string> = {};
+    if (primaryId) docUpdates.primary_id_url = primaryId;
+    if (secondaryId) docUpdates.secondary_id_url = secondaryId;
+    if (proofBilling) docUpdates.proof_of_billing_url = proofBilling;
+    if (Object.keys(docUpdates).length > 0) {
+      try {
+        await db.from("users").update(docUpdates).eq("id", effectiveUserId);
+      } catch (err) {
+        console.warn("[booking] could not sync documents to user profile:", err);
+      }
+    }
+  }
 
   const fulfillment = fulfillmentValue(str(formData, "fulfillment_type", "pickup"));
   const deliveryAddressVal =
