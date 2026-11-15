@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { CheckCircle2, AlertCircle, X, Truck, Store, MapPin } from "lucide-react";
+import { CheckCircle2, AlertCircle, X, Truck, Store, MapPin, Clock } from "lucide-react";
 import Link from "next/link";
 
 import { DataTable, TablePagination, type DataTableColumn } from "@/components/common/data-table";
@@ -65,35 +65,28 @@ export function OnlineBookingsTable({
   };
 
   const handleOptimisticConfirm = (bookingId: number, newStatus: string) => {
-    // 1. Immediately reflect the status badge & disable action
     setOptimisticStatuses((prev) => ({ ...prev, [bookingId]: newStatus }));
-
-    // 2. Immediate visual toast feedback
     setToast({
       id: bookingId,
       message: `Booking #${bookingId} confirmed successfully!`,
       type: "success",
     });
-
     setTimeout(() => {
       setToast((curr) => (curr?.id === bookingId ? null : curr));
     }, 4500);
   };
 
   const handleError = (bookingId: number, errorMessage: string) => {
-    // Rollback optimistic state
     setOptimisticStatuses((prev) => {
       const next = { ...prev };
       delete next[bookingId];
       return next;
     });
-
     setToast({
       id: bookingId,
       message: `Error updating booking: ${errorMessage}`,
       type: "error",
     });
-
     setTimeout(() => {
       setToast((curr) => (curr?.id === bookingId ? null : curr));
     }, 6000);
@@ -107,27 +100,53 @@ export function OnlineBookingsTable({
         const name = booking.users?.name ?? booking.guest_name ?? "Guest User";
         const email = booking.users?.email ?? booking.gmail ?? "No Email";
         const isVerified = Boolean(booking.users?.id_verified);
+        const initials =
+          name
+            .split(" ")
+            .map((n) => n[0])
+            .filter(Boolean)
+            .slice(0, 2)
+            .join("")
+            .toUpperCase() || "U";
+
         return (
-          <div className="min-w-[170px]">
-            <div className="flex items-center gap-1.5">
-              <p className="font-bold text-foreground">{name}</p>
-              {isVerified && (
-                <span
-                  title="Customer ID Verified on File"
-                  className="inline-flex items-center gap-0.5 rounded bg-emerald-500/20 px-1.5 py-0.2 text-[9px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400"
-                >
-                  <CheckCircle2 className="size-2.5" />
-                  Verified
-                </span>
-              )}
+          <div className="flex items-center gap-3 min-w-[200px]">
+            {/* Customer Initials Avatar Circle */}
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#ffcc00]/15 text-xs font-black text-[#b38a00] dark:text-[#ffcc00] border border-[#ffcc00]/30 shadow-xs">
+              {initials}
             </div>
-            <p className="text-xs text-muted-foreground">{email}</p>
-            <Badge
-              variant="outline"
-              className="mt-1 border-border bg-muted/50 px-2 py-0 text-[10px] font-bold text-muted-foreground"
-            >
-              #BK-{booking.id}
-            </Badge>
+
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <p
+                  className="font-bold text-neutral-900 dark:text-neutral-100 text-sm truncate max-w-[150px]"
+                  title={name}
+                >
+                  {name}
+                </p>
+                {isVerified && (
+                  <span
+                    title="Customer ID Verified on File"
+                    className="inline-flex items-center gap-0.5 rounded bg-emerald-500/15 px-1.5 py-0.2 text-[9px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400 border border-emerald-500/25"
+                  >
+                    <CheckCircle2 className="size-2.5" />
+                    Verified
+                  </span>
+                )}
+              </div>
+              <p
+                className="text-[11px] text-muted-foreground truncate max-w-[160px]"
+                title={email}
+              >
+                {email}
+              </p>
+              <Badge
+                variant="outline"
+                className="mt-0.5 border-neutral-200 dark:border-neutral-800 bg-muted/40 px-1.5 py-0 text-[10px] font-mono font-bold text-muted-foreground"
+              >
+                #BK-{booking.id}
+              </Badge>
+            </div>
           </div>
         );
       },
@@ -136,16 +155,13 @@ export function OnlineBookingsTable({
       key: "vehicle",
       header: "Vehicle",
       cell: (booking) => (
-        <div className="min-w-[140px]">
-          <p className="font-semibold text-foreground">
+        <div className="min-w-[150px]">
+          <p className="font-bold text-neutral-900 dark:text-neutral-100 text-sm">
             {[booking.cars?.brand, booking.cars?.model].filter(Boolean).join(" ") || "\u2014"}
           </p>
-          <Badge
-            variant="outline"
-            className="mt-1 border-border bg-muted/40 px-2 py-0 text-[11px] font-semibold text-muted-foreground"
-          >
-            {booking.cars?.plate_number ?? "No plate"}
-          </Badge>
+          <span className="inline-block mt-0.5 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-card px-2 py-0.5 font-mono text-[11px] font-bold text-neutral-900 dark:text-neutral-100 shadow-xs">
+            {booking.cars?.plate_number ?? "No Plate"}
+          </span>
         </div>
       ),
     },
@@ -153,13 +169,16 @@ export function OnlineBookingsTable({
       key: "schedule",
       header: "Schedule",
       cell: (booking) => (
-        <div className="min-w-[150px] text-sm">
-          <p className="font-medium text-foreground">
+        <div className="min-w-[160px] text-xs space-y-0.5">
+          <p className="font-bold text-neutral-900 dark:text-neutral-100 text-sm">
             {formatDate(booking.start_date)} &ndash; {formatDate(booking.end_date)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {clock(booking.pickup_time)} &ndash; {clock(booking.return_time)}
-          </p>
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <Clock className="size-3 text-muted-foreground shrink-0" />
+            <span>
+              {clock(booking.pickup_time)} &ndash; {clock(booking.return_time)}
+            </span>
+          </div>
         </div>
       ),
     },
@@ -176,21 +195,21 @@ export function OnlineBookingsTable({
           : `${branch?.name ?? "Main Branch"} - ${branch?.address ?? "Branch Location"}`;
 
         return (
-          <div className="min-w-[190px]">
+          <div className="min-w-[200px] space-y-1">
             <Badge
               variant="outline"
               className={
                 isDelivery
-                  ? "gap-1 border-sky-200 bg-sky-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-sky-900 dark:border-sky-900 dark:bg-sky-950/50 dark:text-sky-200"
-                  : "gap-1 border-border bg-secondary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-secondary-foreground"
+                  ? "gap-1.5 border-sky-500/30 bg-sky-500/15 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-sky-800 dark:text-sky-300"
+                  : "gap-1.5 border-amber-500/30 bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-800 dark:text-amber-300"
               }
             >
               {isDelivery ? <Truck className="size-3" /> : <Store className="size-3" />}
               {isDelivery ? "Delivery" : "Pickup"}
             </Badge>
-            <p className="mt-1 flex items-start gap-1 text-[11px] text-muted-foreground">
+            <p className="flex items-start gap-1 text-[11px] text-muted-foreground max-w-[200px] line-clamp-2">
               <MapPin className="mt-0.5 size-3 shrink-0 text-rose-500" />
-              <span>{address}</span>
+              <span title={address}>{address}</span>
             </p>
           </div>
         );
@@ -199,21 +218,57 @@ export function OnlineBookingsTable({
     {
       key: "files",
       header: "Files",
-      cell: (_booking, index) => (
-        <div className="flex max-w-[180px] flex-wrap gap-1">
-          {documents[index]?.length ? (
-            documents[index].map((document) => (
-              <DocumentPreviewButton
-                key={document.key}
-                document={document}
-                compact
-              />
-            ))
-          ) : (
-            <span className="text-sm text-muted-foreground">&mdash;</span>
-          )}
-        </div>
-      ),
+      cell: (booking, index) => {
+        const docs = documents[index] || [];
+        const docMap = new Map(docs.map((d) => [d.key, d]));
+
+        const docTypes = [
+          { key: "primary", label: "ID 1", hasFile: Boolean(booking.primary_id_path) },
+          { key: "secondary", label: "ID 2", hasFile: Boolean(booking.secondary_id_path) },
+          { key: "billing", label: "Billing", hasFile: Boolean(booking.proof_billing_path) },
+          { key: "payment", label: "Payment", hasFile: Boolean(booking.proof_payment_path) },
+        ];
+
+        return (
+          <div className="flex max-w-[190px] flex-wrap gap-1.5">
+            {docTypes.map((item) => {
+              const doc = docMap.get(item.key);
+              if (doc && doc.url) {
+                return (
+                  <DocumentPreviewButton
+                    key={item.key}
+                    document={{ ...doc, label: item.label }}
+                    compact
+                    className="border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-500/20 rounded-full px-2 py-0.5 text-[10px] font-bold"
+                  />
+                );
+              }
+              if (item.hasFile) {
+                return (
+                  <span
+                    key={item.key}
+                    className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400"
+                    title={`${item.label} uploaded but generating preview`}
+                  >
+                    <CheckCircle2 className="size-2.5" />
+                    {item.label}
+                  </span>
+                );
+              }
+              return (
+                <span
+                  key={item.key}
+                  className="inline-flex items-center gap-1 rounded-full border border-neutral-200 dark:border-neutral-800 bg-muted/30 px-2 py-0.5 text-[10px] font-medium text-muted-foreground/60"
+                  title={`${item.label} missing`}
+                >
+                  <AlertCircle className="size-2.5 text-muted-foreground/50" />
+                  {item.label}
+                </span>
+              );
+            })}
+          </div>
+        );
+      },
     },
     {
       key: "pricing",
@@ -221,17 +276,28 @@ export function OnlineBookingsTable({
       cell: (booking) => {
         const total = Number(booking.total_price ?? 0);
         const down = Number(booking.down_payment ?? 0);
+        const balance = Math.max(0, total - down);
+
         return (
-          <div className="min-w-[130px]">
-            <Money value={total} className="block font-bold text-foreground" />
-            {down > 0 ? (
-              <span className="block text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+          <div className="min-w-[130px] space-y-0.5">
+            <Money
+              value={total}
+              className="block font-black text-sm text-neutral-900 dark:text-neutral-100"
+            />
+            {down > 0 && (
+              <span className="block text-[11px] font-semibold text-muted-foreground">
                 DP: <Money value={down} />
               </span>
-            ) : null}
-            <span className="block text-[11px] font-bold text-[#b38a00] dark:text-[#ffd700]">
-              Bal: <Money value={Math.max(0, total - down)} />
-            </span>
+            )}
+            {balance > 0 ? (
+              <span className="block text-[11px] font-extrabold text-rose-600 dark:text-rose-400">
+                Bal: <Money value={balance} />
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="size-3" /> Fully Paid
+              </span>
+            )}
           </div>
         );
       },
@@ -242,7 +308,10 @@ export function OnlineBookingsTable({
       cell: (booking) => {
         const currentStatus = optimisticStatuses[booking.id] ?? booking.status;
         return (
-          <div className="flex flex-col items-center justify-center gap-1.5" data-testid={`status-cell-${booking.id}`}>
+          <div
+            className="flex flex-col items-center justify-center gap-1.5"
+            data-testid={`status-cell-${booking.id}`}
+          >
             <StatusBadge status={currentStatus} />
             <BookingAttentionBadge booking={booking} />
           </div>
@@ -306,7 +375,8 @@ export function OnlineBookingsTable({
             const branch =
               branchMap.get(booking.branch_id ?? 0) ??
               branchMap.get(booking.cars?.branch_id ?? 0);
-            const currentStatus = (optimisticStatuses[booking.id] ?? booking.status) as BookingRow["status"];
+            const currentStatus = (optimisticStatuses[booking.id] ??
+              booking.status) as BookingRow["status"];
 
             return (
               <BookingMobileCard
@@ -328,7 +398,7 @@ export function OnlineBookingsTable({
         />
       </SectionCard>
 
-      <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-card">
+      <div className="mt-4 overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-card">
         <TablePagination
           page={page}
           pageSize={perPage}

@@ -15,13 +15,20 @@ export function StatusBadge({
 }) {
   const value = status ?? "—";
 
-  // Pill badge colors matching Screenshot 2
+  // Standardized semantic badge colors per Part 1 (low-opacity bg + high contrast text)
   const customTones: Record<string, string> = {
-    Confirmed: "border-transparent bg-[#bbf7d0] text-[#065f46] font-black",
-    Released: "border-transparent bg-[#dbeafe] text-[#1e40af] font-black",
-    Pending: "border-transparent bg-[#fef3c7] text-[#92400e] font-black",
-    Completed: "border-transparent bg-[#e0e7ff] text-[#3730a3] font-black",
-    Cancelled: "border-transparent bg-[#fee2e2] text-[#991b1b] font-black",
+    // Bookings
+    Confirmed: "border-emerald-500/30 bg-emerald-500/15 text-emerald-800 dark:text-emerald-400 font-extrabold",
+    Released: "border-blue-500/30 bg-blue-500/15 text-blue-800 dark:text-blue-400 font-extrabold",
+    Pending: "border-amber-500/30 bg-amber-500/15 text-amber-800 dark:text-amber-400 font-extrabold",
+    Completed: "border-teal-500/30 bg-teal-500/15 text-teal-800 dark:text-teal-400 font-extrabold",
+    Cancelled: "border-rose-500/30 bg-rose-500/15 text-rose-800 dark:text-rose-400 font-extrabold",
+    // Fleet
+    Active: "border-emerald-500/30 bg-emerald-500/15 text-emerald-800 dark:text-emerald-400 font-extrabold",
+    Available: "border-amber-500/30 bg-amber-500/15 text-amber-800 dark:text-amber-400 font-extrabold",
+    Maintenance: "border-rose-500/30 bg-rose-500/15 text-rose-800 dark:text-rose-400 font-extrabold",
+    Rented: "border-blue-500/30 bg-blue-500/15 text-blue-800 dark:text-blue-400 font-extrabold",
+    Unavailable: "border-neutral-500/30 bg-neutral-500/15 text-neutral-800 dark:text-neutral-400 font-extrabold",
   };
 
   const tone =

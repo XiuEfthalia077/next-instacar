@@ -24,6 +24,7 @@ import Link from "next/link";
 
 import { CarGalleryDialog } from "@/components/admin/car-gallery-dialog";
 import { EditCarDialog } from "@/components/admin/edit-car-dialog";
+import { FleetRatePopover } from "@/components/admin/fleet-rate-popover";
 import { RegisterCarDialog } from "@/components/admin/register-car-dialog";
 import { EmptyState } from "@/components/common/empty-state";
 import {
@@ -309,23 +310,22 @@ export default async function SharedCarsPage({
               })}
             </div>
 
-            {/* Desktop View: Full Spreadsheet Table (>= md) */}
+            {/* Desktop View: Clean Spreadsheet Table (>= md) */}
             <div className="hidden md:block overflow-x-auto">
-              <table className="w-full min-w-[700px] text-xs">
+              <table className="w-full min-w-[760px] text-xs">
               <thead>
-                <tr className="border-b border-border bg-muted/60 text-[10px] uppercase tracking-wider text-muted-foreground">
-                  <th className="px-3.5 py-3 text-left font-extrabold">Vehicle</th>
-                  <th className="px-3 py-3 text-left font-extrabold">Owner</th>
-                  <th className="px-3 py-3 text-left font-extrabold">Branch</th>
-                  <th className="px-3 py-3 text-left font-extrabold">Specs</th>
-                  <th className="px-3 py-3 text-left font-extrabold">Plate No.</th>
-                  <th className="px-3 py-3 text-left font-extrabold">Rates &amp; Splits (10h / 12h / 24h)</th>
-                  <th className="px-3 py-3 text-left font-extrabold">Overtime Rates</th>
-                  <th className="px-3 py-3 text-center font-extrabold">Status</th>
-                  <th className="px-3.5 py-3 text-right font-extrabold">Actions</th>
+                <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-muted/60 text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <th className="px-4 py-3.5 text-left font-extrabold">Vehicle</th>
+                  <th className="px-3 py-3.5 text-left font-extrabold">Owner</th>
+                  <th className="px-3 py-3.5 text-left font-extrabold">Branch</th>
+                  <th className="px-3 py-3.5 text-left font-extrabold">Specs</th>
+                  <th className="px-3 py-3.5 text-left font-extrabold">Plate No.</th>
+                  <th className="px-3.5 py-3.5 text-left font-extrabold">Base Rate &amp; Tariffs</th>
+                  <th className="px-3 py-3.5 text-center font-extrabold">Status</th>
+                  <th className="px-4 py-3.5 text-right font-extrabold">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
                 {fleet.rows.map((car) => {
                   const carName =
                     [car.brand, car.model].filter(Boolean).join(" ") || "Vehicle";
@@ -344,10 +344,10 @@ export default async function SharedCarsPage({
                   return (
                     <tr
                       key={car.id}
-                      className="group transition-colors duration-150 hover:bg-muted/30"
+                      className="group transition-colors duration-150 hover:bg-neutral-100/80 dark:hover:bg-neutral-800/50"
                     >
-                      {/* VEHICLE: Thumbnail + Camera Badge + Brand/Model + Type Badge */}
-                      <td className="px-3.5 py-3">
+                      {/* VEHICLE: Fixed size Thumbnail + Stacked Name & Type */}
+                      <td className="px-4 py-3.5">
                         <div className="flex items-center gap-3">
                           <CarGalleryDialog
                             carId={car.id}
@@ -358,7 +358,7 @@ export default async function SharedCarsPage({
                             canManage={isOwnerOrAdmin}
                             trigger={
                               <div
-                                className="group/thumb relative size-12 shrink-0 cursor-pointer overflow-hidden rounded-xl border border-border bg-black/60 shadow-sm transition hover:scale-105 hover:border-[#ffcc00]"
+                                className="group/thumb relative size-12 shrink-0 cursor-pointer overflow-hidden rounded-lg border border-neutral-200 dark:border-neutral-800 bg-muted shadow-xs transition hover:scale-105 hover:border-[#ffcc00]"
                                 title="Click to view image gallery"
                               >
                                 <CarImage
@@ -366,49 +366,51 @@ export default async function SharedCarsPage({
                                   alt={carName}
                                   className="size-full object-cover"
                                 />
-                                <div className="absolute bottom-1 right-1 rounded bg-black/70 p-0.5 text-white">
-                                  <Camera className="size-3 text-amber-300" />
+                                <div className="absolute bottom-0.5 right-0.5 rounded bg-black/70 p-0.5 text-white">
+                                  <Camera className="size-2.5 text-amber-300" />
                                 </div>
                               </div>
                             }
                           />
 
-                          <div>
-                            <p className="font-extrabold text-foreground group-hover:text-[#ffcc00] text-sm">
+                          <div className="min-w-0">
+                            <p className="font-extrabold text-neutral-900 dark:text-neutral-100 group-hover:text-[#b38a00] dark:group-hover:text-[#ffcc00] text-sm truncate max-w-[180px]">
                               {carName}
                             </p>
-                            <span className="inline-block mt-0.5 rounded border border-border/80 bg-muted/60 px-1.5 py-0.2 text-[10px] font-bold text-muted-foreground uppercase">
+                            <span className="inline-block mt-0.5 rounded border border-border/70 bg-muted/50 px-1.5 py-0.2 text-[10px] font-bold text-muted-foreground uppercase">
                               {car.type || "Sedan"}
                             </span>
                           </div>
                         </div>
                       </td>
 
-                      {/* OWNER: Icon + Operator Name */}
-                      <td className="px-3 py-3">
-                        <div className="flex items-center gap-1.5 font-bold text-foreground">
-                          <User className="size-3.5 text-muted-foreground" />
-                          <span>{ownerName}</span>
+                      {/* OWNER: Icon + Properly Wrapped/Truncated Name */}
+                      <td className="px-3 py-3.5">
+                        <div className="flex items-center gap-1.5 font-bold text-neutral-900 dark:text-neutral-100 max-w-[140px]">
+                          <User className="size-3.5 text-muted-foreground shrink-0" />
+                          <span className="truncate" title={ownerName}>{ownerName}</span>
                         </div>
                       </td>
 
-                      {/* BRANCH: Building Icon + Pill */}
-                      <td className="px-3 py-3">
-                        <div className="inline-flex items-center gap-1.5 rounded-lg border border-border/80 bg-muted/40 px-2.5 py-1 text-xs font-semibold text-foreground">
-                          <Store className="size-3.5 text-muted-foreground" />
-                          <span>{car.branches?.name ?? "Main Branch"}</span>
+                      {/* BRANCH: Location Icon + Clean Subtle Text */}
+                      <td className="px-3 py-3.5">
+                        <div className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-muted/40 px-2.5 py-1 text-xs font-semibold text-neutral-900 dark:text-neutral-100 max-w-[160px]">
+                          <Store className="size-3.5 text-muted-foreground shrink-0" />
+                          <span className="truncate" title={car.branches?.name ?? "Main Branch"}>
+                            {car.branches?.name ?? "Main Branch"}
+                          </span>
                         </div>
                       </td>
 
-                      {/* SPECS: Cog + Transmission, Users + Seats & Color */}
-                      <td className="px-3 py-3">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1 text-foreground">
-                            <Cog className="size-3.5 text-amber-400" />
-                            <span className="font-semibold">{car.transmission || "Automatic"}</span>
+                      {/* SPECS: Transmission, Seats & Color */}
+                      <td className="px-3 py-3.5">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-1 text-neutral-900 dark:text-neutral-100 font-semibold">
+                            <Cog className="size-3.5 text-amber-500 shrink-0" />
+                            <span>{car.transmission || "Automatic"}</span>
                           </div>
                           <div className="flex items-center gap-1 text-muted-foreground text-[11px]">
-                            <Users className="size-3 text-muted-foreground" />
+                            <Users className="size-3 text-muted-foreground shrink-0" />
                             <span>
                               {car.capacity || 5} Seats {car.color ? `• ${car.color}` : ""}
                             </span>
@@ -417,65 +419,28 @@ export default async function SharedCarsPage({
                       </td>
 
                       {/* PLATE NO: Pill */}
-                      <td className="px-3 py-3">
-                        <span className="inline-block rounded-lg border border-border bg-card px-2 py-1 font-mono text-xs font-bold text-foreground shadow-xs">
+                      <td className="px-3 py-3.5">
+                        <span className="inline-block rounded-lg border border-neutral-200 dark:border-neutral-800 bg-card px-2 py-1 font-mono text-xs font-bold text-neutral-900 dark:text-neutral-100 shadow-xs">
                           {car.plate_number ?? "—"}
                         </span>
                       </td>
 
-                      {/* RATES & SPLITS (10H / 12H / 24H) */}
-                      <td className="px-3 py-3">
-                        <div className="space-y-0.5 text-[11px]">
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="text-muted-foreground">10h: <strong className="text-foreground"><Money value={car.price_10_hours ?? 0} /></strong></span>
-                            <span className="text-emerald-500 font-bold">Op: <Money value={car.operator_10_hours ?? 0} /></span>
-                          </div>
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="text-muted-foreground">12h: <strong className="text-foreground"><Money value={car.price_12_hours ?? 0} /></strong></span>
-                            <span className="text-emerald-500 font-bold">Op: <Money value={car.operator_12_hours ?? 0} /></span>
-                          </div>
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="font-extrabold text-[#ffcc00]">24h: <strong className="text-foreground"><Money value={car.price_24_hours ?? 0} /></strong></span>
-                            <span className="text-emerald-500 font-bold">Op: <Money value={car.operator_24_hours ?? 0} /></span>
-                          </div>
-                        </div>
+                      {/* BASE RATE & INTERACTIVE TARIFF POPOVER (Replaces overcrowded matrix) */}
+                      <td className="px-3.5 py-3.5">
+                        <FleetRatePopover car={car} />
                       </td>
 
-                      {/* OVERTIME / EXTENSION RATES (with bold price + "per hour" for 1-6h) */}
-                      <td className="px-3 py-3">
-                        <div className="space-y-0.5 text-[11px]">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-muted-foreground">1-6 hrs:</span>
-                            <span className="font-extrabold text-foreground">
-                              ₱{car.ext_price_1_6 ?? 0}/hr
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between gap-2 text-muted-foreground">
-                            <span>7-10 hrs:</span>
-                            <span>₱{car.ext_price_7_10 ?? 0}</span>
-                          </div>
-                          <div className="flex items-center justify-between gap-2 text-muted-foreground">
-                            <span>11-12 hrs:</span>
-                            <span>₱{car.ext_price_11_12 ?? 0}</span>
-                          </div>
-                          <div className="flex items-center justify-between gap-2 text-muted-foreground">
-                            <span>13-24 hrs:</span>
-                            <span>₱{car.ext_price_13_24 ?? 0}</span>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* STATUS (Operational Status: Active, Available, Maintenance) */}
-                      <td className="px-3 py-3 text-center">
+                      {/* STATUS: Standardized high-contrast pill */}
+                      <td className="px-3 py-3.5 text-center">
                         <StatusBadge
                           status={car.status || "Available"}
-                          className="rounded-full px-3 py-1 text-[11px] font-extrabold"
+                          className="rounded-full px-3 py-1 text-[11px]"
                         />
                       </td>
 
-                      {/* ACTIONS */}
-                      <td className="px-3.5 py-3 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
+                      {/* ACTIONS: gap-3 between buttons with tooltips and red delete hover */}
+                      <td className="px-4 py-3.5 text-right">
+                        <div className="flex items-center justify-end gap-3">
                           {/* Edit Car Modal */}
                           {isOwnerOrAdmin ? (
                             <EditCarDialog
@@ -499,7 +464,7 @@ export default async function SharedCarsPage({
                           {/* Schedule Button */}
                           <Link
                             href={`/shared/my_car_schedules?car_id=${car.id}`}
-                            className="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-card text-foreground transition hover:border-[#ffcc00] hover:text-[#b38a00]"
+                            className="inline-flex size-8 items-center justify-center rounded-lg border border-neutral-200 dark:border-neutral-800 bg-card text-foreground transition hover:border-[#ffcc00] hover:text-[#b38a00] dark:hover:text-[#ffcc00] hover:bg-muted/40"
                             title="Manage Blockouts & Schedules"
                           >
                             <CalendarClock className="size-4" />
@@ -512,7 +477,7 @@ export default async function SharedCarsPage({
                               <ConfirmSubmit
                                 title="Delete Vehicle"
                                 message={`Are you sure you want to delete ${carName} (${car.plate_number})? This action cannot be undone.`}
-                                className="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-card text-rose-500 transition hover:border-destructive hover:bg-destructive/10 hover:text-destructive"
+                                className="inline-flex size-8 items-center justify-center rounded-lg border border-neutral-200 dark:border-neutral-800 bg-card text-muted-foreground transition hover:border-destructive hover:bg-destructive/10 hover:text-destructive"
                               >
                                 <Trash2 className="size-4" />
                               </ConfirmSubmit>
