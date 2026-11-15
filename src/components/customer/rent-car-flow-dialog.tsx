@@ -1281,7 +1281,7 @@ export function RentCarFlowDialog({
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 sm:p-8 m-4 rounded-xl border border-border/70 bg-muted/20 text-xs sm:text-[13px] leading-relaxed text-foreground/90 whitespace-pre-wrap font-sans shadow-inner selection:bg-[#ffcc00] selection:text-black">
-            {OFFICIAL_RENTAL_AGREEMENT}
+            {agreementHtml || OFFICIAL_RENTAL_AGREEMENT}
           </div>
 
           <div className="border-t border-border/80 px-6 py-4 bg-card shrink-0 flex items-center justify-between gap-3">
@@ -1321,7 +1321,7 @@ export function RentCarFlowDialog({
             </DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto p-6 m-4 rounded-xl border border-border/70 bg-muted/20 text-xs sm:text-[13px] leading-relaxed text-foreground/90 whitespace-pre-wrap font-sans">
-            {OFFICIAL_RENTAL_AGREEMENT}
+            {agreementHtml || OFFICIAL_RENTAL_AGREEMENT}
           </div>
           <div className="border-t border-border/80 px-6 py-3 bg-card shrink-0 flex justify-end">
             <Button
