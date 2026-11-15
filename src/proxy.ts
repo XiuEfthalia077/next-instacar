@@ -23,7 +23,7 @@ const ROLE_ROOTS: Record<UserRole, string[]> = {
   admin: ["/admin", "/shared", "/profile"],
   operator: ["/operator", "/shared", "/profile"],
   staff: ["/staff", "/shared", "/profile"],
-  user: ["/user", "/shared", "/profile"],
+  user: ["/user", "/profile"],
 };
 
 function isPublicPath(pathname: string) {

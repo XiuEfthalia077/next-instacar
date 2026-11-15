@@ -2,6 +2,7 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { ROLE_HOME } from "@/lib/constants";
+import { getAdminClient } from "@/lib/supabase-admin";
 import type { UserRole } from "@/lib/types";
 
 /**
@@ -75,9 +76,10 @@ export async function GET(request: NextRequest) {
   }
 
   const email = user.email.toLowerCase().trim();
+  const db = getAdminClient() ?? supabase;
 
   // 1. Look up profile by auth_id
-  let { data: profile } = await supabase
+  let { data: profile } = await db
     .from("users")
     .select("id, role, auth_id, email, terms_accepted_at, terms_version")
     .eq("auth_id", user.id)
@@ -85,7 +87,7 @@ export async function GET(request: NextRequest) {
 
   // 2. If not linked by auth_id, check for an existing account with the same email
   if (!profile) {
-    const { data: existingByEmail } = await supabase
+    const { data: existingByEmail } = await db
       .from("users")
       .select("id, role, auth_id, email, terms_accepted_at, terms_version")
       .eq("email", email)
@@ -95,11 +97,11 @@ export async function GET(request: NextRequest) {
 
     if (existingByEmail) {
       // Link the existing account to this Google Auth ID & stamp terms acceptance if not present
-      await supabase
+      await db
         .from("users")
         .update({
           auth_id: user.id,
-          is_verified: 1,
+          is_verified: true,
           terms_accepted_at: existingByEmail.terms_accepted_at || nowIso,
           terms_version: existingByEmail.terms_version || "v1.0",
         })
@@ -119,7 +121,7 @@ export async function GET(request: NextRequest) {
         email.split("@")[0];
       const phone = user.user_metadata?.phone || null;
 
-      const { data: newProfile, error: insertError } = await supabase
+      const { data: newProfile, error: insertError } = await db
         .from("users")
         .insert({
           auth_id: user.id,
@@ -127,7 +129,7 @@ export async function GET(request: NextRequest) {
           email,
           phone,
           role: "user",
-          is_verified: 1,
+          is_verified: true,
           terms_accepted_at: nowIso,
           terms_version: "v1.0",
         })
@@ -136,6 +138,17 @@ export async function GET(request: NextRequest) {
 
       if (!insertError && newProfile) {
         profile = newProfile;
+      } else {
+        // Fallback to security-definer helper if insert encountered issues
+        const { data: fallbackProfile } = await supabase.rpc("ensure_user_profile", {
+          p_auth_id: user.id,
+          p_name: displayName,
+          p_email: email,
+          p_phone: phone || "",
+        });
+        if (fallbackProfile) {
+          profile = fallbackProfile;
+        }
       }
     }
   }

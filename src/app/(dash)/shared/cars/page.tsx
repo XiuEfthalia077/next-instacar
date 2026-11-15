@@ -58,6 +58,10 @@ export default async function SharedCarsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const session = await requireSession();
+  if (session.role === "user") {
+    const { redirect } = await import("next/navigation");
+    redirect("/user/cars");
+  }
   const params = await searchParams;
   const flash = readFlash(params);
 
