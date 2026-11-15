@@ -10,6 +10,7 @@ import { LandingAvailabilitySection } from "@/components/marketing/landing-avail
 import { ReviewsSection, type ReviewItem } from "@/components/marketing/reviews-section";
 import { SiteFooter } from "@/components/marketing/site-footer";
 import { SiteNavbar } from "@/components/marketing/site-navbar";
+import { GuestConversionModal } from "@/components/customer/guest-conversion-modal";
 import { getSiteStats } from "@/lib/public-stats";
 import { getSupabase, getSession } from "@/lib/auth";
 import { getAdminClient } from "@/lib/supabase-admin";
@@ -185,6 +186,11 @@ export default async function HomePage() {
 
         {/* Direct Contact & Inquiries */}
         <ContactSection />
+
+        {/* Part 3: Guest-to-User Conversion Hook Modal */}
+        <Suspense fallback={null}>
+          <GuestConversionModal />
+        </Suspense>
       </main>
 
       <SiteFooter />

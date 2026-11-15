@@ -359,7 +359,7 @@ export function RentCarFlowDialog({
     e.preventDefault();
     setAuthError(null);
 
-    // Enforce that booking cannot be finalized without an account or Google login
+    // Validate guest contact details if not logged in
     if (!userLoggedIn) {
       const form = formRef.current;
       const guestName = (form?.elements.namedItem("guest_name") as HTMLInputElement)?.value?.trim();
@@ -367,12 +367,12 @@ export function RentCarFlowDialog({
       const guestPhone = (form?.elements.namedItem("guest_phone") as HTMLInputElement)?.value?.trim();
       const guestPassword = (form?.elements.namedItem("guest_password") as HTMLInputElement)?.value;
 
-      if (!guestName || !guestEmail || !guestPhone || !guestPassword) {
-        setAuthError("Please sign in with Google or fill in all account fields to finalize your reservation.");
+      if (!guestName || !guestEmail || !guestPhone) {
+        setAuthError("Please provide your Full Name, Email Address, and Phone Number to finalize your booking.");
         return;
       }
-      if (guestPassword.length < 8) {
-        setAuthError("Password must be at least 8 characters long.");
+      if (guestPassword && guestPassword.length < 8) {
+        setAuthError("If creating a password, it must be at least 8 characters long (or leave blank to book as guest).");
         return;
       }
     }
@@ -1032,19 +1032,19 @@ export function RentCarFlowDialog({
                 </button>
               </div>
 
-              {/* Guest Checkout: Prompt account creation or Google sign-in before finalizing */}
+              {/* Guest Checkout: Driver contact details and optional password */}
               {!userLoggedIn && (
                 <div className="rounded-2xl border border-amber-500/40 bg-amber-500/5 p-4 sm:p-5 space-y-4">
                   <div className="flex items-start gap-3">
                     <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#ffcc00] text-black text-xs font-black shadow-xs mt-0.5">
-                      !
+                      ✓
                     </span>
                     <div className="space-y-0.5">
                       <h4 className="text-xs sm:text-sm font-black text-foreground">
-                        Account Required to Finalize Reservation
+                        Guest Checkout &amp; Driver Details
                       </h4>
                       <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
-                        To protect your reservation and access rental documents, please sign in with Google or enter your details below.
+                        Enter your driver contact details. You can optionally set a password now or after checkout to securely save your uploaded IDs for future 1-click rentals.
                       </p>
                     </div>
                   </div>
@@ -1059,7 +1059,7 @@ export function RentCarFlowDialog({
 
                   <div className="flex items-center gap-3 text-xs text-muted-foreground my-1">
                     <div className="h-px flex-1 bg-border" />
-                    <span className="font-bold uppercase tracking-wider text-[10px]">Or create an account</span>
+                    <span className="font-bold uppercase tracking-wider text-[10px]">Or continue as guest</span>
                     <div className="h-px flex-1 bg-border" />
                   </div>
 
@@ -1102,13 +1102,12 @@ export function RentCarFlowDialog({
                       />
                     </div>
                     <div>
-                      <Label className="text-xs font-bold text-foreground">Create Password (min. 8 chars) *</Label>
+                      <Label className="text-xs font-bold text-foreground">Create Password (Optional)</Label>
                       <Input
                         name="guest_password"
                         type="password"
-                        required
                         minLength={8}
-                        placeholder="••••••••"
+                        placeholder="•••••••• (Optional)"
                         className="mt-1 h-10 text-xs"
                         onChange={() => setAuthError(null)}
                       />

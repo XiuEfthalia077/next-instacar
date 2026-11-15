@@ -1700,16 +1700,18 @@ export async function createBookingAction(formData: FormData) {
     flashRedirect(back, "error", "Invalid request.");
   }
 
-  // Guest Checkout support: If not signed in, create account at final step
+  // Guest Checkout support: Allow seamless guest booking with optional post-booking account conversion
   let effectiveUserId = session?.userId;
+  let isGuestCheckout = false;
   if (!session) {
+    isGuestCheckout = true;
     const guestName = str(formData, "guest_name") || "Valued Customer";
     const guestEmail = str(formData, "guest_email").toLowerCase().trim();
     const guestPhone = str(formData, "guest_phone");
     const guestPassword = str(formData, "guest_password");
 
-    if (!guestEmail || !guestPassword) {
-      flashRedirect(back, "error", "Please provide your account email and password to confirm your booking.");
+    if (!guestEmail) {
+      flashRedirect(back, "error", "Please provide your email address to confirm your booking.");
     }
 
     // Check if user already exists in public.users
@@ -1722,19 +1724,19 @@ export async function createBookingAction(formData: FormData) {
     if (existingUser) {
       effectiveUserId = (existingUser as { id: number }).id;
     } else {
-      // Create user in Supabase Auth via Admin API
-      const { data: createdAuth, error: authErr } = await db.auth.admin.createUser({
-        email: guestEmail,
-        password: guestPassword,
-        email_confirm: true,
-        user_metadata: {
-          name: guestName,
-          phone: guestPhone || null,
-        },
-      });
-
-      if (authErr && !authErr.message.includes("already registered")) {
-        flashRedirect(back, "error", `Failed to create account: ${authErr.message}`);
+      let createdAuthUserId: string | null = null;
+      if (guestPassword && guestPassword.length >= 8) {
+        // Create user in Supabase Auth via Admin API if password supplied upfront
+        const { data: createdAuth, error: authErr } = await db.auth.admin.createUser({
+          email: guestEmail,
+          password: guestPassword,
+          email_confirm: true,
+          user_metadata: {
+            name: guestName,
+            phone: guestPhone || null,
+          },
+        });
+        if (createdAuth?.user) createdAuthUserId = createdAuth.user.id;
       }
 
       // Check if trigger created row in public.users
@@ -1750,7 +1752,7 @@ export async function createBookingAction(formData: FormData) {
         const { data: insertedUser, error: insertErr } = await db
           .from("users")
           .insert({
-            auth_id: createdAuth?.user?.id ?? null,
+            auth_id: createdAuthUserId,
             name: guestName,
             email: guestEmail,
             phone: guestPhone || null,
@@ -1765,14 +1767,17 @@ export async function createBookingAction(formData: FormData) {
         effectiveUserId = (insertedUser as { id: number }).id;
       }
 
-      // Sign in the new guest user to establish session
-      try {
-        await supabase.auth.signInWithPassword({
-          email: guestEmail,
-          password: guestPassword,
-        });
-      } catch {
-        // Fallback: continue booking flow
+      if (guestPassword && guestPassword.length >= 8) {
+        // Sign in the user if password was provided upfront
+        try {
+          await supabase.auth.signInWithPassword({
+            email: guestEmail,
+            password: guestPassword,
+          });
+          isGuestCheckout = false;
+        } catch {
+          // Continue as guest checkout
+        }
       }
     }
   }
@@ -2000,9 +2005,107 @@ export async function createBookingAction(formData: FormData) {
   revalidatePath("/staff/bookings");
   revalidatePath("/shared/calendar");
 
+  const guestEmailVal = !session ? str(formData, "guest_email").toLowerCase().trim() : "";
+  const destinationUrl = isGuestCheckout
+    ? `/?guest_booking_id=${bookingId}&email=${encodeURIComponent(guestEmailVal)}&prompt_signup=1`
+    : "/user/mybookings";
+
+  flashRedirect(
+    destinationUrl,
+    "success",
+    `Booking submitted successfully! Reservation #${bookingId} is confirmed. Duration: ${hours.toFixed(1)} hours. Total: ₱${totalPrice.toFixed(2)}`,
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Guest-to-User Conversion Hook                                      */
+/* ------------------------------------------------------------------ */
+
+export async function linkGuestBookingToAccountAction(formData: FormData) {
+  const bookingId = Number(formData.get("booking_id"));
+  const email = str(formData, "email").toLowerCase().trim();
+  const password = str(formData, "password");
+  const confirmPassword = str(formData, "confirm_password");
+
+  if (!email || !password) {
+    flashRedirect("/", "error", "Email and password are required.");
+  }
+
+  if (password.length < 8) {
+    flashRedirect(
+      `/?guest_booking_id=${bookingId}&email=${encodeURIComponent(email)}&prompt_signup=1`,
+      "error",
+      "Password must be at least 8 characters long.",
+    );
+  }
+
+  if (confirmPassword && password !== confirmPassword) {
+    flashRedirect(
+      `/?guest_booking_id=${bookingId}&email=${encodeURIComponent(email)}&prompt_signup=1`,
+      "error",
+      "Passwords do not match.",
+    );
+  }
+
+  const db = getAdminClient() ?? (await getSupabase());
+  const supabase = await getSupabase();
+
+  // 1. Fetch booking to retrieve the documents the guest uploaded
+  const { data: booking } = await db
+    .from("bookings")
+    .select("id, user_id, primary_id_path, secondary_id_path, proof_billing_path")
+    .eq("id", bookingId)
+    .maybeSingle();
+
+  // 2. Create or update Supabase Auth user
+  let authUserId: string | null = null;
+  const { data: createdAuth, error: authErr } = await db.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+
+  if (createdAuth?.user) {
+    authUserId = createdAuth.user.id;
+  } else if (authErr?.message?.includes("already registered") || authErr?.message?.includes("already exists")) {
+    const { data: listUsers } = await db.auth.admin.listUsers();
+    const found = listUsers?.users?.find((u) => u.email?.toLowerCase() === email);
+    if (found) {
+      authUserId = found.id;
+      await db.auth.admin.updateUserById(found.id, { password });
+    }
+  } else {
+    flashRedirect(
+      `/?guest_booking_id=${bookingId}&email=${encodeURIComponent(email)}&prompt_signup=1`,
+      "error",
+      `Could not create account: ${authErr?.message}`,
+    );
+  }
+
+  // 3. Link documents to public.users profile
+  const docUpdates: Record<string, unknown> = {
+    auth_id: authUserId,
+  };
+  if (booking?.primary_id_path) docUpdates.primary_id_url = booking.primary_id_path;
+  if (booking?.secondary_id_path) docUpdates.secondary_id_url = booking.secondary_id_path;
+  if (booking?.proof_billing_path) docUpdates.proof_of_billing_url = booking.proof_billing_path;
+
+  if (booking?.user_id) {
+    await db.from("users").update(docUpdates).eq("id", booking.user_id);
+  } else {
+    await db.from("users").update(docUpdates).eq("email", email);
+  }
+
+  // 4. Sign in the new user to establish their session
+  try {
+    await supabase.auth.signInWithPassword({ email, password });
+  } catch {}
+
+  revalidatePath("/user/mybookings");
+  revalidatePath("/user/profile");
   flashRedirect(
     "/user/mybookings",
     "success",
-    `Booking submitted successfully! Duration: ${hours.toFixed(1)} hours. Total: ${totalPrice.toFixed(2)}`,
+    "Account created! Your Driver's License and documents are saved for all future bookings.",
   );
 }
