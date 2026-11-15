@@ -90,32 +90,56 @@ export const POPULAR_DESTINATIONS = [
   },
 ];
 
-// Free high-quality CARTO Dark Matter style definition for MapLibre
-const CARTO_DARK_MATTER_STYLE: any = {
-  version: 8,
-  sources: {
-    "carto-dark": {
-      type: "raster",
-      tiles: [
-        "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-        "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-        "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-        "https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
+// High-quality dark-mode map style definition using Geoapify Yellow Roads or universal OpenStreetMap fallback
+const getMapStyle = (apiKey: string): any => {
+  if (apiKey) {
+    return {
+      version: 8,
+      sources: {
+        "geoapify-tiles": {
+          type: "raster",
+          tiles: [
+            `https://maps.geoapify.com/v1/tile/dark-matter-yellow-roads/{z}/{x}/{y}@2x.png?apiKey=${apiKey}`,
+          ],
+          tileSize: 256,
+          attribution:
+            'Powered by <a href="https://www.geoapify.com/" target="_blank" rel="noopener">Geoapify</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
+        },
+      },
+      layers: [
+        {
+          id: "geoapify-layer",
+          type: "raster",
+          source: "geoapify-tiles",
+          minzoom: 0,
+          maxzoom: 20,
+        },
       ],
-      tileSize: 256,
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>',
+    };
+  }
+
+  // Universal free OpenStreetMap raster fallback (never requires an API key and never shows watermarks)
+  return {
+    version: 8,
+    sources: {
+      "osm-tiles": {
+        type: "raster",
+        tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+        tileSize: 256,
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
+      },
     },
-  },
-  layers: [
-    {
-      id: "carto-dark-layer",
-      type: "raster",
-      source: "carto-dark",
-      minzoom: 0,
-      maxzoom: 20,
-    },
-  ],
+    layers: [
+      {
+        id: "osm-layer",
+        type: "raster",
+        source: "osm-tiles",
+        minzoom: 0,
+        maxzoom: 19,
+      },
+    ],
+  };
 };
 
 export function calculateDistanceKm(
@@ -210,6 +234,8 @@ export function UberInteractiveMapDialog({
   const [isLocating, setIsLocating] = React.useState(false);
 
   const geoapifyApiKey = process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY || "";
+
+  const mapStyle = React.useMemo(() => getMapStyle(geoapifyApiKey), [geoapifyApiKey]);
 
   const distanceKm = React.useMemo(() => {
     return calculateDistanceKm(
@@ -610,7 +636,7 @@ export function UberInteractiveMapDialog({
               longitude: currentCoords.lng,
               zoom: 15,
             }}
-            mapStyle={CARTO_DARK_MATTER_STYLE}
+            mapStyle={mapStyle}
             onClick={handleMapClick}
             cursor="crosshair"
             attributionControl={false}
