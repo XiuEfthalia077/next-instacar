@@ -183,11 +183,16 @@ export function MobileBottomBar() {
   const isExploreActive = pathname === "/" || pathname === "/user/cars" || pathname.startsWith("/public/cars");
   const isTripsActive = pathname.startsWith("/user/mybookings");
 
+  // Active Tab Pill classes (High contrast in Light Mode & Glowing in Dark Mode)
+  const activeTabClass =
+    "bg-yellow-500/20 text-amber-950 dark:text-[#ffcc00] dark:bg-yellow-500/25 border border-yellow-500/40 font-black shadow-xs rounded-2xl";
+  const inactiveTabClass = "text-muted-foreground hover:text-foreground";
+
   return (
     <>
       <nav
         aria-label="Mobile Bottom Navigation"
-        className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t border-border bg-background/95 py-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] backdrop-blur-md transition-all md:hidden"
+        className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t border-border bg-background/95 px-1 py-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] backdrop-blur-md transition-all md:hidden"
       >
         {isAdminOrOperator ? (
           /* =========================================================================
@@ -199,68 +204,48 @@ export function MobileBottomBar() {
             <Link
               href={dashboardHref}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-1 px-2.5 py-1 text-center transition-colors min-w-[56px] min-h-[44px]",
-                isDashboardActive
-                  ? "font-black text-[#ffcc00]"
-                  : "text-muted-foreground hover:text-foreground",
+                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px]",
+                isDashboardActive ? activeTabClass : inactiveTabClass,
               )}
             >
-              <LayoutDashboard className={cn("size-5", isDashboardActive ? "stroke-[2.5]" : "stroke-2")} />
-              <span className="text-[10px] tracking-tight">Dashboard</span>
-              {isDashboardActive && (
-                <span className="size-1 rounded-full bg-[#ffcc00] shadow-[0_0_6px_#ffcc00]" />
-              )}
+              <LayoutDashboard className={cn("size-5 shrink-0", isDashboardActive ? "stroke-[2.5]" : "stroke-2")} />
+              <span className="text-[10px] tracking-tight font-extrabold">Dashboard</span>
             </Link>
 
             {/* 2. Fleet */}
             <Link
               href="/shared/cars"
               className={cn(
-                "relative flex flex-col items-center justify-center gap-1 px-2.5 py-1 text-center transition-colors min-w-[56px] min-h-[44px]",
-                isFleetActive
-                  ? "font-black text-[#ffcc00]"
-                  : "text-muted-foreground hover:text-foreground",
+                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px]",
+                isFleetActive ? activeTabClass : inactiveTabClass,
               )}
             >
-              <Car className={cn("size-5", isFleetActive ? "stroke-[2.5]" : "stroke-2")} />
-              <span className="text-[10px] tracking-tight">Fleet</span>
-              {isFleetActive && (
-                <span className="size-1 rounded-full bg-[#ffcc00] shadow-[0_0_6px_#ffcc00]" />
-              )}
+              <Car className={cn("size-5 shrink-0", isFleetActive ? "stroke-[2.5]" : "stroke-2")} />
+              <span className="text-[10px] tracking-tight font-extrabold">Fleet</span>
             </Link>
 
             {/* 3. Schedule */}
             <Link
               href="/shared/calendar"
               className={cn(
-                "relative flex flex-col items-center justify-center gap-1 px-2.5 py-1 text-center transition-colors min-w-[56px] min-h-[44px]",
-                isScheduleActive
-                  ? "font-black text-[#ffcc00]"
-                  : "text-muted-foreground hover:text-foreground",
+                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px]",
+                isScheduleActive ? activeTabClass : inactiveTabClass,
               )}
             >
-              <CalendarDays className={cn("size-5", isScheduleActive ? "stroke-[2.5]" : "stroke-2")} />
-              <span className="text-[10px] tracking-tight">Schedule</span>
-              {isScheduleActive && (
-                <span className="size-1 rounded-full bg-[#ffcc00] shadow-[0_0_6px_#ffcc00]" />
-              )}
+              <CalendarDays className={cn("size-5 shrink-0", isScheduleActive ? "stroke-[2.5]" : "stroke-2")} />
+              <span className="text-[10px] tracking-tight font-extrabold">Schedule</span>
             </Link>
 
             {/* 4. Bookings */}
             <Link
               href={bookingsHref}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-1 px-2.5 py-1 text-center transition-colors min-w-[56px] min-h-[44px]",
-                isBookingsActive
-                  ? "font-black text-[#ffcc00]"
-                  : "text-muted-foreground hover:text-foreground",
+                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px]",
+                isBookingsActive ? activeTabClass : inactiveTabClass,
               )}
             >
-              <ClipboardList className={cn("size-5", isBookingsActive ? "stroke-[2.5]" : "stroke-2")} />
-              <span className="text-[10px] tracking-tight">Bookings</span>
-              {isBookingsActive && (
-                <span className="size-1 rounded-full bg-[#ffcc00] shadow-[0_0_6px_#ffcc00]" />
-              )}
+              <ClipboardList className={cn("size-5 shrink-0", isBookingsActive ? "stroke-[2.5]" : "stroke-2")} />
+              <span className="text-[10px] tracking-tight font-extrabold">Bookings</span>
             </Link>
 
             {/* 5. Profile */}
@@ -268,17 +253,12 @@ export function MobileBottomBar() {
               type="button"
               onClick={() => setProfileOpen(true)}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-1 px-2.5 py-1 text-center transition-colors min-w-[56px] min-h-[44px] cursor-pointer",
-                profileOpen
-                  ? "font-black text-[#ffcc00]"
-                  : "text-muted-foreground hover:text-foreground",
+                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px] cursor-pointer",
+                profileOpen ? activeTabClass : inactiveTabClass,
               )}
             >
-              <User className={cn("size-5", profileOpen ? "stroke-[2.5]" : "stroke-2")} />
-              <span className="text-[10px] tracking-tight">Profile</span>
-              {profileOpen && (
-                <span className="size-1 rounded-full bg-[#ffcc00] shadow-[0_0_6px_#ffcc00]" />
-              )}
+              <User className={cn("size-5 shrink-0", profileOpen ? "stroke-[2.5]" : "stroke-2")} />
+              <span className="text-[10px] tracking-tight font-extrabold">Profile</span>
             </button>
           </>
         ) : (
@@ -291,17 +271,12 @@ export function MobileBottomBar() {
             <Link
               href="/user/cars"
               className={cn(
-                "relative flex flex-col items-center justify-center gap-1 px-2.5 py-1 text-center transition-colors min-w-[56px] min-h-[44px]",
-                isExploreActive
-                  ? "font-black text-[#ffcc00]"
-                  : "text-muted-foreground hover:text-foreground",
+                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px]",
+                isExploreActive ? activeTabClass : inactiveTabClass,
               )}
             >
-              <Car className={cn("size-5", isExploreActive ? "stroke-[2.5]" : "stroke-2")} />
-              <span className="text-[10px] tracking-tight">Explore</span>
-              {isExploreActive && (
-                <span className="size-1 rounded-full bg-[#ffcc00] shadow-[0_0_6px_#ffcc00]" />
-              )}
+              <Car className={cn("size-5 shrink-0", isExploreActive ? "stroke-[2.5]" : "stroke-2")} />
+              <span className="text-[10px] tracking-tight font-extrabold">Explore</span>
             </Link>
 
             {/* 2. Search */}
@@ -311,10 +286,13 @@ export function MobileBottomBar() {
                 e.currentTarget.blur();
                 setSearchOpen(true);
               }}
-              className="relative flex flex-col items-center justify-center gap-1 px-2.5 py-1 text-center text-muted-foreground transition-colors hover:text-foreground min-w-[56px] min-h-[44px] cursor-pointer"
+              className={cn(
+                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px] cursor-pointer",
+                searchOpen ? activeTabClass : inactiveTabClass,
+              )}
             >
-              <SlidersHorizontal className="size-5 stroke-2" />
-              <span className="text-[10px] tracking-tight">Search</span>
+              <SlidersHorizontal className={cn("size-5 shrink-0", searchOpen ? "stroke-[2.5]" : "stroke-2")} />
+              <span className="text-[10px] tracking-tight font-extrabold">Search</span>
             </button>
 
             {/* 3. Saved */}
@@ -324,34 +302,32 @@ export function MobileBottomBar() {
                 e.currentTarget.blur();
                 setFavoritesOpen(true);
               }}
-              className="relative flex flex-col items-center justify-center gap-1 px-2.5 py-1 text-center text-muted-foreground transition-colors hover:text-foreground min-w-[56px] min-h-[44px] cursor-pointer"
+              className={cn(
+                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px] cursor-pointer",
+                favoritesOpen ? activeTabClass : inactiveTabClass,
+              )}
             >
               <div className="relative">
-                <Heart className="size-5 stroke-2" />
+                <Heart className={cn("size-5 shrink-0", favoritesOpen ? "stroke-[2.5]" : "stroke-2")} />
                 {favoritesCount > 0 && (
                   <span className="absolute -right-2 -top-1.5 flex size-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-black text-white">
                     {favoritesCount > 9 ? "9+" : favoritesCount}
                   </span>
                 )}
               </div>
-              <span className="text-[10px] tracking-tight">Saved</span>
+              <span className="text-[10px] tracking-tight font-extrabold">Saved</span>
             </button>
 
             {/* 4. Trips */}
             <Link
               href="/user/mybookings"
               className={cn(
-                "relative flex flex-col items-center justify-center gap-1 px-2.5 py-1 text-center transition-colors min-w-[56px] min-h-[44px]",
-                isTripsActive
-                  ? "font-black text-[#ffcc00]"
-                  : "text-muted-foreground hover:text-foreground",
+                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px]",
+                isTripsActive ? activeTabClass : inactiveTabClass,
               )}
             >
-              <CalendarDays className={cn("size-5", isTripsActive ? "stroke-[2.5]" : "stroke-2")} />
-              <span className="text-[10px] tracking-tight">Trips</span>
-              {isTripsActive && (
-                <span className="size-1 rounded-full bg-[#ffcc00] shadow-[0_0_6px_#ffcc00]" />
-              )}
+              <CalendarDays className={cn("size-5 shrink-0", isTripsActive ? "stroke-[2.5]" : "stroke-2")} />
+              <span className="text-[10px] tracking-tight font-extrabold">Trips</span>
             </Link>
 
             {/* 5. Profile */}
@@ -359,17 +335,12 @@ export function MobileBottomBar() {
               type="button"
               onClick={() => setProfileOpen(true)}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-1 px-2.5 py-1 text-center transition-colors min-w-[56px] min-h-[44px] cursor-pointer",
-                profileOpen
-                  ? "font-black text-[#ffcc00]"
-                  : "text-muted-foreground hover:text-foreground",
+                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px] cursor-pointer",
+                profileOpen ? activeTabClass : inactiveTabClass,
               )}
             >
-              <User className={cn("size-5", profileOpen ? "stroke-[2.5]" : "stroke-2")} />
-              <span className="text-[10px] tracking-tight">Profile</span>
-              {profileOpen && (
-                <span className="size-1 rounded-full bg-[#ffcc00] shadow-[0_0_6px_#ffcc00]" />
-              )}
+              <User className={cn("size-5 shrink-0", profileOpen ? "stroke-[2.5]" : "stroke-2")} />
+              <span className="text-[10px] tracking-tight font-extrabold">Profile</span>
             </button>
           </>
         )}

@@ -75,7 +75,7 @@ export function Topbar({
       : branches.find((b) => String(b.id) === String(session.viewBranch))?.name ?? "Selected Branch";
 
   return (
-    <nav className="sticky top-0 z-30 border-b border-[#e2e8f0] bg-white transition-colors dark:border-[#27272a] dark:bg-[#141414]">
+    <nav className="sticky top-0 z-30 hidden md:block border-b border-[#e2e8f0] bg-white transition-colors dark:border-[#27272a] dark:bg-[#141414]">
       <div className="flex items-center justify-between gap-2 px-3 py-2.5 sm:px-6 sm:py-3.5">
         <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
           <button

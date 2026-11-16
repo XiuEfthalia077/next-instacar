@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AlertCircle,
   Calendar as CalendarIcon,
   CalendarDays,
   Car,
@@ -30,6 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import type { BookingRow } from "@/lib/data/bookings";
 import { formatDate, formatTime } from "@/lib/datetime";
+import { getBookingUrgency } from "@/lib/urgency";
 import { cn } from "@/lib/utils";
 
 type CalendarViewProps = {
@@ -360,6 +362,7 @@ export function CalendarView({
                   return b.start_date <= dateStr && b.end_date >= dateStr;
                 });
 
+                const urgentAlert = dayBookings.map((b) => getBookingUrgency(b)).find((u) => u !== null);
                 const hasMaintenance = dayBookings.some((b) => b.status === "Maintenance");
                 const hasRelease = dayBookings.some((b) => b.start_date === dateStr);
                 const hasReturn = dayBookings.some((b) => b.end_date === dateStr);
@@ -375,30 +378,45 @@ export function CalendarView({
                     onClick={() => setSelectedDate(dateStr)}
                     className={cn(
                       "aspect-square flex flex-col items-center justify-between p-1 rounded-xl border transition active:scale-95 cursor-pointer relative",
-                      hasMaintenance
+                      urgentAlert
                         ? "border-rose-500/80 bg-rose-500/10 ring-1 ring-rose-500/40"
-                        : isToday
-                          ? "border-[#ffcc00] bg-[#ffcc00]/10 ring-1 ring-[#ffcc00]"
-                          : dayBookings.length > 0
-                            ? "border-border/80 bg-muted/40 hover:border-[#ffcc00]"
-                            : "border-border/40 bg-card hover:bg-muted/30",
+                        : hasMaintenance
+                          ? "border-rose-500/80 bg-rose-500/10 ring-1 ring-rose-500/40"
+                          : isToday
+                            ? "border-[#ffcc00] bg-[#ffcc00]/10 ring-1 ring-[#ffcc00]"
+                            : dayBookings.length > 0
+                              ? "border-border/80 bg-muted/40 hover:border-[#ffcc00]"
+                              : "border-border/40 bg-card hover:bg-muted/30",
                     )}
                   >
+                    {/* Top right urgent pulse dot */}
+                    {urgentAlert && (
+                      <span
+                        className="absolute right-1 top-1 size-1.5 rounded-full bg-rose-500 animate-ping ring-2 ring-rose-500"
+                        title={urgentAlert.message}
+                      />
+                    )}
+
                     <span
                       className={cn(
                         "flex size-5 items-center justify-center rounded-full text-[11px] font-black",
                         isToday
                           ? "bg-[#ffcc00] text-black shadow-xs"
-                          : hasMaintenance
+                          : urgentAlert
                             ? "bg-rose-500 text-white"
-                            : "text-foreground",
+                            : hasMaintenance
+                              ? "bg-rose-500 text-white"
+                              : "text-foreground",
                       )}
                     >
                       {dayNum}
                     </span>
 
-                    {/* Booking Indicator Dots (Release: Green, Return: Rose/Red, Maint: Purple/Rose) */}
+                    {/* Booking Indicator Dots (Urgent: Pulsing Rose, Release: Green, Return: Rose/Red, Maint: Purple/Rose) */}
                     <div className="flex items-center justify-center gap-1 min-h-[6px] w-full">
+                      {urgentAlert && (
+                        <span className="size-1.5 rounded-full bg-rose-500 animate-pulse ring-1 ring-rose-500" title={urgentAlert.message} />
+                      )}
                       {hasRelease && (
                         <span className="size-1.5 rounded-full bg-emerald-500 ring-1 ring-emerald-500/30" title="Trip Release / Pickup" />
                       )}
@@ -408,7 +426,7 @@ export function CalendarView({
                       {hasMaintenance && (
                         <span className="size-1.5 rounded-full bg-purple-500" title="Vehicle Maintenance" />
                       )}
-                      {!hasRelease && !hasReturn && !hasMaintenance && dayBookings.length > 0 && (
+                      {!hasRelease && !hasReturn && !hasMaintenance && !urgentAlert && dayBookings.length > 0 && (
                         <span className="size-1.5 rounded-full bg-[#ffcc00]" title="Ongoing Rental" />
                       )}
                     </div>
@@ -420,7 +438,11 @@ export function CalendarView({
             {/* Mobile Legend & Help Note */}
             <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/60 text-[10px] text-muted-foreground">
               <span className="font-semibold text-foreground">💡 Tap a date to inspect trips</span>
-              <div className="flex items-center gap-2.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1 font-bold text-rose-600 dark:text-rose-400">
+                  <span className="size-1.5 rounded-full bg-rose-500 animate-pulse" />
+                  Urgent (≤48h)
+                </span>
                 <span className="inline-flex items-center gap-1 font-bold text-emerald-700 dark:text-emerald-400">
                   <span className="size-1.5 rounded-full bg-emerald-500" />
                   Release
@@ -574,6 +596,7 @@ export function CalendarView({
                         [b.cars?.brand, b.cars?.model].filter(Boolean).join(" ") ||
                         "Vehicle";
                       const customerName = b.users?.name || b.guest_name || "Guest";
+                      const urgency = getBookingUrgency(b);
 
                       return (
                         <div
@@ -616,6 +639,19 @@ export function CalendarView({
                                   <span className="size-1.5 rounded-full bg-rose-500" />
                                   Return: {formatDate(b.end_date)} ({formatTime(b.return_time)})
                                 </span>
+
+                                {/* Urgency Warning: Prominent warning when release/return is within 48h or overdue */}
+                                {urgency && (
+                                  <span
+                                    className={cn(
+                                      "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-black shadow-xs",
+                                      urgency.badgeClass,
+                                    )}
+                                  >
+                                    <AlertCircle className="size-3 shrink-0" />
+                                    <span>{urgency.message}</span>
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -678,6 +714,7 @@ export function CalendarView({
                   [b.cars?.brand, b.cars?.model].filter(Boolean).join(" ") ||
                   "Vehicle";
                 const customerName = b.users?.name || b.guest_name || "Guest";
+                const urgency = getBookingUrgency(b);
 
                 return (
                   <div
@@ -726,6 +763,17 @@ export function CalendarView({
                           <span className="size-1.5 rounded-full bg-rose-500" />
                           Return: {formatDate(b.end_date)} • {formatTime(b.return_time)}
                         </span>
+                        {urgency && (
+                          <span
+                            className={cn(
+                              "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-black shadow-xs",
+                              urgency.badgeClass,
+                            )}
+                          >
+                            <AlertCircle className="size-3.5 shrink-0" />
+                            <span>{urgency.message}</span>
+                          </span>
+                        )}
                       </div>
                       {b.status === "Maintenance" ? (
                         <Link

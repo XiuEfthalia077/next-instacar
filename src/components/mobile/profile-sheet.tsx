@@ -3,14 +3,20 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
+  BarChart3,
+  Building2,
   CalendarDays,
   Car,
   ChevronRight,
+  ClipboardList,
+  CreditCard,
+  DollarSign,
   ExternalLink,
   LayoutDashboard,
   LogOut,
   Moon,
   ShieldCheck,
+  Star,
   Sun,
   User,
   Users,
@@ -116,55 +122,167 @@ export function ProfileSheet({
             </p>
 
             {isAdminOrOperator ? (
-              <>
-                <Link
-                  href={role === "operator" ? "/operator/dashboard" : role === "staff" ? "/staff/dashboard" : "/admin/dashboard"}
-                  onClick={() => onOpenChange(false)}
-                  className="flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold text-foreground hover:bg-muted transition"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <LayoutDashboard className="size-4 text-[#ffcc00]" />
-                    <span>Portal Dashboard</span>
-                  </div>
-                  <ChevronRight className="size-4 text-muted-foreground" />
-                </Link>
+              <div className="space-y-3">
+                {/* 1. Main View */}
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground px-2 mb-1">
+                    Main View
+                  </p>
+                  <Link
+                    href={role === "operator" ? "/operator/dashboard" : role === "staff" ? "/staff/dashboard" : "/admin/dashboard"}
+                    onClick={() => onOpenChange(false)}
+                    className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <LayoutDashboard className="size-4 text-[#ffcc00]" />
+                      <span>Portal Dashboard</span>
+                    </div>
+                    <ChevronRight className="size-4 text-muted-foreground" />
+                  </Link>
+                </div>
 
-                <Link
-                  href="/shared/profile"
-                  onClick={() => onOpenChange(false)}
-                  className="flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold text-foreground hover:bg-muted transition"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <User className="size-4 text-[#ffcc00]" />
-                    <span>My Profile &amp; Settings</span>
-                  </div>
-                  <ChevronRight className="size-4 text-muted-foreground" />
-                </Link>
+                {/* 2. Management & Fleet */}
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground px-2 mb-1">
+                    Fleet &amp; Schedules
+                  </p>
+                  <Link
+                    href="/shared/calendar"
+                    onClick={() => onOpenChange(false)}
+                    className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <CalendarDays className="size-4 text-[#ffcc00]" />
+                      <span>Master Booking Calendar</span>
+                    </div>
+                    <ChevronRight className="size-4 text-muted-foreground" />
+                  </Link>
+                  <Link
+                    href="/shared/cars"
+                    onClick={() => onOpenChange(false)}
+                    className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Car className="size-4 text-[#ffcc00]" />
+                      <span>Fleet Management</span>
+                    </div>
+                    <ChevronRight className="size-4 text-muted-foreground" />
+                  </Link>
+                  <Link
+                    href="/shared/my_car_schedules"
+                    onClick={() => onOpenChange(false)}
+                    className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Wrench className="size-4 text-[#ffcc00]" />
+                      <span>Vehicle Blackouts &amp; Maintenance</span>
+                    </div>
+                    <ChevronRight className="size-4 text-muted-foreground" />
+                  </Link>
+                </div>
 
-                <Link
-                  href="/shared/cars"
-                  onClick={() => onOpenChange(false)}
-                  className="flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold text-foreground hover:bg-muted transition"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Car className="size-4 text-[#ffcc00]" />
-                    <span>Fleet Inventory</span>
-                  </div>
-                  <ChevronRight className="size-4 text-muted-foreground" />
-                </Link>
+                {/* 3. Bookings & Accounting */}
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground px-2 mb-1">
+                    Operations &amp; Finance
+                  </p>
+                  <Link
+                    href={role === "operator" ? "/operator/bookings" : role === "staff" ? "/staff/bookings" : "/admin/bookings_online"}
+                    onClick={() => onOpenChange(false)}
+                    className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <ClipboardList className="size-4 text-[#ffcc00]" />
+                      <span>All Bookings</span>
+                    </div>
+                    <ChevronRight className="size-4 text-muted-foreground" />
+                  </Link>
+                  <Link
+                    href={role === "operator" ? "/operator/revenue" : role === "staff" ? "/staff/staff_revenue" : "/admin/financials"}
+                    onClick={() => onOpenChange(false)}
+                    className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <DollarSign className="size-4 text-[#ffcc00]" />
+                      <span>Accounting &amp; Revenue</span>
+                    </div>
+                    <ChevronRight className="size-4 text-muted-foreground" />
+                  </Link>
+                  {role === "admin" && (
+                    <Link
+                      href="/admin/analytics"
+                      onClick={() => onOpenChange(false)}
+                      className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <BarChart3 className="size-4 text-[#ffcc00]" />
+                        <span>Business Analytics</span>
+                      </div>
+                      <ChevronRight className="size-4 text-muted-foreground" />
+                    </Link>
+                  )}
+                </div>
 
-                <Link
-                  href="/shared/calendar"
-                  onClick={() => onOpenChange(false)}
-                  className="flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold text-foreground hover:bg-muted transition"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <CalendarDays className="size-4 text-[#ffcc00]" />
-                    <span>Master Booking Calendar</span>
+                {/* 4. Portal Configuration (Admin only) */}
+                {role === "admin" && (
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground px-2 mb-1">
+                      System &amp; Branches
+                    </p>
+                    <Link
+                      href="/admin/users"
+                      onClick={() => onOpenChange(false)}
+                      className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Users className="size-4 text-[#ffcc00]" />
+                        <span>Users &amp; Operators</span>
+                      </div>
+                      <ChevronRight className="size-4 text-muted-foreground" />
+                    </Link>
+                    <Link
+                      href="/admin/branches"
+                      onClick={() => onOpenChange(false)}
+                      className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Building2 className="size-4 text-[#ffcc00]" />
+                        <span>Branch Locations</span>
+                      </div>
+                      <ChevronRight className="size-4 text-muted-foreground" />
+                    </Link>
+                    <Link
+                      href="/admin/review_list"
+                      onClick={() => onOpenChange(false)}
+                      className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Star className="size-4 text-[#ffcc00]" />
+                        <span>Customer Reviews Moderation</span>
+                      </div>
+                      <ChevronRight className="size-4 text-muted-foreground" />
+                    </Link>
                   </div>
-                  <ChevronRight className="size-4 text-muted-foreground" />
-                </Link>
-              </>
+                )}
+
+                {/* 5. Account Settings */}
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground px-2 mb-1">
+                    My Account
+                  </p>
+                  <Link
+                    href="/shared/profile"
+                    onClick={() => onOpenChange(false)}
+                    className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <User className="size-4 text-[#ffcc00]" />
+                      <span>My Profile &amp; Password</span>
+                    </div>
+                    <ChevronRight className="size-4 text-muted-foreground" />
+                  </Link>
+                </div>
+              </div>
             ) : (
               <>
                 <Link
