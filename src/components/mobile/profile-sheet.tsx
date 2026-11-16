@@ -3,28 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  BadgeCheck,
-  BarChart3,
-  Building2,
-  CalendarDays,
-  Car,
   ChevronRight,
-  ClipboardList,
-  CreditCard,
-  DollarSign,
-  ExternalLink,
-  Inbox,
-  LayoutDashboard,
   LogOut,
   Moon,
-  PenSquare,
   ShieldCheck,
-  ShoppingCart,
-  Star,
   Sun,
   User,
-  Users,
-  Wrench,
 } from "lucide-react";
 
 import {
@@ -93,9 +77,9 @@ export function ProfileSheet({
         <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-muted-foreground/30 shrink-0" />
 
         <SheetHeader className="px-5 pt-3 pb-3 border-b border-border text-left shrink-0">
-          <SheetTitle className="sr-only">Account &amp; Navigation Menu</SheetTitle>
+          <SheetTitle className="sr-only">Account Settings &amp; Preferences</SheetTitle>
           <SheetDescription className="sr-only">
-            Quick links to access your account settings, dashboards, and session controls.
+            Manage your profile, theme mode, and authentication session.
           </SheetDescription>
 
           <div className="flex items-center gap-3">
@@ -119,218 +103,36 @@ export function ProfileSheet({
         </SheetHeader>
 
         <div className="p-5 space-y-4 flex-1">
-          {/* Section: Shortcuts */}
-          <div className="space-y-1">
-            <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground px-2 mb-1.5">
-              Navigation &amp; Controls
+          {/* Section: Account Settings */}
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground px-1">
+              My Account
             </p>
-
-            {isAdminOrOperator ? (
-              <div className="space-y-3">
-                {/* 1. Account Settings */}
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground px-2 mb-1">
-                    My Account
-                  </p>
-                  <Link
-                    href="/shared/profile"
-                    onClick={() => onOpenChange(false)}
-                    className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <User className="size-4 text-[#ffcc00]" />
-                      <span>My Profile &amp; Password</span>
-                    </div>
-                    <ChevronRight className="size-4 text-muted-foreground" />
-                  </Link>
+            <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-muted/20 overflow-hidden">
+              <Link
+                href={isAdminOrOperator ? "/shared/profile" : "/user/profile"}
+                onClick={() => onOpenChange(false)}
+                className="flex items-center justify-between p-3.5 text-xs font-bold text-foreground hover:bg-muted/40 transition"
+              >
+                <div className="flex items-center gap-2.5">
+                  <User className="size-4 text-[#ffcc00]" />
+                  <span>My Profile &amp; Password</span>
                 </div>
-
-                {/* 2. Operations & Additional Tools (Non-duplicate features) */}
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground px-2 mb-1">
-                    Operations &amp; Finance
-                  </p>
-                  {/* Manual Booking Shortcut (for walk-in & phone call entries) */}
-                  {(role === "admin" || role === "staff") && (
-                    <Link
-                      href={role === "staff" ? "/staff/bookings_manual" : "/admin/bookings_manual"}
-                      onClick={() => onOpenChange(false)}
-                      className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <PenSquare className="size-4 text-[#ffcc00]" />
-                        <span>Manual Walk-in Bookings</span>
-                      </div>
-                      <ChevronRight className="size-4 text-muted-foreground" />
-                    </Link>
-                  )}
-                  {/* Vehicle Maintenance & Blackouts */}
-                  <Link
-                    href="/shared/my_car_schedules"
-                    onClick={() => onOpenChange(false)}
-                    className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Wrench className="size-4 text-[#ffcc00]" />
-                      <span>Vehicle Maintenance &amp; Blackouts</span>
-                    </div>
-                    <ChevronRight className="size-4 text-muted-foreground" />
-                  </Link>
-                  {/* Accounting & Financials */}
-                  <Link
-                    href={role === "operator" ? "/operator/revenue" : role === "staff" ? "/staff/staff_revenue" : "/admin/financials"}
-                    onClick={() => onOpenChange(false)}
-                    className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <DollarSign className="size-4 text-[#ffcc00]" />
-                      <span>Accounting &amp; Revenue</span>
-                    </div>
-                    <ChevronRight className="size-4 text-muted-foreground" />
-                  </Link>
-                  {/* Analytics */}
-                  {role === "admin" && (
-                    <Link
-                      href="/admin/analytics"
-                      onClick={() => onOpenChange(false)}
-                      className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <BarChart3 className="size-4 text-[#ffcc00]" />
-                        <span>Business Analytics</span>
-                      </div>
-                      <ChevronRight className="size-4 text-muted-foreground" />
-                    </Link>
-                  )}
-                </div>
-
-                {/* 3. System & Administration (Admin only) */}
-                {role === "admin" && (
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground px-2 mb-1">
-                      System &amp; Administration
-                    </p>
-                    <Link
-                      href="/admin/users"
-                      onClick={() => onOpenChange(false)}
-                      className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <Users className="size-4 text-[#ffcc00]" />
-                        <span>Users &amp; Operators</span>
-                      </div>
-                      <ChevronRight className="size-4 text-muted-foreground" />
-                    </Link>
-                    <Link
-                      href="/admin/staff"
-                      onClick={() => onOpenChange(false)}
-                      className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <BadgeCheck className="size-4 text-[#ffcc00]" />
-                        <span>Staff Management Console</span>
-                      </div>
-                      <ChevronRight className="size-4 text-muted-foreground" />
-                    </Link>
-                    <Link
-                      href="/admin/branches"
-                      onClick={() => onOpenChange(false)}
-                      className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <Building2 className="size-4 text-[#ffcc00]" />
-                        <span>Branch Locations</span>
-                      </div>
-                      <ChevronRight className="size-4 text-muted-foreground" />
-                    </Link>
-                    <Link
-                      href="/admin/contact_messages"
-                      onClick={() => onOpenChange(false)}
-                      className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <Inbox className="size-4 text-[#ffcc00]" />
-                        <span>Contact Inquiries</span>
-                      </div>
-                      <ChevronRight className="size-4 text-muted-foreground" />
-                    </Link>
-                    <Link
-                      href="/admin/review_list"
-                      onClick={() => onOpenChange(false)}
-                      className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <Star className="size-4 text-[#ffcc00]" />
-                        <span>Customer Reviews Moderation</span>
-                      </div>
-                      <ChevronRight className="size-4 text-muted-foreground" />
-                    </Link>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <>
-                <Link
-                  href="/user/dashboard"
-                  onClick={() => onOpenChange(false)}
-                  className="flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold text-foreground hover:bg-muted transition"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <LayoutDashboard className="size-4 text-[#ffcc00]" />
-                    <span>My Dashboard</span>
-                  </div>
-                  <ChevronRight className="size-4 text-muted-foreground" />
-                </Link>
-
-                <Link
-                  href="/user/profile"
-                  onClick={() => onOpenChange(false)}
-                  className="flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold text-foreground hover:bg-muted transition"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <ShieldCheck className="size-4 text-[#ffcc00]" />
-                    <span>Profile &amp; Verification Docs</span>
-                  </div>
-                  <ChevronRight className="size-4 text-muted-foreground" />
-                </Link>
-
-                <Link
-                  href="/user/mybookings"
-                  onClick={() => onOpenChange(false)}
-                  className="flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold text-foreground hover:bg-muted transition"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <CalendarDays className="size-4 text-[#ffcc00]" />
-                    <span>My Trips &amp; Reservations</span>
-                  </div>
-                  <ChevronRight className="size-4 text-muted-foreground" />
-                </Link>
-
-                <Link
-                  href="/user/cars"
-                  onClick={() => onOpenChange(false)}
-                  className="flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold text-foreground hover:bg-muted transition"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Car className="size-4 text-[#ffcc00]" />
-                    <span>Browse All Vehicles</span>
-                  </div>
-                  <ChevronRight className="size-4 text-muted-foreground" />
-                </Link>
-              </>
-            )}
+                <ChevronRight className="size-4 text-muted-foreground" />
+              </Link>
+            </div>
           </div>
 
-          {/* Section: Preferences */}
-          <div className="pt-2 border-t border-border space-y-2">
-            <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground px-2">
-              Appearance
+          {/* Section: Preferences (Theme Mode) */}
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground px-1">
+              Preferences
             </p>
 
             <button
               type="button"
               onClick={toggleTheme}
-              className="w-full flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold text-foreground hover:bg-muted transition cursor-pointer"
+              className="w-full flex items-center justify-between rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-muted/20 p-3.5 text-xs font-bold text-foreground hover:bg-muted/40 transition cursor-pointer"
             >
               <div className="flex items-center gap-2.5">
                 {isDark ? (
@@ -340,18 +142,18 @@ export function ProfileSheet({
                 )}
                 <span>Theme Mode</span>
               </div>
-              <span className="text-[11px] font-semibold text-muted-foreground capitalize">
+              <span className="text-[11px] font-extrabold text-muted-foreground capitalize">
                 {isDark ? "Dark Theme" : "Light Theme"}
               </span>
             </button>
           </div>
 
           {/* Section: Logout */}
-          <div className="pt-2 border-t border-border">
+          <div className="pt-2">
             <form action={signOutAction}>
               <button
                 type="submit"
-                className="w-full flex items-center justify-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-xs font-extrabold text-destructive hover:bg-destructive hover:text-white transition cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-xs font-extrabold text-destructive hover:bg-destructive hover:text-white transition cursor-pointer"
               >
                 <LogOut className="size-4" />
                 <span>Log Out of InstaCar</span>

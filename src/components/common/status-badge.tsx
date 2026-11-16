@@ -15,20 +15,20 @@ export function StatusBadge({
 }) {
   const value = status ?? "—";
 
-  // Standardized semantic badge colors per Part 1 (low-opacity bg + high contrast text)
+  // Standardized semantic badge colors (strong legible backgrounds + high contrast text)
   const customTones: Record<string, string> = {
     // Bookings
-    Confirmed: "border-emerald-500/30 bg-emerald-500/15 text-emerald-800 dark:text-emerald-400 font-extrabold",
-    Released: "border-blue-500/30 bg-blue-500/15 text-blue-800 dark:text-blue-400 font-extrabold",
-    Pending: "border-amber-500/30 bg-amber-500/15 text-amber-800 dark:text-amber-400 font-extrabold",
-    Completed: "border-teal-500/30 bg-teal-500/15 text-teal-800 dark:text-teal-400 font-extrabold",
-    Cancelled: "border-rose-500/30 bg-rose-500/15 text-rose-800 dark:text-rose-400 font-extrabold",
+    Confirmed: "border-emerald-500/40 bg-emerald-500/20 text-emerald-950 dark:text-emerald-300 dark:bg-emerald-500/25 font-black",
+    Released: "border-blue-500/40 bg-blue-500/20 text-blue-950 dark:text-blue-300 dark:bg-blue-500/25 font-black",
+    Pending: "border-amber-500/40 bg-amber-500/20 text-amber-950 dark:text-amber-300 dark:bg-amber-500/25 font-black",
+    Completed: "border-teal-500/40 bg-teal-500/20 text-teal-950 dark:text-teal-300 dark:bg-teal-500/25 font-black",
+    Cancelled: "border-rose-500/40 bg-rose-500/20 text-rose-950 dark:text-rose-300 dark:bg-rose-500/25 font-black",
     // Fleet
-    Active: "border-emerald-500/30 bg-emerald-500/15 text-emerald-800 dark:text-emerald-400 font-extrabold",
-    Available: "border-amber-500/30 bg-amber-500/15 text-amber-800 dark:text-amber-400 font-extrabold",
-    Maintenance: "border-rose-500/30 bg-rose-500/15 text-rose-800 dark:text-rose-400 font-extrabold",
-    Rented: "border-blue-500/30 bg-blue-500/15 text-blue-800 dark:text-blue-400 font-extrabold",
-    Unavailable: "border-neutral-500/30 bg-neutral-500/15 text-neutral-800 dark:text-neutral-400 font-extrabold",
+    Active: "border-emerald-500/40 bg-emerald-500/20 text-emerald-950 dark:text-emerald-300 dark:bg-emerald-500/25 font-black",
+    Available: "border-amber-500/40 bg-amber-500/20 text-amber-950 dark:text-amber-300 dark:bg-amber-500/25 font-black",
+    Maintenance: "border-rose-500/40 bg-rose-500/20 text-rose-950 dark:text-rose-300 dark:bg-rose-500/25 font-black",
+    Rented: "border-blue-500/40 bg-blue-500/20 text-blue-950 dark:text-blue-300 dark:bg-blue-500/25 font-black",
+    Unavailable: "border-neutral-500/40 bg-neutral-500/20 text-neutral-900 dark:text-neutral-300 dark:bg-neutral-500/25 font-black",
   };
 
   const tone =

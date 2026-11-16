@@ -719,20 +719,20 @@ export function CalendarView({
                 return (
                   <div
                     key={b.id}
-                    className="flex flex-col gap-2 rounded-xl border border-border bg-muted/20 p-3.5 transition hover:border-[#ffcc00]/50"
+                    className="flex flex-col gap-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-card p-3.5 transition hover:border-[#ffcc00]/60 shadow-xs"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="rounded bg-muted px-1.5 py-0.2 font-mono text-xs font-bold text-foreground">
+                          <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs font-black text-foreground border border-neutral-300 dark:border-neutral-700">
                             #BK-{b.id}
                           </span>
-                          <span className="font-bold text-foreground">
+                          <span className="font-black text-foreground">
                             {carName}
                           </span>
                         </div>
                         {isAdminOrStaff && b.cars?.plate_number ? (
-                          <p className="mt-0.5 font-mono text-xs text-muted-foreground">
+                          <p className="mt-0.5 font-mono text-xs font-semibold text-neutral-600 dark:text-neutral-400">
                             Plate: {b.cars.plate_number}
                           </p>
                         ) : null}
@@ -740,14 +740,14 @@ export function CalendarView({
                       <StatusBadge status={b.status} />
                     </div>
 
-                    <div className="grid grid-cols-1 gap-1.5 border-t border-border/60 pt-2 text-xs text-muted-foreground sm:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-1.5 border-t border-neutral-200 dark:border-neutral-700 pt-2 text-xs text-neutral-600 dark:text-neutral-400 sm:grid-cols-2">
                       <div className="flex items-center gap-1.5">
-                        <User className="size-3.5 text-foreground" />
-                        <span>Customer: {customerName}</span>
+                        <User className="size-3.5 text-foreground shrink-0" />
+                        <span className="font-semibold text-foreground">Customer: {customerName}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <Clock className="size-3.5 text-[#ffcc00]" />
-                        <span>
+                        <Clock className="size-3.5 text-[#ffcc00] shrink-0" />
+                        <span className="font-medium text-foreground">
                           {formatTime(b.pickup_time)} – {formatTime(b.return_time)}
                         </span>
                       </div>

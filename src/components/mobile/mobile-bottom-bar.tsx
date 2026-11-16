@@ -17,6 +17,8 @@ import { useFavorites } from "@/lib/hooks/use-favorites";
 import { FavoritesSheet } from "@/components/mobile/favorites-sheet";
 import { MobileSearchSheet } from "@/components/mobile/mobile-search-sheet";
 import { ProfileSheet, type MobileProfileUser } from "@/components/mobile/profile-sheet";
+import { FleetSheet } from "@/components/mobile/fleet-sheet";
+import { MoreSheet } from "@/components/mobile/more-sheet";
 import { createClient } from "@/utils/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -28,8 +30,8 @@ import { cn } from "@/lib/utils";
  * 2. Hidden on Auth Pages (login, register, forgot/reset password, terms compliance).
  * 3. Only renders when a user is authenticated.
  * 4. User Side: [ Explore | Search | Saved | Trips | Profile ].
- * 5. Admin / Operator Side: [ Dashboard | Fleet | Schedule | Bookings | Profile ].
- * 6. Profile tab opens control center sheet for settings, administration, theme, and sign out.
+ * 5. Admin / Operator Side (Exactly 5 slots with Bookings in center):
+ *    [ Dashboard ] [ Fleet (Sheet) ] [ Bookings (Center Link) ] [ More (Sheet) ] [ Profile (Sheet) ]
  */
 export function MobileBottomBar() {
   const pathname = usePathname();
@@ -37,6 +39,8 @@ export function MobileBottomBar() {
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
+  const [fleetOpen, setFleetOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
   const [sessionUser, setSessionUser] = useState<MobileProfileUser | null>(null);
@@ -164,17 +168,16 @@ export function MobileBottomBar() {
 
   const isFleetActive =
     pathname.startsWith("/shared/cars") ||
-    pathname.startsWith("/operator/view_car");
-
-  const isScheduleActive =
-    pathname.startsWith("/shared/calendar") ||
+    pathname.startsWith("/operator/view_car") ||
     pathname.startsWith("/shared/my_car_schedules") ||
-    pathname.startsWith("/admin/fleet/schedules");
+    pathname.startsWith("/admin/fleet");
 
   const isBookingsActive =
     pathname.startsWith("/operator/bookings") ||
     pathname.startsWith("/staff/bookings") ||
-    pathname.startsWith("/admin/bookings");
+    pathname.startsWith("/admin/bookings") ||
+    pathname.startsWith("/shared/booking_details") ||
+    pathname.startsWith("/shared/calendar");
 
   // Determine active route targets for User
   const isExploreActive = pathname === "/" || pathname === "/user/cars" || pathname.startsWith("/public/cars");
@@ -193,16 +196,16 @@ export function MobileBottomBar() {
       >
         {isAdminOrOperator ? (
           /* =========================================================================
-             ADMIN / OPERATOR / STAFF NAVIGATION TABS
-             Tabs: [ Dashboard | Fleet | Schedule | Bookings | Profile ]
+             ADMIN / OPERATOR / STAFF NAVIGATION TABS (EXACTLY 5 SLOTS)
+             Layout: [ Dashboard ] [ Fleet ] [ Bookings (Center) ] [ More ] [ Profile ]
              ========================================================================= */
           <>
-            {/* 1. Dashboard */}
+            {/* 1. Dashboard (Direct Link) */}
             <Link
               href={dashboardHref}
               prefetch={true}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px]",
+                "relative flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-center transition-all min-w-[56px] min-h-[44px]",
                 isDashboardActive ? activeTabClass : inactiveTabClass,
               )}
             >
@@ -210,33 +213,23 @@ export function MobileBottomBar() {
               <span className="text-[10px] tracking-tight font-extrabold">Dashboard</span>
             </Link>
 
-            {/* 2. Fleet */}
-            <Link
-              href="/shared/cars"
-              prefetch={true}
+            {/* 2. Fleet (Slide-Up Menu) */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.currentTarget.blur();
+                setFleetOpen(true);
+              }}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px]",
-                isFleetActive ? activeTabClass : inactiveTabClass,
+                "relative flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-center transition-all min-w-[56px] min-h-[44px] cursor-pointer",
+                fleetOpen || isFleetActive ? activeTabClass : inactiveTabClass,
               )}
             >
-              <Car className={cn("size-5 shrink-0", isFleetActive ? "stroke-[2.5]" : "stroke-2")} />
+              <Car className={cn("size-5 shrink-0", fleetOpen || isFleetActive ? "stroke-[2.5]" : "stroke-2")} />
               <span className="text-[10px] tracking-tight font-extrabold">Fleet</span>
-            </Link>
+            </button>
 
-            {/* 3. Schedule */}
-            <Link
-              href="/shared/calendar"
-              prefetch={true}
-              className={cn(
-                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px]",
-                isScheduleActive ? activeTabClass : inactiveTabClass,
-              )}
-            >
-              <CalendarDays className={cn("size-5 shrink-0", isScheduleActive ? "stroke-[2.5]" : "stroke-2")} />
-              <span className="text-[10px] tracking-tight font-extrabold">Schedule</span>
-            </Link>
-
-            {/* 4. Bookings */}
+            {/* 3. Bookings (Center Direct Link) */}
             <Link
               href={bookingsHref}
               prefetch={true}
@@ -249,7 +242,23 @@ export function MobileBottomBar() {
               <span className="text-[10px] tracking-tight font-extrabold">Bookings</span>
             </Link>
 
-            {/* 5. Profile */}
+            {/* 4. More (Slide-Up Menu) */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.currentTarget.blur();
+                setMoreOpen(true);
+              }}
+              className={cn(
+                "relative flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-center transition-all min-w-[56px] min-h-[44px] cursor-pointer",
+                moreOpen ? activeTabClass : inactiveTabClass,
+              )}
+            >
+              <SlidersHorizontal className={cn("size-5 shrink-0", moreOpen ? "stroke-[2.5]" : "stroke-2")} />
+              <span className="text-[10px] tracking-tight font-extrabold">More</span>
+            </button>
+
+            {/* 5. Profile (Slide-Up Menu) */}
             <button
               type="button"
               onClick={(e) => {
@@ -257,7 +266,7 @@ export function MobileBottomBar() {
                 setProfileOpen(true);
               }}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px] cursor-pointer",
+                "relative flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-center transition-all min-w-[56px] min-h-[44px] cursor-pointer",
                 profileOpen ? activeTabClass : inactiveTabClass,
               )}
             >
@@ -353,17 +362,23 @@ export function MobileBottomBar() {
         )}
       </nav>
 
-      {/* Profile Bottom Sheet (Quick Controls, Dashboard Link, Theme & Sign Out) */}
+      {/* Slide-Up Sheets (Optimized with Radix UI Sheet for zero-lag hardware-accelerated animations) */}
+      {isAdminOrOperator && (
+        <>
+          <FleetSheet open={fleetOpen} onOpenChange={setFleetOpen} role={sessionUser?.role || "admin"} />
+          <MoreSheet open={moreOpen} onOpenChange={setMoreOpen} role={sessionUser?.role || "admin"} />
+        </>
+      )}
+
+      {/* Profile Bottom Sheet (Account, Theme Mode & Log Out) */}
       <ProfileSheet
         open={profileOpen}
         onOpenChange={setProfileOpen}
         user={sessionUser}
       />
 
-      {/* Mobile Search Bottom Sheet */}
+      {/* User Search & Favorites Bottom Sheets */}
       <MobileSearchSheet open={searchOpen} onOpenChange={setSearchOpen} />
-
-      {/* Saved / Favorites Bottom Sheet */}
       <FavoritesSheet open={favoritesOpen} onOpenChange={setFavoritesOpen} />
     </>
   );

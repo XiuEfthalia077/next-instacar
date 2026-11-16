@@ -72,16 +72,12 @@ function SheetContent({
         data-slot="sheet-content"
         onOpenAutoFocus={(e) => {
           if (onOpenAutoFocus) {
-            onOpenAutoFocus(e)
-          } else {
-            e.preventDefault()
+            onOpenAutoFocus(e);
           }
         }}
         onCloseAutoFocus={(e) => {
           if (onCloseAutoFocus) {
-            onCloseAutoFocus(e)
-          } else {
-            e.preventDefault()
+            onCloseAutoFocus(e);
           }
         }}
         className={cn(
