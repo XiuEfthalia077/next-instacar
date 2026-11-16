@@ -161,10 +161,10 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background font-sans text-foreground transition-colors selection:bg-[#ffcc00] selection:text-black">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-background font-sans text-foreground transition-colors selection:bg-[#ffcc00] selection:text-black">
       <SiteNavbar session={session} />
 
-      <main className="overflow-x-hidden pb-24 md:pb-0">
+      <main className="w-full max-w-full overflow-x-hidden pb-24 md:pb-0">
         {/* 1. Hero & Search Widget */}
         <Hero branches={branches} todayStr={todayStr} />
 

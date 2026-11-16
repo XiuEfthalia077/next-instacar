@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Poppins } from "next/font/google";
 import { Suspense } from "react";
 
@@ -101,17 +101,23 @@ const themeScript = `
 })();
 `;
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${poppins.variable} ${inter.variable} h-full antialiased scroll-smooth`}
+      className={`${poppins.variable} ${inter.variable} h-full antialiased scroll-smooth w-full max-w-full overflow-x-hidden`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="flex min-h-full flex-col bg-background font-sans text-foreground">
+      <body className="flex min-h-full flex-col bg-background font-sans text-foreground w-full max-w-full overflow-x-hidden relative">
         <Suspense fallback={null}>
           <TopLoader />
           <GlobalNavigationListener />

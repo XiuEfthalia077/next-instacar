@@ -28,25 +28,25 @@ export function Hero({
         }}
       />
 
-      <div className="relative mx-auto w-full max-w-[1320px] px-4">
+      <div className="relative mx-auto w-full max-w-[1320px] px-3 sm:px-4">
         <div className="mx-auto max-w-[1040px] text-center">
-          {/* Top Badge */}
-          <div className="mb-4 inline-flex">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#ffcc00]/50 bg-[#ffcc00]/10 px-4 py-1.5 text-xs font-bold text-amber-700 dark:text-[#ffcc00] shadow-xs">
-              <Sparkles className="size-3.5" />
-              <span>Reliable Car Rentals • Doorstep Delivery &amp; Flexible Tiers</span>
+          {/* Top Badge (Responsive & Truncate Safe on 320px iPod/Mobile) */}
+          <div className="mb-4 inline-flex max-w-full px-1">
+            <span className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-[#ffcc00]/50 bg-[#ffcc00]/10 px-3 sm:px-4 py-1.5 text-[11px] sm:text-xs font-bold text-amber-700 dark:text-[#ffcc00] shadow-xs text-center">
+              <Sparkles className="size-3.5 shrink-0" />
+              <span className="truncate">Reliable Car Rentals • Doorstep Delivery &amp; Flexible Tiers</span>
             </span>
           </div>
 
           {/* Headline */}
-          <h1 className="hero-title mb-4 text-foreground">
+          <h1 className="hero-title mb-4 text-foreground break-words">
             Take the wheel with
             <br />
             <span className="hero-gradient-text">zero hassle.</span>
           </h1>
 
           {/* Subtitle */}
-          <p className="mx-auto mb-8 max-w-2xl text-sm sm:text-base md:text-lg font-normal leading-relaxed text-muted-foreground">
+          <p className="mx-auto mb-8 max-w-2xl px-2 text-xs sm:text-base md:text-lg font-normal leading-relaxed text-muted-foreground break-words">
             From quick 10-hour business trips to full weekly family getaways.
             Enjoy transparent hourly &amp; 24-hour rates, doorstep delivery across
             Pavia &amp; Iloilo, and thoroughly pre-inspected vehicles ready to drive.
