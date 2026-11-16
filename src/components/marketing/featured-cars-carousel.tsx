@@ -128,15 +128,17 @@ export function FeaturedCarsCarousel({
   // Filter reviews matching selected car model or brand
   const carSpecificReviews = React.useMemo(() => {
     if (!selectedCar) return [];
-    const carBrand = (selectedCar.brand || "").toLowerCase();
-    const carModel = (selectedCar.model || "").toLowerCase();
+    const carBrand = (selectedCar.brand || "").toLowerCase().trim();
+    const carModel = (selectedCar.model || "").toLowerCase().trim();
 
-    const matches = reviews.filter((r) => {
+    return reviews.filter((r) => {
+      if (r.carId && r.carId === selectedCar.id) return true;
       const revCar = (r.carName || "").toLowerCase();
-      return revCar.includes(carBrand) || revCar.includes(carModel);
+      return (
+        (carModel && revCar.includes(carModel)) ||
+        (carBrand && revCar.includes(carBrand))
+      );
     });
-
-    return matches.length > 0 ? matches : reviews.slice(0, 3);
   }, [selectedCar, reviews]);
 
   const carImages = React.useMemo(() => {

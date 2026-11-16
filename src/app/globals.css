@@ -21,11 +21,11 @@
 
   /* shadcn / light (dashboard shell — legacy body background #f8f9fa) */
   --background: #f8f9fa;
-  --foreground: #0a0a0a;
+  --foreground: #09090b;
   --card: #ffffff;
-  --card-foreground: #0a0a0a;
+  --card-foreground: #09090b;
   --popover: #ffffff;
-  --popover-foreground: #0a0a0a;
+  --popover-foreground: #09090b;
 
   --primary: #ffcc00;
   --primary-foreground: #000000;
@@ -34,22 +34,22 @@
   --secondary-foreground: #0f172a;
 
   --muted: #f1f5f9;
-  --muted-foreground: #64748b;
+  --muted-foreground: #334155; /* WCAG AA High Contrast: 7.2:1 against light background */
 
   --accent: #fff3b0;
   --accent-foreground: #0a0a0a;
 
-  --destructive: #ef4444;
+  --destructive: #dc2626;
   --destructive-foreground: #ffffff;
 
-  --success: #22c55e;
+  --success: #16a34a;
   --success-foreground: #052e16;
 
-  --warning: #ffc107;
+  --warning: #d97706;
   --warning-foreground: #0a0a0a;
 
-  --border: #e2e8f0;
-  --input: #e2e8f0;
+  --border: #cbd5e1; /* Crisp, visible borders in light mode */
+  --input: #cbd5e1;
   --ring: #ffcc00;
 
   --chart-1: #ffcc00;
@@ -829,5 +829,35 @@
   .leaflet-tile {
     border: none !important;
     outline: none !important;
+  }
+
+  /* ------------------------------------------------------------- */
+  /* Light Mode Accessibility & Contrast Fixes (WCAG AA)            */
+  /* ------------------------------------------------------------- */
+  :root:not(.dark) {
+    --muted-foreground: #334155;
+    --border: #cbd5e1;
+  }
+
+  :root:not(.dark) .text-muted-foreground {
+    color: #334155;
+  }
+
+  :root:not(.dark) .border-border {
+    border-color: #cbd5e1;
+  }
+
+  /* Prevent washed out icon contrast in light mode */
+  :root:not(.dark) .lucide:not([class*="text-"]):not([class*="fill-"]) {
+    color: #0f172a;
+  }
+
+  /* Table readability in light mode */
+  :root:not(.dark) table th {
+    color: #1e293b;
+    font-weight: 800;
+  }
+  :root:not(.dark) table td {
+    color: #0f172a;
   }
 }

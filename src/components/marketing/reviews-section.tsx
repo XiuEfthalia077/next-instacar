@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   Star,
   ChevronLeft,
@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils";
 
 export interface ReviewItem {
   id: string | number;
+  carId?: number | null;
   authorName: string;
   rating: number;
   date: string;
@@ -118,6 +119,43 @@ export function ReviewsSection({
   const reviews = initialReviews && initialReviews.length > 0 ? initialReviews : DEFAULT_REVIEWS;
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  // Dynamically calculate average rating and star breakdown from real reviews
+  const { overallScore, totalCountLabel, starDistribution } = useMemo(() => {
+    if (!reviews || reviews.length === 0) {
+      return {
+        overallScore: "4.6",
+        totalCountLabel: "Based on 1,420+ verified ratings",
+        starDistribution: STAR_DISTRIBUTION,
+      };
+    }
+
+    const counts: Record<number, number> = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    let sum = 0;
+    for (const r of reviews) {
+      const s = Math.min(5, Math.max(1, Math.round(r.rating || 5)));
+      counts[s] = (counts[s] || 0) + 1;
+      sum += r.rating || 5;
+    }
+
+    const avg = (sum / reviews.length).toFixed(1);
+    const dist = [5, 4, 3, 2, 1].map((stars) => {
+      const c = counts[stars] || 0;
+      const pct = Math.round((c / reviews.length) * 100);
+      return { stars, percentage: pct, count: c };
+    });
+
+    const isRealDb = Boolean(initialReviews && initialReviews.length > 0);
+    const dbCount = initialReviews?.length ?? 0;
+
+    return {
+      overallScore: avg,
+      totalCountLabel: isRealDb
+        ? `Based on ${dbCount} verified rating${dbCount > 1 ? "s" : ""}`
+        : "Based on 1,420+ verified ratings",
+      starDistribution: dist,
+    };
+  }, [reviews, initialReviews]);
+
   // Write a Review modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [isLoadingEligibility, setIsLoadingEligibility] = useState(false);
@@ -173,7 +211,7 @@ export function ReviewsSection({
     }
   };
 
-  const currentReview = reviews[currentIndex];
+  const currentReview = reviews[currentIndex] || DEFAULT_REVIEWS[0];
   const activeStars = hoverRating ?? rating;
 
   return (
@@ -198,11 +236,11 @@ export function ReviewsSection({
 
         {/* 2-Column Grid: Left Aggregate + Right Carousel */}
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-12 items-center">
-          {/* LEFT: 4.6 Aggregate Rating & Star Bars */}
+          {/* LEFT: Aggregate Rating & Star Bars */}
           <div className="lg:col-span-5 rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-sm">
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 pb-6 border-b border-border/80 text-center sm:text-left">
               <div className="text-5xl sm:text-6xl font-black text-foreground tracking-tight">
-                4.6
+                {overallScore}
               </div>
               <div className="space-y-1">
                 <div className="flex items-center justify-center sm:justify-start gap-1">
@@ -211,15 +249,15 @@ export function ReviewsSection({
                       key={s}
                       className={cn(
                         "size-5",
-                        s <= 4
+                        s <= Math.round(Number(overallScore))
                           ? "fill-[#ffcc00] text-[#ffcc00]"
-                          : "fill-[#ffcc00]/60 text-[#ffcc00]/60",
+                          : "fill-[#ffcc00]/30 text-[#ffcc00]/30",
                       )}
                     />
                   ))}
                 </div>
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                  Based on 1,420+ verified ratings
+                  {totalCountLabel}
                 </p>
                 <div className="flex items-center justify-center sm:justify-start gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
                   <ShieldCheck className="size-3.5" />
@@ -230,7 +268,7 @@ export function ReviewsSection({
 
             {/* Star Distribution Bars */}
             <div className="space-y-2.5 py-6 border-b border-border/80">
-              {STAR_DISTRIBUTION.map((item) => (
+              {starDistribution.map((item) => (
                 <div key={item.stars} className="flex items-center gap-3 text-xs">
                   <span className="w-12 font-bold text-foreground shrink-0 flex items-center gap-1">
                     <span>{item.stars}</span>

@@ -361,6 +361,8 @@ export function CalendarView({
                 });
 
                 const hasMaintenance = dayBookings.some((b) => b.status === "Maintenance");
+                const hasRelease = dayBookings.some((b) => b.start_date === dateStr);
+                const hasReturn = dayBookings.some((b) => b.end_date === dateStr);
                 const hasActive = dayBookings.some(
                   (b) => b.status === "Confirmed" || b.status === "Released",
                 );
@@ -395,19 +397,19 @@ export function CalendarView({
                       {dayNum}
                     </span>
 
-                    {/* Booking Indicator Dots */}
-                    <div className="flex items-center justify-center gap-0.5 min-h-[6px] w-full">
+                    {/* Booking Indicator Dots (Release: Green, Return: Rose/Red, Maint: Purple/Rose) */}
+                    <div className="flex items-center justify-center gap-1 min-h-[6px] w-full">
+                      {hasRelease && (
+                        <span className="size-1.5 rounded-full bg-emerald-500 ring-1 ring-emerald-500/30" title="Trip Release / Pickup" />
+                      )}
+                      {hasReturn && (
+                        <span className="size-1.5 rounded-full bg-rose-500 ring-1 ring-rose-500/30" title="Trip Return / Dropoff" />
+                      )}
                       {hasMaintenance && (
-                        <span className="size-1.5 rounded-full bg-rose-500" />
+                        <span className="size-1.5 rounded-full bg-purple-500" title="Vehicle Maintenance" />
                       )}
-                      {hasActive && (
-                        <span className="size-1.5 rounded-full bg-emerald-500" />
-                      )}
-                      {hasPending && (
-                        <span className="size-1.5 rounded-full bg-amber-400" />
-                      )}
-                      {!hasMaintenance && !hasActive && !hasPending && dayBookings.length > 0 && (
-                        <span className="size-1.5 rounded-full bg-sky-400" />
+                      {!hasRelease && !hasReturn && !hasMaintenance && dayBookings.length > 0 && (
+                        <span className="size-1.5 rounded-full bg-[#ffcc00]" title="Ongoing Rental" />
                       )}
                     </div>
                   </button>
@@ -419,16 +421,16 @@ export function CalendarView({
             <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/60 text-[10px] text-muted-foreground">
               <span className="font-semibold text-foreground">💡 Tap a date to inspect trips</span>
               <div className="flex items-center gap-2.5">
-                <span className="inline-flex items-center gap-1 font-bold">
+                <span className="inline-flex items-center gap-1 font-bold text-emerald-700 dark:text-emerald-400">
                   <span className="size-1.5 rounded-full bg-emerald-500" />
-                  Active
+                  Release
                 </span>
-                <span className="inline-flex items-center gap-1 font-bold">
-                  <span className="size-1.5 rounded-full bg-amber-400" />
-                  Pending
-                </span>
-                <span className="inline-flex items-center gap-1 font-bold">
+                <span className="inline-flex items-center gap-1 font-bold text-rose-700 dark:text-rose-400">
                   <span className="size-1.5 rounded-full bg-rose-500" />
+                  Return
+                </span>
+                <span className="inline-flex items-center gap-1 font-bold text-purple-700 dark:text-purple-400">
+                  <span className="size-1.5 rounded-full bg-purple-500" />
                   Maint
                 </span>
               </div>
@@ -593,8 +595,8 @@ export function CalendarView({
                                 <StatusBadge status={b.status} />
                               </div>
                               <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                                <span className="flex items-center gap-1">
-                                  <User className="size-3" />
+                                <span className="flex items-center gap-1 font-medium text-foreground">
+                                  <User className="size-3 text-muted-foreground" />
                                   {customerName}
                                 </span>
                                 {isAdminOrStaff && b.cars?.plate_number ? (
@@ -602,9 +604,17 @@ export function CalendarView({
                                     Plate: {b.cars.plate_number}
                                   </span>
                                 ) : null}
-                                <span className="flex items-center gap-1 text-foreground text-[11px]">
-                                  <Clock className="size-3 text-[#ffcc00]" />
-                                  {formatTime(b.pickup_time)} – {formatTime(b.return_time)}
+                              </div>
+
+                              {/* Color Coded Schedule Dates: Green for Release, Rose/Red for Return */}
+                              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                                <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                                  <span className="size-1.5 rounded-full bg-emerald-500" />
+                                  Release: {formatDate(b.start_date)} ({formatTime(b.pickup_time)})
+                                </span>
+                                <span className="inline-flex items-center gap-1 rounded-md bg-rose-500/10 px-2 py-0.5 text-[11px] font-bold text-rose-700 dark:text-rose-400 border border-rose-500/20">
+                                  <span className="size-1.5 rounded-full bg-rose-500" />
+                                  Return: {formatDate(b.end_date)} ({formatTime(b.return_time)})
                                 </span>
                               </div>
                             </div>
@@ -706,14 +716,21 @@ export function CalendarView({
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between border-t border-border/60 pt-2 text-xs">
-                      <span className="text-muted-foreground">
-                        {formatDate(b.start_date)} to {formatDate(b.end_date)}
-                      </span>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-border/60 pt-2.5 text-xs">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
+                          <span className="size-1.5 rounded-full bg-emerald-500" />
+                          Release: {formatDate(b.start_date)} • {formatTime(b.pickup_time)}
+                        </span>
+                        <span className="inline-flex items-center gap-1 rounded-md bg-rose-500/10 px-2 py-0.5 text-xs font-bold text-rose-700 dark:text-rose-400 border border-rose-500/30">
+                          <span className="size-1.5 rounded-full bg-rose-500" />
+                          Return: {formatDate(b.end_date)} • {formatTime(b.return_time)}
+                        </span>
+                      </div>
                       {b.status === "Maintenance" ? (
                         <Link
                           href={`/shared/my_car_schedules?car_id=${b.car_id}`}
-                          className="inline-flex items-center gap-1 font-bold text-rose-400 hover:underline"
+                          className="inline-flex items-center gap-1 font-bold text-rose-500 dark:text-rose-400 hover:underline"
                         >
                           Manage Schedule
                           <ExternalLink className="size-3" />
@@ -721,7 +738,7 @@ export function CalendarView({
                       ) : (
                         <Link
                           href={`/shared/booking_details?id=${b.id}`}
-                          className="inline-flex items-center gap-1 font-bold text-[#ffcc00] hover:underline"
+                          className="inline-flex items-center gap-1 font-bold text-[#b38a00] dark:text-[#ffcc00] hover:underline"
                         >
                           View Full Details
                           <ExternalLink className="size-3" />

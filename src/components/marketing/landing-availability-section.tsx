@@ -152,6 +152,7 @@ export function LandingAvailabilitySection({
       className="scroll-mt-16 py-12 md:py-20 bg-muted/20 border-y border-border/80 transition-colors"
     >
       <div id="availability" className="mx-auto w-full max-w-[1320px] px-4">
+        <span id="schedule-section" className="scroll-mt-20 block" />
         {/* Section Header */}
         <div className="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>

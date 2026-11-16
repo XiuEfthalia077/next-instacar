@@ -67,11 +67,11 @@ export function Hero({
               <span>Create Free Account</span>
             </Link>
             <a
-              href="#featured-cars"
+              href="#availability"
               className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-6 py-3 text-sm font-bold text-foreground transition-all hover:bg-muted hover:border-[#ffcc00]/60 active:scale-[0.98]"
             >
               <Car className="size-4" />
-              <span>Featured Cars</span>
+              <span>Explore Fleet &amp; Schedule</span>
             </a>
           </div>
 

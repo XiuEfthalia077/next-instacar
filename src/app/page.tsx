@@ -110,12 +110,13 @@ export default async function HomePage() {
         created_at,
         users!reviews_user_id_fkey ( name ),
         bookings!reviews_booking_id_fkey (
-          cars!bookings_car_id_fkey ( brand, model )
+          car_id,
+          cars!bookings_car_id_fkey ( id, brand, model )
         )
       `)
       .in("status", ["approved", "replied"])
       .order("created_at", { ascending: false })
-      .limit(10);
+      .limit(50);
 
     if (data && data.length > 0) {
       initialReviews = (data as unknown as Array<{
@@ -127,7 +128,8 @@ export default async function HomePage() {
         created_at: string | null;
         users: { name: string | null } | null;
         bookings: {
-          cars: { brand: string | null; model: string | null } | null;
+          car_id: number | null;
+          cars: { id: number | null; brand: string | null; model: string | null } | null;
         } | null;
       }>).map((r) => {
         const carName =
@@ -142,6 +144,7 @@ export default async function HomePage() {
 
         return {
           id: r.id,
+          carId: r.bookings?.cars?.id || r.bookings?.car_id || null,
           authorName: r.users?.name || "Verified Customer",
           rating: r.rating || 5,
           date: dateStr,
@@ -162,13 +165,10 @@ export default async function HomePage() {
       <SiteNavbar />
 
       <main className="overflow-x-hidden pb-24 md:pb-0">
-        {/* Task 1.1 & 1.2: Top Hero & KAYAK Search Widget with Mini-Map Modal */}
+        {/* 1. Hero & Search Widget */}
         <Hero branches={branches} todayStr={todayStr} />
 
-        {/* Task 1.4: Featured Cars Carousel (Continuous marquee, pauses on hover, car detail modal) */}
-        <FeaturedCarsCarousel cars={stats.popular_cars} reviews={initialReviews} />
-
-        {/* Task 1.4: Search Data Integration & Availability Section (2-Column: Left 4 scrollable cars, Right interactive calendar) */}
+        {/* 2. Inspect Schedule & Book Instantly (Moved UP directly under Hero) */}
         <Suspense fallback={<div className="h-96 w-full animate-pulse bg-muted/20" />}>
           <LandingAvailabilitySection
             cars={cars}
@@ -177,6 +177,9 @@ export default async function HomePage() {
             isLoggedIn={isLoggedIn}
           />
         </Suspense>
+
+        {/* 3. Featured Cars Carousel (Moved DOWN after schedule) */}
+        <FeaturedCarsCarousel cars={stats.popular_cars} reviews={initialReviews} />
 
         {/* Features Showcase */}
         <Features />

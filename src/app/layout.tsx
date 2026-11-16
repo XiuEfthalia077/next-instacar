@@ -106,7 +106,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${poppins.variable} ${inter.variable} h-full antialiased`}
+      className={`${poppins.variable} ${inter.variable} h-full antialiased scroll-smooth`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
