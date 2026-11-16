@@ -18,6 +18,7 @@ import { FavoritesSheet } from "@/components/mobile/favorites-sheet";
 import { MobileSearchSheet } from "@/components/mobile/mobile-search-sheet";
 import { ProfileSheet, type MobileProfileUser } from "@/components/mobile/profile-sheet";
 import { FleetSheet } from "@/components/mobile/fleet-sheet";
+import { BookingsSheet } from "@/components/mobile/bookings-sheet";
 import { MoreSheet } from "@/components/mobile/more-sheet";
 import { createClient } from "@/utils/supabase/client";
 import { cn } from "@/lib/utils";
@@ -40,6 +41,7 @@ export function MobileBottomBar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [fleetOpen, setFleetOpen] = useState(false);
+  const [bookingsOpen, setBookingsOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
@@ -229,18 +231,21 @@ export function MobileBottomBar() {
               <span className="text-[10px] tracking-tight font-extrabold">Fleet</span>
             </button>
 
-            {/* 3. Bookings (Center Direct Link) */}
-            <Link
-              href={bookingsHref}
-              prefetch={true}
+            {/* 3. Bookings (Center Slide-Up Menu) */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.currentTarget.blur();
+                setBookingsOpen(true);
+              }}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px]",
-                isBookingsActive ? activeTabClass : inactiveTabClass,
+                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px] cursor-pointer",
+                bookingsOpen || isBookingsActive ? activeTabClass : inactiveTabClass,
               )}
             >
-              <ClipboardList className={cn("size-5 shrink-0", isBookingsActive ? "stroke-[2.5]" : "stroke-2")} />
+              <ClipboardList className={cn("size-5 shrink-0", bookingsOpen || isBookingsActive ? "stroke-[2.5]" : "stroke-2")} />
               <span className="text-[10px] tracking-tight font-extrabold">Bookings</span>
-            </Link>
+            </button>
 
             {/* 4. More (Slide-Up Menu) */}
             <button
@@ -366,6 +371,7 @@ export function MobileBottomBar() {
       {isAdminOrOperator && (
         <>
           <FleetSheet open={fleetOpen} onOpenChange={setFleetOpen} role={sessionUser?.role || "admin"} />
+          <BookingsSheet open={bookingsOpen} onOpenChange={setBookingsOpen} role={sessionUser?.role || "admin"} />
           <MoreSheet open={moreOpen} onOpenChange={setMoreOpen} role={sessionUser?.role || "admin"} />
         </>
       )}
