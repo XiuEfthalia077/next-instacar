@@ -87,7 +87,7 @@ export function DashboardFrame({
           onToggleSidebar={handleToggleSidebar}
         />
 
-        <main className="min-w-0 max-w-full overflow-x-hidden px-3.5 py-4 sm:px-5 sm:py-5 md:px-6 md:py-6">{children}</main>
+        <main className="min-w-0 max-w-full overflow-x-hidden px-3.5 pt-4 pb-28 sm:px-5 sm:pt-5 sm:pb-28 md:px-6 md:py-6">{children}</main>
       </div>
     </div>
   );

@@ -98,7 +98,7 @@ export default async function PublicAvailabilityPage({
   return (
     <div className="min-h-screen bg-background font-sans text-foreground transition-colors selection:bg-[#ffcc00] selection:text-black">
       <SiteNavbar />
-      <main className="overflow-x-hidden pb-16">
+      <main className="overflow-x-hidden pb-28 md:pb-16">
         <PublicAvailabilityView
           cars={cars}
           branches={branches}
