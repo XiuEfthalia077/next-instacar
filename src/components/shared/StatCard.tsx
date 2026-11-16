@@ -18,47 +18,56 @@ const TONE_CONFIG: Record<
     iconBg: string;
     iconColor: string;
     defaultValueColor: string;
+    border: string;
   }
 > = {
   default: {
-    iconBg: "bg-zinc-800 text-zinc-300",
-    iconColor: "text-zinc-300",
-    defaultValueColor: "text-white",
+    iconBg: "bg-zinc-800 text-zinc-300 dark:bg-zinc-800 dark:text-zinc-200",
+    iconColor: "text-zinc-300 dark:text-zinc-200",
+    defaultValueColor: "text-foreground",
+    border: "border-border/80 dark:border-neutral-700/80 hover:border-[#ffcc00]/70 dark:hover:border-neutral-500",
   },
   primary: {
-    iconBg: "bg-amber-500/15 text-[#ffcc00]",
-    iconColor: "text-[#ffcc00]",
-    defaultValueColor: "text-white",
+    iconBg: "bg-amber-500/15 text-amber-600 dark:text-[#ffcc00]",
+    iconColor: "text-amber-600 dark:text-[#ffcc00]",
+    defaultValueColor: "text-foreground",
+    border: "border-amber-500/40 dark:border-[#ffcc00]/40 hover:border-[#ffcc00] dark:hover:border-[#ffcc00]",
   },
   success: {
-    iconBg: "bg-emerald-500/15 text-emerald-400",
-    iconColor: "text-emerald-400",
-    defaultValueColor: "text-emerald-400",
+    iconBg: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+    iconColor: "text-emerald-600 dark:text-emerald-400",
+    defaultValueColor: "text-emerald-600 dark:text-emerald-400",
+    border: "border-emerald-500/40 dark:border-emerald-500/40 hover:border-emerald-500",
   },
   warning: {
-    iconBg: "bg-amber-500/15 text-amber-400",
-    iconColor: "text-amber-400",
-    defaultValueColor: "text-amber-400",
+    iconBg: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+    iconColor: "text-amber-600 dark:text-amber-400",
+    defaultValueColor: "text-amber-600 dark:text-amber-400",
+    border: "border-amber-500/40 dark:border-amber-400/40 hover:border-amber-500",
   },
   danger: {
-    iconBg: "bg-rose-500/15 text-rose-400",
-    iconColor: "text-rose-400",
-    defaultValueColor: "text-rose-400",
+    iconBg: "bg-rose-500/15 text-rose-600 dark:text-rose-400",
+    iconColor: "text-rose-600 dark:text-rose-400",
+    defaultValueColor: "text-rose-600 dark:text-rose-400",
+    border: "border-rose-500/40 dark:border-rose-500/40 hover:border-rose-500",
   },
   info: {
-    iconBg: "bg-sky-500/15 text-sky-400",
-    iconColor: "text-sky-400",
-    defaultValueColor: "text-sky-400",
+    iconBg: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
+    iconColor: "text-sky-600 dark:text-sky-400",
+    defaultValueColor: "text-sky-600 dark:text-sky-400",
+    border: "border-sky-500/40 dark:border-sky-400/40 hover:border-sky-500",
   },
   cyan: {
-    iconBg: "bg-cyan-500/15 text-cyan-400",
-    iconColor: "text-cyan-400",
-    defaultValueColor: "text-cyan-400",
+    iconBg: "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400",
+    iconColor: "text-cyan-600 dark:text-cyan-400",
+    defaultValueColor: "text-cyan-600 dark:text-cyan-400",
+    border: "border-cyan-500/40 dark:border-cyan-400/40 hover:border-cyan-500",
   },
   purple: {
-    iconBg: "bg-purple-500/15 text-purple-400",
-    iconColor: "text-purple-400",
-    defaultValueColor: "text-purple-400",
+    iconBg: "bg-purple-500/15 text-purple-600 dark:text-purple-400",
+    iconColor: "text-purple-600 dark:text-purple-400",
+    defaultValueColor: "text-purple-600 dark:text-purple-400",
+    border: "border-purple-500/40 dark:border-purple-400/40 hover:border-purple-500",
   },
 };
 
@@ -100,7 +109,8 @@ export function StatCard({
   return (
     <Card
       className={cn(
-        "gap-0 rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-xs transition hover:border-[#ffcc00]/50 dark:border-zinc-800 dark:bg-zinc-900/90 dark:hover:border-zinc-700 w-full min-w-0 overflow-hidden",
+        "gap-0 rounded-2xl border bg-card p-4 sm:p-5 shadow-xs transition hover:-translate-y-0.5 hover:shadow-md w-full min-w-0 overflow-hidden",
+        config.border,
         className,
       )}
     >

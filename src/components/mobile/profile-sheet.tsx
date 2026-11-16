@@ -127,82 +127,30 @@ export function ProfileSheet({
 
             {isAdminOrOperator ? (
               <div className="space-y-3">
-                {/* 1. Main View */}
+                {/* 1. Account Settings */}
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground px-2 mb-1">
-                    Main View
+                    My Account
                   </p>
                   <Link
-                    href={role === "operator" ? "/operator/dashboard" : role === "staff" ? "/staff/dashboard" : "/admin/dashboard"}
+                    href="/shared/profile"
                     onClick={() => onOpenChange(false)}
                     className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
                   >
                     <div className="flex items-center gap-2.5">
-                      <LayoutDashboard className="size-4 text-[#ffcc00]" />
-                      <span>Portal Dashboard</span>
+                      <User className="size-4 text-[#ffcc00]" />
+                      <span>My Profile &amp; Password</span>
                     </div>
                     <ChevronRight className="size-4 text-muted-foreground" />
                   </Link>
                 </div>
 
-                {/* 2. Management & Fleet */}
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground px-2 mb-1">
-                    Fleet &amp; Schedules
-                  </p>
-                  <Link
-                    href="/shared/calendar"
-                    onClick={() => onOpenChange(false)}
-                    className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <CalendarDays className="size-4 text-[#ffcc00]" />
-                      <span>Master Booking Calendar</span>
-                    </div>
-                    <ChevronRight className="size-4 text-muted-foreground" />
-                  </Link>
-                  <Link
-                    href="/shared/cars"
-                    onClick={() => onOpenChange(false)}
-                    className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Car className="size-4 text-[#ffcc00]" />
-                      <span>Fleet Management</span>
-                    </div>
-                    <ChevronRight className="size-4 text-muted-foreground" />
-                  </Link>
-                  <Link
-                    href="/shared/my_car_schedules"
-                    onClick={() => onOpenChange(false)}
-                    className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Wrench className="size-4 text-[#ffcc00]" />
-                      <span>Vehicle Blackouts &amp; Maintenance</span>
-                    </div>
-                    <ChevronRight className="size-4 text-muted-foreground" />
-                  </Link>
-                </div>
-
-                {/* 3. Bookings & Accounting */}
+                {/* 2. Operations & Additional Tools (Non-duplicate features) */}
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground px-2 mb-1">
                     Operations &amp; Finance
                   </p>
-                  {/* Online Bookings */}
-                  <Link
-                    href={role === "operator" ? "/operator/bookings" : role === "staff" ? "/staff/bookings" : "/admin/bookings_online"}
-                    onClick={() => onOpenChange(false)}
-                    className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <ShoppingCart className="size-4 text-[#ffcc00]" />
-                      <span>Online Reservations</span>
-                    </div>
-                    <ChevronRight className="size-4 text-muted-foreground" />
-                  </Link>
-                  {/* Manual Bookings (Admin & Staff) */}
+                  {/* Manual Booking Shortcut (for walk-in & phone call entries) */}
                   {(role === "admin" || role === "staff") && (
                     <Link
                       href={role === "staff" ? "/staff/bookings_manual" : "/admin/bookings_manual"}
@@ -211,11 +159,24 @@ export function ProfileSheet({
                     >
                       <div className="flex items-center gap-2.5">
                         <PenSquare className="size-4 text-[#ffcc00]" />
-                        <span>Manual Bookings</span>
+                        <span>Manual Walk-in Bookings</span>
                       </div>
                       <ChevronRight className="size-4 text-muted-foreground" />
                     </Link>
                   )}
+                  {/* Vehicle Maintenance & Blackouts */}
+                  <Link
+                    href="/shared/my_car_schedules"
+                    onClick={() => onOpenChange(false)}
+                    className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Wrench className="size-4 text-[#ffcc00]" />
+                      <span>Vehicle Maintenance &amp; Blackouts</span>
+                    </div>
+                    <ChevronRight className="size-4 text-muted-foreground" />
+                  </Link>
+                  {/* Accounting & Financials */}
                   <Link
                     href={role === "operator" ? "/operator/revenue" : role === "staff" ? "/staff/staff_revenue" : "/admin/financials"}
                     onClick={() => onOpenChange(false)}
@@ -227,6 +188,7 @@ export function ProfileSheet({
                     </div>
                     <ChevronRight className="size-4 text-muted-foreground" />
                   </Link>
+                  {/* Analytics */}
                   {role === "admin" && (
                     <Link
                       href="/admin/analytics"
@@ -242,11 +204,11 @@ export function ProfileSheet({
                   )}
                 </div>
 
-                {/* 4. Portal Configuration (Admin only) */}
+                {/* 3. System & Administration (Admin only) */}
                 {role === "admin" && (
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground px-2 mb-1">
-                      System &amp; Branches
+                      System &amp; Administration
                     </p>
                     <Link
                       href="/admin/users"
@@ -305,24 +267,6 @@ export function ProfileSheet({
                     </Link>
                   </div>
                 )}
-
-                {/* 5. Account Settings */}
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground px-2 mb-1">
-                    My Account
-                  </p>
-                  <Link
-                    href="/shared/profile"
-                    onClick={() => onOpenChange(false)}
-                    className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <User className="size-4 text-[#ffcc00]" />
-                      <span>My Profile &amp; Password</span>
-                    </div>
-                    <ChevronRight className="size-4 text-muted-foreground" />
-                  </Link>
-                </div>
               </div>
             ) : (
               <>

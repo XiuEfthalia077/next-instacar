@@ -119,31 +119,6 @@ export default async function SharedCarsPage({
         }
       />
 
-      {/* Quick Switcher: Fleet Manager | Vehicle Schedules & Blackouts | Calendar Timeline */}
-      <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-border/60 pb-3">
-        <Link
-          href="/shared/cars"
-          className="inline-flex items-center gap-1.5 rounded-xl bg-[#ffcc00] px-3.5 py-1.5 text-xs font-black text-black shadow-xs transition-all"
-        >
-          <Car className="size-3.5" />
-          <span>Fleet Manager</span>
-        </Link>
-        <Link
-          href="/shared/my_car_schedules"
-          className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3.5 py-1.5 text-xs font-bold text-muted-foreground hover:border-[#ffcc00]/50 hover:bg-muted hover:text-foreground transition-all"
-        >
-          <Wrench className="size-3.5 text-[#b38a00] dark:text-[#ffcc00]" />
-          <span>Schedules &amp; Maintenance</span>
-        </Link>
-        <Link
-          href="/shared/calendar"
-          className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3.5 py-1.5 text-xs font-bold text-muted-foreground hover:border-[#ffcc00]/50 hover:bg-muted hover:text-foreground transition-all ml-auto"
-        >
-          <CalendarDays className="size-3.5 text-[#b38a00] dark:text-[#ffcc00]" />
-          <span>Master Calendar &rarr;</span>
-        </Link>
-      </div>
-
       <Flash {...flash} />
 
       {/* KPI Stats */}

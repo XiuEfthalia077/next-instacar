@@ -17,7 +17,6 @@ import { useFavorites } from "@/lib/hooks/use-favorites";
 import { FavoritesSheet } from "@/components/mobile/favorites-sheet";
 import { MobileSearchSheet } from "@/components/mobile/mobile-search-sheet";
 import { ProfileSheet, type MobileProfileUser } from "@/components/mobile/profile-sheet";
-import { FleetSheet, BookingsSheet } from "@/components/mobile/subnav-sheets";
 import { createClient } from "@/utils/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -30,7 +29,7 @@ import { cn } from "@/lib/utils";
  * 3. Only renders when a user is authenticated.
  * 4. User Side: [ Explore | Search | Saved | Trips | Profile ].
  * 5. Admin / Operator Side: [ Dashboard | Fleet | Schedule | Bookings | Profile ].
- * 6. Profile tab opens a unified control center sheet with quick navigation, theme toggle, and logout.
+ * 6. Profile tab opens control center sheet for settings, administration, theme, and sign out.
  */
 export function MobileBottomBar() {
   const pathname = usePathname();
@@ -39,8 +38,6 @@ export function MobileBottomBar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [fleetOpen, setFleetOpen] = useState(false);
-  const [bookingsOpen, setBookingsOpen] = useState(false);
 
   const [sessionUser, setSessionUser] = useState<MobileProfileUser | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -56,7 +53,7 @@ export function MobileBottomBar() {
     pathname.startsWith("/accept-terms") ||
     pathname.startsWith("/auth/");
 
-  // 2. Resolve authentication and active user role
+  // 2. Resolve authentication and active user role (Fetch ONCE on mount to ensure zero lag during navigation)
   useEffect(() => {
     if (isAuthRoute) {
       setIsAuthenticated(false);
@@ -70,12 +67,10 @@ export function MobileBottomBar() {
       pathname.startsWith("/shared") ||
       pathname.startsWith("/user");
 
-    // If already inside authenticated portal route, we know user is authenticated
     if (isPortalRoute) {
       setIsAuthenticated(true);
     }
 
-    // Query client session to fetch user details and role
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user }, error }) => {
       if (error || !user) {
@@ -88,7 +83,6 @@ export function MobileBottomBar() {
 
       setIsAuthenticated(true);
 
-      // Fetch profile role from public.users
       supabase
         .from("users")
         .select("id, name, email, role")
@@ -127,7 +121,7 @@ export function MobileBottomBar() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [pathname, isAuthRoute]);
+  }, []); // Run once on mount for instant zero-lag tab clicks!
 
   // If on auth route or definitely unauthenticated, do not render bottom navigation
   if (isAuthRoute || isAuthenticated === false) {
@@ -206,6 +200,7 @@ export function MobileBottomBar() {
             {/* 1. Dashboard */}
             <Link
               href={dashboardHref}
+              prefetch={true}
               className={cn(
                 "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px]",
                 isDashboardActive ? activeTabClass : inactiveTabClass,
@@ -215,25 +210,23 @@ export function MobileBottomBar() {
               <span className="text-[10px] tracking-tight font-extrabold">Dashboard</span>
             </Link>
 
-            {/* 2. Fleet (Choose Fleet Manager vs Schedules/Maintenance) */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.currentTarget.blur();
-                setFleetOpen(true);
-              }}
+            {/* 2. Fleet */}
+            <Link
+              href="/shared/cars"
+              prefetch={true}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px] cursor-pointer",
-                isFleetActive || fleetOpen ? activeTabClass : inactiveTabClass,
+                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px]",
+                isFleetActive ? activeTabClass : inactiveTabClass,
               )}
             >
-              <Car className={cn("size-5 shrink-0", isFleetActive || fleetOpen ? "stroke-[2.5]" : "stroke-2")} />
+              <Car className={cn("size-5 shrink-0", isFleetActive ? "stroke-[2.5]" : "stroke-2")} />
               <span className="text-[10px] tracking-tight font-extrabold">Fleet</span>
-            </button>
+            </Link>
 
             {/* 3. Schedule */}
             <Link
               href="/shared/calendar"
+              prefetch={true}
               className={cn(
                 "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px]",
                 isScheduleActive ? activeTabClass : inactiveTabClass,
@@ -243,21 +236,18 @@ export function MobileBottomBar() {
               <span className="text-[10px] tracking-tight font-extrabold">Schedule</span>
             </Link>
 
-            {/* 4. Bookings (Choose Online vs Manual vs Calendar) */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.currentTarget.blur();
-                setBookingsOpen(true);
-              }}
+            {/* 4. Bookings */}
+            <Link
+              href={bookingsHref}
+              prefetch={true}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px] cursor-pointer",
-                isBookingsActive || bookingsOpen ? activeTabClass : inactiveTabClass,
+                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px]",
+                isBookingsActive ? activeTabClass : inactiveTabClass,
               )}
             >
-              <ClipboardList className={cn("size-5 shrink-0", isBookingsActive || bookingsOpen ? "stroke-[2.5]" : "stroke-2")} />
+              <ClipboardList className={cn("size-5 shrink-0", isBookingsActive ? "stroke-[2.5]" : "stroke-2")} />
               <span className="text-[10px] tracking-tight font-extrabold">Bookings</span>
-            </button>
+            </Link>
 
             {/* 5. Profile */}
             <button
@@ -362,20 +352,6 @@ export function MobileBottomBar() {
           </>
         )}
       </nav>
-
-      {/* Fleet Sub-navigation Bottom Sheet */}
-      <FleetSheet
-        open={fleetOpen}
-        onOpenChange={setFleetOpen}
-        role={role}
-      />
-
-      {/* Bookings Sub-navigation Bottom Sheet */}
-      <BookingsSheet
-        open={bookingsOpen}
-        onOpenChange={setBookingsOpen}
-        role={role}
-      />
 
       {/* Profile Bottom Sheet (Quick Controls, Dashboard Link, Theme & Sign Out) */}
       <ProfileSheet
