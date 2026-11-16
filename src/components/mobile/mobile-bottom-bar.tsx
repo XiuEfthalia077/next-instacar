@@ -251,7 +251,10 @@ export function MobileBottomBar() {
             {/* 5. Profile */}
             <button
               type="button"
-              onClick={() => setProfileOpen(true)}
+              onClick={(e) => {
+                e.currentTarget.blur();
+                setProfileOpen(true);
+              }}
               className={cn(
                 "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px] cursor-pointer",
                 profileOpen ? activeTabClass : inactiveTabClass,
@@ -333,7 +336,10 @@ export function MobileBottomBar() {
             {/* 5. Profile */}
             <button
               type="button"
-              onClick={() => setProfileOpen(true)}
+              onClick={(e) => {
+                e.currentTarget.blur();
+                setProfileOpen(true);
+              }}
               className={cn(
                 "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px] cursor-pointer",
                 profileOpen ? activeTabClass : inactiveTabClass,
