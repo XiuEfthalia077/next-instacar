@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronRight, X } from "lucide-react";
 
 import { triggerTopLoader } from "@/components/common/top-loader";
-import { SIDEBAR_NAV, isNavParent } from "@/lib/constants";
+import { ROLE_HOME, SIDEBAR_NAV, isNavParent } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import type { Branch, UserRole } from "@/lib/types";
 
@@ -172,15 +172,21 @@ export function Sidebar({
         </button>
 
         <div className="mb-4 px-2">
-          <div className="text-[24px] font-extrabold leading-none tracking-[-0.5px] text-white">
-            InstaCar
-            <span className="text-[#FFD700]">.</span>
-          </div>
-          <small
-            className="mt-1 block text-[10px] font-extrabold uppercase tracking-wide text-[#FFD700]"
+          <Link
+            href={ROLE_HOME[role] || "/admin/dashboard"}
+            className="block group"
+            title="Go to Dashboard"
           >
-            {role} Portal
-          </small>
+            <div className="text-[24px] font-extrabold leading-none tracking-[-0.5px] text-white transition-opacity group-hover:opacity-90">
+              InstaCar
+              <span className="text-[#FFD700]">.</span>
+            </div>
+            <small
+              className="mt-1 block text-[10px] font-extrabold uppercase tracking-wide text-[#FFD700]"
+            >
+              {role} Portal
+            </small>
+          </Link>
         </div>
 
         <nav className="flex-1">

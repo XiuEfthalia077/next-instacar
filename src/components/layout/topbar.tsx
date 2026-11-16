@@ -12,13 +12,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { signOutAction, switchBranchAction } from "@/lib/actions/auth";
-import { PANEL_TITLE } from "@/lib/constants";
+import { PANEL_TITLE, ROLE_HOME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import type { AppSession, Branch } from "@/lib/types";
 
 const THEME_STORAGE_KEY = "instacar-admin-theme";
 
-export function ThemeToggle() {
+export function ThemeToggle({ className }: { className?: string } = {}) {
   const [dark, setDark] = useState(true);
 
   useEffect(() => {
@@ -46,7 +46,10 @@ export function ThemeToggle() {
       onClick={toggle}
       title="Toggle dark mode"
       aria-label="Toggle dark mode"
-      className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border-[1.5px] border-black bg-white text-black transition-all hover:shadow-[0_4px_12px_rgba(0,0,0,0.15)] dark:border-[#facc15] dark:bg-[#18181b] dark:text-[#facc15] dark:hover:border-white dark:hover:shadow-[0_0_12px_rgba(255,255,255,0.35)] cursor-pointer"
+      className={cn(
+        "inline-flex size-9 sm:size-11 shrink-0 items-center justify-center rounded-xl border-[1.5px] border-black bg-white text-black transition-all hover:shadow-[0_4px_12px_rgba(0,0,0,0.15)] dark:border-[#facc15] dark:bg-[#18181b] dark:text-[#facc15] dark:hover:border-white dark:hover:shadow-[0_0_12px_rgba(255,255,255,0.35)] cursor-pointer",
+        className,
+      )}
     >
       {dark ? (
         <Sun className="size-4" />
@@ -68,6 +71,7 @@ export function Topbar({
 }) {
   const firstLetter = (session.name || "G").charAt(0).toUpperCase();
   const logoutFormRef = useRef<HTMLFormElement>(null);
+  const homeHref = ROLE_HOME[session.role] || "/admin/dashboard";
 
   const currentBranchName =
     session.viewBranch === "all"
@@ -76,10 +80,10 @@ export function Topbar({
 
   return (
     <nav className="sticky top-0 z-30 border-b border-[#e2e8f0] bg-white transition-colors dark:border-[#27272a] dark:bg-[#141414]">
-      {/* ── Mobile Header (< md): Clean branded top bar with ONLY the InstaCar logo (No navigation buttons) ── */}
+      {/* ── Mobile Header (< md): Clean branded top bar with ONLY the InstaCar logo linking to user's dashboard ── */}
       <div className="flex h-12 items-center justify-center px-4 md:hidden">
         <Link
-          href="/"
+          href={homeHref}
           className="flex items-center gap-0.5 text-xl font-black tracking-tight text-foreground transition-opacity hover:opacity-90"
         >
           <span>Insta</span>

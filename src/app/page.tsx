@@ -162,7 +162,7 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-background font-sans text-foreground transition-colors selection:bg-[#ffcc00] selection:text-black">
-      <SiteNavbar />
+      <SiteNavbar session={session} />
 
       <main className="overflow-x-hidden pb-24 md:pb-0">
         {/* 1. Hero & Search Widget */}
