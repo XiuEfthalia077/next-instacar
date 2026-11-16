@@ -1,5 +1,6 @@
 import {
   CalendarCheck,
+  CalendarDays,
   CarFront,
   CircleCheck,
   CircleX,
@@ -7,8 +8,10 @@ import {
   Globe2,
   Inbox,
   MapPin,
-  Truck,
+  PenSquare,
+  ShoppingCart,
   Store,
+  Truck,
 } from "lucide-react";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -215,6 +218,31 @@ export default async function AdminBookingsOnlinePage({
         title="Online Reservations"
         description="Manage your online booking pipeline efficiently."
       />
+
+      {/* Quick Switcher: Online Reservations | Manual Bookings | Calendar Timeline */}
+      <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-border/60 pb-3">
+        <Link
+          href="/admin/bookings_online"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-[#ffcc00] px-3.5 py-1.5 text-xs font-black text-black shadow-xs transition-all"
+        >
+          <ShoppingCart className="size-3.5" />
+          <span>Online Reservations</span>
+        </Link>
+        <Link
+          href="/admin/bookings_manual"
+          className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3.5 py-1.5 text-xs font-bold text-muted-foreground hover:border-[#ffcc00]/50 hover:bg-muted hover:text-foreground transition-all"
+        >
+          <PenSquare className="size-3.5 text-[#b38a00] dark:text-[#ffcc00]" />
+          <span>Manual Bookings</span>
+        </Link>
+        <Link
+          href="/shared/calendar"
+          className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3.5 py-1.5 text-xs font-bold text-muted-foreground hover:border-[#ffcc00]/50 hover:bg-muted hover:text-foreground transition-all ml-auto"
+        >
+          <CalendarDays className="size-3.5 text-[#b38a00] dark:text-[#ffcc00]" />
+          <span>Master Calendar &rarr;</span>
+        </Link>
+      </div>
 
       <Flash {...flash} />
 

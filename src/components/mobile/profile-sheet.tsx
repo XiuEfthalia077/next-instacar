@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
+  BadgeCheck,
   BarChart3,
   Building2,
   CalendarDays,
@@ -12,10 +13,13 @@ import {
   CreditCard,
   DollarSign,
   ExternalLink,
+  Inbox,
   LayoutDashboard,
   LogOut,
   Moon,
+  PenSquare,
   ShieldCheck,
+  ShoppingCart,
   Star,
   Sun,
   User,
@@ -186,17 +190,32 @@ export function ProfileSheet({
                   <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground px-2 mb-1">
                     Operations &amp; Finance
                   </p>
+                  {/* Online Bookings */}
                   <Link
                     href={role === "operator" ? "/operator/bookings" : role === "staff" ? "/staff/bookings" : "/admin/bookings_online"}
                     onClick={() => onOpenChange(false)}
                     className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
                   >
                     <div className="flex items-center gap-2.5">
-                      <ClipboardList className="size-4 text-[#ffcc00]" />
-                      <span>All Bookings</span>
+                      <ShoppingCart className="size-4 text-[#ffcc00]" />
+                      <span>Online Reservations</span>
                     </div>
                     <ChevronRight className="size-4 text-muted-foreground" />
                   </Link>
+                  {/* Manual Bookings (Admin & Staff) */}
+                  {(role === "admin" || role === "staff") && (
+                    <Link
+                      href={role === "staff" ? "/staff/bookings_manual" : "/admin/bookings_manual"}
+                      onClick={() => onOpenChange(false)}
+                      className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <PenSquare className="size-4 text-[#ffcc00]" />
+                        <span>Manual Bookings</span>
+                      </div>
+                      <ChevronRight className="size-4 text-muted-foreground" />
+                    </Link>
+                  )}
                   <Link
                     href={role === "operator" ? "/operator/revenue" : role === "staff" ? "/staff/staff_revenue" : "/admin/financials"}
                     onClick={() => onOpenChange(false)}
@@ -241,6 +260,17 @@ export function ProfileSheet({
                       <ChevronRight className="size-4 text-muted-foreground" />
                     </Link>
                     <Link
+                      href="/admin/staff"
+                      onClick={() => onOpenChange(false)}
+                      className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <BadgeCheck className="size-4 text-[#ffcc00]" />
+                        <span>Staff Management Console</span>
+                      </div>
+                      <ChevronRight className="size-4 text-muted-foreground" />
+                    </Link>
+                    <Link
                       href="/admin/branches"
                       onClick={() => onOpenChange(false)}
                       className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
@@ -248,6 +278,17 @@ export function ProfileSheet({
                       <div className="flex items-center gap-2.5">
                         <Building2 className="size-4 text-[#ffcc00]" />
                         <span>Branch Locations</span>
+                      </div>
+                      <ChevronRight className="size-4 text-muted-foreground" />
+                    </Link>
+                    <Link
+                      href="/admin/contact_messages"
+                      onClick={() => onOpenChange(false)}
+                      className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Inbox className="size-4 text-[#ffcc00]" />
+                        <span>Contact Inquiries</span>
                       </div>
                       <ChevronRight className="size-4 text-muted-foreground" />
                     </Link>

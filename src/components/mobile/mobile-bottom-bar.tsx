@@ -17,6 +17,7 @@ import { useFavorites } from "@/lib/hooks/use-favorites";
 import { FavoritesSheet } from "@/components/mobile/favorites-sheet";
 import { MobileSearchSheet } from "@/components/mobile/mobile-search-sheet";
 import { ProfileSheet, type MobileProfileUser } from "@/components/mobile/profile-sheet";
+import { FleetSheet, BookingsSheet } from "@/components/mobile/subnav-sheets";
 import { createClient } from "@/utils/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +39,8 @@ export function MobileBottomBar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [fleetOpen, setFleetOpen] = useState(false);
+  const [bookingsOpen, setBookingsOpen] = useState(false);
 
   const [sessionUser, setSessionUser] = useState<MobileProfileUser | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -212,17 +215,21 @@ export function MobileBottomBar() {
               <span className="text-[10px] tracking-tight font-extrabold">Dashboard</span>
             </Link>
 
-            {/* 2. Fleet */}
-            <Link
-              href="/shared/cars"
+            {/* 2. Fleet (Choose Fleet Manager vs Schedules/Maintenance) */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.currentTarget.blur();
+                setFleetOpen(true);
+              }}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px]",
-                isFleetActive ? activeTabClass : inactiveTabClass,
+                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px] cursor-pointer",
+                isFleetActive || fleetOpen ? activeTabClass : inactiveTabClass,
               )}
             >
-              <Car className={cn("size-5 shrink-0", isFleetActive ? "stroke-[2.5]" : "stroke-2")} />
+              <Car className={cn("size-5 shrink-0", isFleetActive || fleetOpen ? "stroke-[2.5]" : "stroke-2")} />
               <span className="text-[10px] tracking-tight font-extrabold">Fleet</span>
-            </Link>
+            </button>
 
             {/* 3. Schedule */}
             <Link
@@ -236,17 +243,21 @@ export function MobileBottomBar() {
               <span className="text-[10px] tracking-tight font-extrabold">Schedule</span>
             </Link>
 
-            {/* 4. Bookings */}
-            <Link
-              href={bookingsHref}
+            {/* 4. Bookings (Choose Online vs Manual vs Calendar) */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.currentTarget.blur();
+                setBookingsOpen(true);
+              }}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px]",
-                isBookingsActive ? activeTabClass : inactiveTabClass,
+                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px] cursor-pointer",
+                isBookingsActive || bookingsOpen ? activeTabClass : inactiveTabClass,
               )}
             >
-              <ClipboardList className={cn("size-5 shrink-0", isBookingsActive ? "stroke-[2.5]" : "stroke-2")} />
+              <ClipboardList className={cn("size-5 shrink-0", isBookingsActive || bookingsOpen ? "stroke-[2.5]" : "stroke-2")} />
               <span className="text-[10px] tracking-tight font-extrabold">Bookings</span>
-            </Link>
+            </button>
 
             {/* 5. Profile */}
             <button
@@ -351,6 +362,20 @@ export function MobileBottomBar() {
           </>
         )}
       </nav>
+
+      {/* Fleet Sub-navigation Bottom Sheet */}
+      <FleetSheet
+        open={fleetOpen}
+        onOpenChange={setFleetOpen}
+        role={role}
+      />
+
+      {/* Bookings Sub-navigation Bottom Sheet */}
+      <BookingsSheet
+        open={bookingsOpen}
+        onOpenChange={setBookingsOpen}
+        role={role}
+      />
 
       {/* Profile Bottom Sheet (Quick Controls, Dashboard Link, Theme & Sign Out) */}
       <ProfileSheet

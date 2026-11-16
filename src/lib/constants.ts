@@ -12,6 +12,7 @@ import {
   FileSpreadsheet,
   Grid3x2,
   HouseHeart,
+  Inbox,
   PenSquare,
   Search,
   Send,
@@ -137,6 +138,7 @@ export const SIDEBAR_NAV: Record<UserRole, NavGroup[]> = {
       items: [
         { label: "Reviews", href: "/admin/review_list", icon: Star },
         { label: "Branches", href: "/admin/branches", icon: Store },
+        { label: "Contact Inquiries", href: "/admin/contact_messages", icon: Inbox },
       ],
     },
     {
