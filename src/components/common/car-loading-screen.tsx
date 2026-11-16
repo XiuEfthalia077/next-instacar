@@ -319,14 +319,14 @@ export function CarLoadingScreen({
       className={cn(
         "flex flex-col items-center justify-center select-none",
         fullScreen
-          ? "fixed inset-0 z-[9999] min-h-screen w-screen bg-[#0a0a0c]/95 backdrop-blur-md transition-all duration-300"
-          : "relative min-h-[380px] w-full rounded-2xl border border-border/60 bg-card/60 p-8 backdrop-blur-sm",
+          ? "fixed inset-0 z-[9999] min-h-screen w-screen bg-white/95 dark:bg-[#0a0a0c]/95 backdrop-blur-md transition-all duration-300"
+          : "relative min-h-[380px] w-full rounded-2xl border border-neutral-200 dark:border-border/60 bg-white/90 dark:bg-card/60 p-8 backdrop-blur-sm",
         className,
       )}
     >
       {/* Background ambient lighting */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 size-72 sm:size-96 rounded-full bg-[#ffcc00]/8 blur-3xl" />
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 size-72 sm:size-96 rounded-full bg-[#ffcc00]/15 dark:bg-[#ffcc00]/8 blur-3xl" />
       </div>
 
       <div className="relative z-10 flex flex-col items-center max-w-sm px-4 w-full">
@@ -342,7 +342,7 @@ export function CarLoadingScreen({
           <div className="relative z-10 animate-car-chassis">
             <svg
               viewBox="0 0 200 65"
-              className="w-64 sm:w-72 h-auto drop-shadow-[0_12px_24px_rgba(0,0,0,0.7)]"
+              className="w-64 sm:w-72 h-auto drop-shadow-[0_8px_16px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_12px_24px_rgba(0,0,0,0.7)]"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
             >
@@ -378,7 +378,7 @@ export function CarLoadingScreen({
 
           {/* Road Surface with Fast Scrolling Dashed Lane Lines (seamlessly grounded directly under wheels) */}
           <div className="w-full relative h-3 overflow-hidden flex flex-col justify-end">
-            <div className="w-full h-[1.5px] bg-zinc-800" />
+            <div className="w-full h-[1.5px] bg-zinc-300 dark:bg-zinc-800" />
             <div className="w-[200%] flex items-center gap-3 animate-car-road py-1">
               {Array.from({ length: 24 }).map((_, idx) => (
                 <div
@@ -392,7 +392,7 @@ export function CarLoadingScreen({
 
         {/* Clean Vehicle Model Pill Badge */}
         {showVehicleBadge && (
-          <div className="mt-3.5 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-[#ffcc00]/25 shadow-xs transition-all duration-300">
+          <div className="mt-3.5 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-100 dark:bg-white/5 border border-[#ffcc00]/40 dark:border-[#ffcc00]/25 shadow-xs transition-all duration-300">
             <span className="size-1.5 rounded-full bg-[#ffcc00] shadow-[0_0_6px_#ffcc00]" />
             <span className="text-[11px] font-semibold text-foreground/90 tracking-wide">
               {activeCar.name}
@@ -430,8 +430,8 @@ export function CarLoadingScreen({
           ) : null}
 
           {/* FLUID INDETERMINATE LASER LOADING BAR (Always accurate, smooth continuous sweep) */}
-          <div className="mt-3.5 w-48 sm:w-56 h-[3px] mx-auto rounded-full bg-white/10 dark:bg-zinc-800/80 overflow-hidden relative shadow-inner">
-            <div className="h-full w-2/5 rounded-full bg-gradient-to-r from-transparent via-[#ffcc00] via-white to-transparent shadow-[0_0_10px_#ffcc00] animate-loading-laser" />
+          <div className="mt-3.5 w-48 sm:w-56 h-[3px] mx-auto rounded-full bg-neutral-200 dark:bg-zinc-800/80 overflow-hidden relative shadow-inner">
+            <div className="h-full w-2/5 rounded-full bg-gradient-to-r from-transparent via-[#ffcc00] via-amber-400 dark:via-white to-transparent shadow-[0_0_10px_#ffcc00] animate-loading-laser" />
           </div>
         </div>
       </div>

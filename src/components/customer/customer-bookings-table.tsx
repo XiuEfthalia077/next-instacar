@@ -72,7 +72,7 @@ export function CustomerBookingsTable({
           return (
             <div
               key={booking.id}
-              className="rounded-2xl border border-neutral-300 dark:border-neutral-700 bg-card p-4 space-y-3 shadow-xs transition hover:border-[#ffcc00]/60"
+              className="rounded-2xl border-2 border-[#ffcc00] dark:border-[#ffcc00]/80 bg-card p-4 space-y-3 shadow-xs transition hover:border-[#ffcc00]"
             >
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-1.5 shrink-0">

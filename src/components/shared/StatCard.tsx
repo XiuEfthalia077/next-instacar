@@ -22,16 +22,16 @@ const TONE_CONFIG: Record<
   }
 > = {
   default: {
-    iconBg: "bg-zinc-800 text-zinc-300 dark:bg-zinc-800 dark:text-zinc-200",
-    iconColor: "text-zinc-300 dark:text-zinc-200",
+    iconBg: "bg-amber-500/15 text-amber-700 dark:bg-amber-500/20 dark:text-[#ffcc00]",
+    iconColor: "text-amber-700 dark:text-[#ffcc00]",
     defaultValueColor: "text-foreground",
-    border: "border-border/80 dark:border-neutral-700/80 hover:border-[#ffcc00]/70 dark:hover:border-neutral-500",
+    border: "border-[#ffcc00] dark:border-[#ffcc00]/80 hover:border-[#ffd633] dark:hover:border-[#ffcc00] shadow-xs",
   },
   primary: {
-    iconBg: "bg-amber-500/15 text-amber-600 dark:text-[#ffcc00]",
-    iconColor: "text-amber-600 dark:text-[#ffcc00]",
+    iconBg: "bg-amber-500/15 text-amber-700 dark:bg-amber-500/20 dark:text-[#ffcc00]",
+    iconColor: "text-amber-700 dark:text-[#ffcc00]",
     defaultValueColor: "text-foreground",
-    border: "border-amber-500/40 dark:border-[#ffcc00]/40 hover:border-[#ffcc00] dark:hover:border-[#ffcc00]",
+    border: "border-[#ffcc00] dark:border-[#ffcc00]/80 hover:border-[#ffd633] dark:hover:border-[#ffcc00] shadow-xs",
   },
   success: {
     iconBg: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",

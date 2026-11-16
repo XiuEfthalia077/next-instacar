@@ -80,7 +80,7 @@ export function BookingMobileCard({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-neutral-300 dark:border-neutral-700 bg-card p-4 sm:p-5 shadow-xs transition-all hover:border-[#ffcc00]/60 space-y-3.5",
+        "rounded-2xl border-2 border-[#ffcc00] dark:border-[#ffcc00]/80 bg-card p-4 sm:p-5 shadow-xs transition-all hover:border-[#ffcc00] space-y-3.5",
         className,
       )}
     >
