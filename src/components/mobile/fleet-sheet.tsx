@@ -3,11 +3,9 @@
 import * as React from "react";
 import Link from "next/link";
 import {
-  CalendarDays,
   CalendarRange,
   Car,
   ChevronRight,
-  Wrench,
 } from "lucide-react";
 
 import {
@@ -31,7 +29,6 @@ export function FleetSheet({
 
   const fleetHref = "/shared/cars";
   const scheduleHref = "/shared/my_car_schedules";
-  const calendarHref = "/shared/calendar";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -51,13 +48,14 @@ export function FleetSheet({
                 Fleet &amp; Schedules
               </SheetTitle>
               <SheetDescription className="text-xs text-muted-foreground mt-0.5">
-                Manage vehicle inventory, maintenance blackouts, and calendars
+                Manage vehicle inventory, pricing, and blackout maintenance schedules
               </SheetDescription>
             </div>
           </div>
         </SheetHeader>
 
-        <div className="p-4 space-y-2 flex-1">
+        <div className="p-4 space-y-2.5 flex-1">
+          {/* 1. Fleet */}
           <Link
             href={fleetHref}
             onClick={() => onOpenChange(false)}
@@ -68,7 +66,7 @@ export function FleetSheet({
                 <Car className="size-5" />
               </div>
               <div>
-                <p className="font-extrabold text-sm text-foreground">Fleet Management</p>
+                <p className="font-extrabold text-sm text-foreground">Fleet</p>
                 <p className="text-xs text-muted-foreground">
                   {isOperator ? "My vehicle inventory & statuses" : "Full fleet inventory, rates & statuses"}
                 </p>
@@ -77,6 +75,7 @@ export function FleetSheet({
             <ChevronRight className="size-4 text-muted-foreground shrink-0" />
           </Link>
 
+          {/* 2. Schedules */}
           <Link
             href={scheduleHref}
             onClick={() => onOpenChange(false)}
@@ -87,28 +86,9 @@ export function FleetSheet({
                 <CalendarRange className="size-5" />
               </div>
               <div>
-                <p className="font-extrabold text-sm text-foreground">Schedules &amp; Blackouts</p>
+                <p className="font-extrabold text-sm text-foreground">Schedules</p>
                 <p className="text-xs text-muted-foreground">
                   Vehicle maintenance blocks &amp; blackout dates
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="size-4 text-muted-foreground shrink-0" />
-          </Link>
-
-          <Link
-            href={calendarHref}
-            onClick={() => onOpenChange(false)}
-            className="flex items-center justify-between rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-muted/20 p-3.5 transition hover:border-[#ffcc00]/60 hover:bg-muted/40"
-          >
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-sky-500/15 text-sky-700 dark:text-sky-400">
-                <CalendarDays className="size-5" />
-              </div>
-              <div>
-                <p className="font-extrabold text-sm text-foreground">Master Booking Calendar</p>
-                <p className="text-xs text-muted-foreground">
-                  Date-grouped list &amp; calendar view of all bookings
                 </p>
               </div>
             </div>

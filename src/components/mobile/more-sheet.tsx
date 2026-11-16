@@ -124,12 +124,12 @@ export function MoreSheet({
           )}
 
           {/* ================================================================
-              GROUP 2: USERS & STAFF
+              GROUP 2: USERS MANAGEMENT
               ================================================================ */}
           {isAdmin && (
             <div className="space-y-1.5">
               <p className="text-[11px] font-black uppercase tracking-wider text-muted-foreground px-1">
-                Users
+                Users Management
               </p>
               <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-muted/20 divide-y divide-neutral-200 dark:divide-neutral-800 overflow-hidden">
                 <Link
@@ -184,11 +184,11 @@ export function MoreSheet({
           )}
 
           {/* ================================================================
-              GROUP 3: FINANCIALS
+              GROUP 3: ACCOUNTING
               ================================================================ */}
           <div className="space-y-1.5">
             <p className="text-[11px] font-black uppercase tracking-wider text-muted-foreground px-1">
-              Financials
+              Accounting
             </p>
             <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-muted/20 divide-y divide-neutral-200 dark:divide-neutral-800 overflow-hidden">
               {isAdmin && (
@@ -275,12 +275,12 @@ export function MoreSheet({
           </div>
 
           {/* ================================================================
-              GROUP 4: REPORTS & ANALYTICS
+              GROUP 4: ANALYTICS
               ================================================================ */}
           {isAdmin && (
             <div className="space-y-1.5">
               <p className="text-[11px] font-black uppercase tracking-wider text-muted-foreground px-1">
-                Reports
+                Analytics
               </p>
               <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-muted/20 divide-y divide-neutral-200 dark:divide-neutral-800 overflow-hidden">
                 <Link
@@ -290,7 +290,7 @@ export function MoreSheet({
                 >
                   <div className="flex items-center gap-2.5">
                     <TrendingUp className="size-4 text-emerald-600 dark:text-emerald-400" />
-                    <span>Analytics Overview</span>
+                    <span>Overview</span>
                   </div>
                   <ChevronRight className="size-3.5 text-muted-foreground" />
                 </Link>

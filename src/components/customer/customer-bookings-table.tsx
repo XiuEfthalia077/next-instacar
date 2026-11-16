@@ -72,14 +72,14 @@ export function CustomerBookingsTable({
           return (
             <div
               key={booking.id}
-              className="rounded-2xl border border-border bg-card p-4 space-y-3 shadow-xs"
+              className="rounded-2xl border border-neutral-300 dark:border-neutral-700 bg-card p-4 space-y-3 shadow-xs transition hover:border-[#ffcc00]/60"
             >
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="font-mono text-xs font-black text-foreground bg-muted/80 px-2 py-0.5 rounded-md border border-border/40">
+                  <span className="font-mono text-xs font-black text-foreground bg-muted/80 px-2.5 py-1 rounded-md border border-neutral-300 dark:border-neutral-700">
                     #BK-{booking.id}
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[10px] font-semibold text-foreground">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-neutral-300 dark:border-neutral-700 bg-muted/60 px-2 py-0.5 text-[10px] font-bold text-foreground">
                     <Truck className="size-3 text-amber-600 dark:text-[#ffcc00]" />
                     {isDelivery ? "Delivery" : "Pickup"}
                   </span>
@@ -88,33 +88,33 @@ export function CustomerBookingsTable({
               </div>
 
               <div>
-                <p className="font-extrabold text-base text-foreground leading-snug">{carName}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="font-black text-base text-foreground leading-snug">{carName}</p>
+                <p className="text-xs text-neutral-600 dark:text-neutral-400 font-medium mt-0.5">
                   {booking.cars?.type || "Standard Vehicle"}
                 </p>
               </div>
 
-              <div className="space-y-1.5 rounded-xl bg-muted/30 p-3 text-xs border border-border/50">
-                <div className="flex items-center gap-2 text-foreground font-medium">
+              <div className="space-y-1.5 rounded-xl bg-neutral-100/60 dark:bg-neutral-900/60 p-3 text-xs border border-neutral-300 dark:border-neutral-700">
+                <div className="flex items-center gap-2 text-foreground font-bold">
                   <CalendarDays className="size-3.5 text-[#ffcc00] shrink-0" />
                   <span>
                     {formatDate(booking.start_date)} – {formatDate(booking.end_date)}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-muted-foreground text-[11px]">
+                <div className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400 text-[11px] font-medium">
                   <Clock className="size-3 shrink-0" />
                   <span>
                     {formatTime(booking.pickup_time)} – {formatTime(booking.return_time)}
                   </span>
                 </div>
                 {booking.delivery_address ? (
-                  <p className="text-[11px] text-muted-foreground truncate pt-1 border-t border-border/30">
+                  <p className="text-[11px] text-neutral-600 dark:text-neutral-400 font-medium truncate pt-1 border-t border-neutral-200 dark:border-neutral-800">
                     Location: {booking.delivery_address}
                   </p>
                 ) : null}
               </div>
 
-              <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/40">
+              <div className="flex items-center justify-between gap-2 pt-2 border-t border-neutral-200 dark:border-neutral-700">
                 <div>
                   <span className="text-xs text-muted-foreground font-bold mr-1.5">Total:</span>
                   <Money value={booking.total_price} className="font-black text-base text-foreground" />

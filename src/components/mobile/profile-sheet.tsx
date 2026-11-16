@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
+  CalendarDays,
   ChevronRight,
+  LayoutDashboard,
   LogOut,
   Moon,
   ShieldCheck,
@@ -108,7 +110,7 @@ export function ProfileSheet({
             <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground px-1">
               My Account
             </p>
-            <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-muted/20 overflow-hidden">
+            <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-muted/20 overflow-hidden divide-y divide-neutral-200 dark:divide-neutral-800">
               <Link
                 href={isAdminOrOperator ? "/shared/profile" : "/user/profile"}
                 onClick={() => onOpenChange(false)}
@@ -120,6 +122,34 @@ export function ProfileSheet({
                 </div>
                 <ChevronRight className="size-4 text-muted-foreground" />
               </Link>
+
+              {!isAdminOrOperator && (
+                <>
+                  <Link
+                    href="/user/dashboard"
+                    onClick={() => onOpenChange(false)}
+                    className="flex items-center justify-between p-3.5 text-xs font-bold text-foreground hover:bg-muted/40 transition"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <LayoutDashboard className="size-4 text-[#ffcc00]" />
+                      <span>Member Dashboard</span>
+                    </div>
+                    <ChevronRight className="size-4 text-muted-foreground" />
+                  </Link>
+
+                  <Link
+                    href="/user/mybookings"
+                    onClick={() => onOpenChange(false)}
+                    className="flex items-center justify-between p-3.5 text-xs font-bold text-foreground hover:bg-muted/40 transition"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <CalendarDays className="size-4 text-[#ffcc00]" />
+                      <span>My Trips &amp; Reservations</span>
+                    </div>
+                    <ChevronRight className="size-4 text-muted-foreground" />
+                  </Link>
+                </>
+              )}
             </div>
           </div>
 
