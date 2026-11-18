@@ -26,6 +26,8 @@ import { updateReservationAction } from "@/lib/actions/bookings";
 
 export type EditableReservation = {
   id: number;
+  car_id?: number | null;
+  branch_id?: number | null;
   fulfillment_type: string | null;
   delivery_address: string | null;
   start_date: string | null;
@@ -34,6 +36,9 @@ export type EditableReservation = {
   return_time: string | null;
   total_price: number | null;
   down_payment: number | null;
+  delivery_fee?: number | null;
+  pickup_fee?: number | null;
+  discount_price?: number | null;
 };
 
 function timeValue(value: string | null | undefined) {

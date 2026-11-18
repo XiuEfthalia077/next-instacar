@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ClipboardList, Trash2 } from "lucide-react";
+import { Car, ClipboardList, Loader2, Trash2 } from "lucide-react";
 
 import { DeleteBookingDialog } from "@/components/admin/delete-booking-dialog";
 import { DocumentPreviewButton, type BookingDocument } from "@/components/admin/document-preview";
@@ -23,10 +23,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { filterControlClass } from "@/components/common/filter-bar";
-import { updateReservationAction } from "@/lib/actions/bookings";
+import {
+  updateReservationAction,
+  getAvailableVehiclesAction,
+  type AvailableVehicleOption,
+} from "@/lib/actions/bookings";
+import { calculatePriceByHours } from "@/lib/pricing";
 
 export type EditableReservation = {
   id: number;
+  car_id?: number | null;
+  branch_id?: number | null;
   fulfillment_type: string | null;
   delivery_address: string | null;
   start_date: string | null;
@@ -35,6 +42,9 @@ export type EditableReservation = {
   return_time: string | null;
   total_price: number | null;
   down_payment: number | null;
+  delivery_fee?: number | null;
+  pickup_fee?: number | null;
+  discount_price?: number | null;
 };
 
 function timeValue(value: string | null | undefined) {
@@ -59,6 +69,13 @@ export function EditReservationDialog({
   isAdmin?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [carId, setCarId] = useState(booking.car_id ? String(booking.car_id) : "");
+  const [totalPrice, setTotalPrice] = useState<string>(
+    booking.total_price != null ? String(booking.total_price) : "0",
+  );
+  const [availableCars, setAvailableCars] = useState<AvailableVehicleOption[]>([]);
+  const [isLoadingCars, setIsLoadingCars] = useState(false);
+
   const [fulfillment, setFulfillment] = useState(
     booking.fulfillment_type?.toLowerCase() === "delivery" ? "delivery" : "pickup",
   );
@@ -86,6 +103,66 @@ export function EditReservationDialog({
       window.removeEventListener("instacar:close-modals", handleClose);
     };
   }, []);
+
+  // Fetch 100% available vehicles when dates/times change (Task 2)
+  useEffect(() => {
+    if (!open) return;
+    let active = true;
+    setIsLoadingCars(true);
+    getAvailableVehiclesAction({
+      startDate,
+      endDate,
+      pickupTime,
+      returnTime,
+      excludeBookingId: booking.id,
+      branchId: booking.branch_id,
+    })
+      .then((cars) => {
+        if (!active) return;
+        setAvailableCars(cars);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch available cars for swap:", err);
+      })
+      .finally(() => {
+        if (active) setIsLoadingCars(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [open, startDate, endDate, pickupTime, returnTime, booking.id, booking.branch_id]);
+
+  const handleCarChange = (newCarId: string) => {
+    setCarId(newCarId);
+    if (!newCarId) return;
+
+    const car = availableCars.find((c) => String(c.id) === newCarId);
+    if (!car || !startDate || !endDate) return;
+
+    const startStamp = new Date(`${startDate}T${pickupTime || "00:00:00"}`).getTime();
+    const endStamp = new Date(`${endDate}T${returnTime || "23:59:59"}`).getTime();
+    const hours = (endStamp - startStamp) / 3_600_000;
+
+    if (hours > 0) {
+      const baseRate = calculatePriceByHours(
+        hours,
+        Number(car.price_10_hours ?? 0),
+        Number(car.price_12_hours ?? 0),
+        Number(car.price_24_hours ?? 0),
+        Number(car.ext_price_1_6 ?? 0),
+        Number(car.ext_price_7_10 ?? 0),
+        Number(car.ext_price_11_12 ?? 0),
+        Number(car.ext_price_13_24 ?? 0),
+      );
+      const delFee = Number(booking.delivery_fee ?? 0);
+      const pickFee = Number(booking.pickup_fee ?? 0);
+      const disc = Number(booking.discount_price ?? 0);
+      const subtotal = baseRate + delFee + pickFee;
+      const newTotal = Math.max(0, subtotal - disc);
+      setTotalPrice(newTotal.toFixed(2));
+    }
+  };
 
   const isDelivery = fulfillment === "delivery";
   const source = booking.booking_type === "manual" ? "manual" : "online";
@@ -160,6 +237,44 @@ export function EditReservationDialog({
             }}
           />
 
+          {/* Unit / Vehicle Selection (Task 2: Edit/Change Unit) */}
+          <div className="rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/50 p-3.5 space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="edit-assigned-vehicle" className="text-xs font-bold flex items-center gap-1.5 text-neutral-900 dark:text-neutral-100">
+                <Car className="size-4 text-[#b38a00] dark:text-[#ffd700]" />
+                Assigned Vehicle (Swap Unit)
+              </Label>
+              {isLoadingCars ? (
+                <span className="text-[11px] text-muted-foreground animate-pulse flex items-center gap-1">
+                  <Loader2 className="size-3 animate-spin" /> Checking dates...
+                </span>
+              ) : (
+                <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                  {availableCars.length} Available for these dates
+                </span>
+              )}
+            </div>
+            <input type="hidden" name="car_id" value={carId} />
+            <select
+              id="edit-assigned-vehicle"
+              value={carId}
+              onChange={(e) => handleCarChange(e.target.value)}
+              className={filterControlClass}
+              required
+            >
+              <option value="">-- Select Available Vehicle --</option>
+              {availableCars.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.brand} {c.model} ({c.plate_number ?? "No Plate"})
+                  {c.price_24_hours ? ` — ₱${Number(c.price_24_hours).toLocaleString()}/day` : ""}
+                </option>
+              ))}
+            </select>
+            <p className="text-[11px] text-muted-foreground">
+              Unavailable and conflicting cars are automatically excluded. Selecting a new vehicle automatically recalculates the base rental rate.
+            </p>
+          </div>
+
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <Label className="mb-1 block text-xs font-bold">Fulfillment Type</Label>
@@ -231,12 +346,31 @@ export function EditReservationDialog({
 
             <div>
               <Label className="mb-1 block text-xs font-bold">Total Price (₱)</Label>
-              <Input type="number" name="total_price" defaultValue={Number(booking.total_price ?? 0)} min={0} max={1000000} step="0.01" required className="rounded-lg" />
+              <Input
+                type="number"
+                name="total_price"
+                value={totalPrice}
+                onChange={(e) => setTotalPrice(e.target.value)}
+                min={0}
+                max={1000000}
+                step="0.01"
+                required
+                className="rounded-lg"
+              />
             </div>
 
             <div>
               <Label className="mb-1 block text-xs font-bold">Down Payment (₱)</Label>
-              <Input type="number" name="down_payment" defaultValue={Number(booking.down_payment ?? 0)} min={0} max={1000000} step="0.01" required className="rounded-lg" />
+              <Input
+                type="number"
+                name="down_payment"
+                defaultValue={Number(booking.down_payment ?? 0)}
+                min={0}
+                max={1000000}
+                step="0.01"
+                required
+                className="rounded-lg"
+              />
             </div>
           </div>
 

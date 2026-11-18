@@ -716,7 +716,12 @@ export async function addManualBookingAction(formData: FormData) {
     flashRedirect(home, "error", "Return date/time must be after pickup date/time!");
   }
 
-  const totalPrice = priceFor(car, hours);
+  const baseRate = priceFor(car, hours);
+  const deliveryFeeAmount = money(formData, "delivery_fee") ?? 0;
+  const pickupFeeAmount = money(formData, "pickup_fee") ?? 0;
+  const discountAmount = money(formData, "discount_price") ?? 0;
+  const subtotalPrice = baseRate + deliveryFeeAmount + pickupFeeAmount;
+  const totalPrice = Math.max(0, subtotalPrice - discountAmount);
 
   const userId = int(formData, "user_id");
   const guestName = str(formData, "guest_name");
@@ -1094,12 +1099,16 @@ export async function updateReservationAction(formData: FormData) {
   const { data: oldData } = await db
     .from("bookings")
     .select(
-      "id, car_id, primary_id_path, secondary_id_path, proof_billing_path, proof_payment_path, branch_id",
+      "id, car_id, primary_id_path, secondary_id_path, proof_billing_path, proof_payment_path, branch_id, total_price, delivery_fee, pickup_fee, discount_price",
     )
     .eq("id", bookingId)
     .maybeSingle();
 
-  const old = oldData as BookingRow | null;
+  const old = oldData as (BookingRow & {
+    delivery_fee?: number | null;
+    pickup_fee?: number | null;
+    discount_price?: number | null;
+  }) | null;
   if (!old) flashRedirect(home, "error", "Booking record not found.");
 
   assertBranchAccess(session, old.branch_id, home);
@@ -1111,8 +1120,10 @@ export async function updateReservationAction(formData: FormData) {
 
   if (!startDate || !endDate) flashRedirect(home, "error", "Invalid dates.");
 
+  const carId = int(formData, "car_id") || old.car_id || 0;
+
   const overlap = await hasOverlap({
-    carId: old.car_id ?? 0,
+    carId,
     start: startDate,
     end: endDate,
     excludeBookingId: bookingId,
@@ -1160,7 +1171,6 @@ export async function updateReservationAction(formData: FormData) {
     if (result.ok) paths[key] = `${folder}/${fileName}`;
   }
 
-  const carId = old.car_id ?? 0;
   const releaseLock = await bookingMutex.lock(`car:${carId}`);
   try {
     const raceOverlap = await hasOverlap({
@@ -1177,16 +1187,44 @@ export async function updateReservationAction(formData: FormData) {
       );
     }
 
+    let finalTotalPrice = money(formData, "total_price");
+
+    // If unit changed and rate needs recalculating:
+    if (carId && carId !== old.car_id) {
+      const { data: newCar } = await db
+        .from("cars")
+        .select("id, brand, model, price_10_hours, price_12_hours, price_24_hours, ext_price_1_6, ext_price_7_10, ext_price_11_12, ext_price_13_24")
+        .eq("id", carId)
+        .maybeSingle();
+
+      if (newCar) {
+        const p = new Date(`${startDate}T${pickupTime || "00:00:00"}`);
+        const r = new Date(`${endDate}T${returnTime || "23:59:59"}`);
+        const hours = (r.getTime() - p.getTime()) / 3_600_000;
+        if (hours > 0) {
+          const newBaseRate = priceFor(newCar as CarPricing, hours);
+          const delFee = Number(old.delivery_fee ?? 0);
+          const pickFee = Number(old.pickup_fee ?? 0);
+          const disc = Number(old.discount_price ?? 0);
+          // If total_price in form was unchanged from old total, recalculate with new unit rate
+          if (!finalTotalPrice || finalTotalPrice === old.total_price) {
+            finalTotalPrice = Math.max(0, newBaseRate + delFee + pickFee - disc);
+          }
+        }
+      }
+    }
+
     const { error } = await db
       .from("bookings")
       .update({
+        car_id: carId,
         fulfillment_type: fulfillment,
         delivery_address: str(formData, "delivery_address") || null,
         start_date: startDate,
         end_date: endDate,
         pickup_time: pickupTime,
         return_time: returnTime,
-        total_price: money(formData, "total_price"),
+        total_price: finalTotalPrice ?? money(formData, "total_price"),
         down_payment: money(formData, "down_payment"),
         primary_id_path: paths.primary || null,
         secondary_id_path: paths.secondary || null,
@@ -1217,6 +1255,109 @@ export async function updateReservationAction(formData: FormData) {
 
   refreshBookingViews(bookingId);
   flashRedirect(home, "success", "Reservation details updated successfully!");
+}
+
+export type AvailableVehicleOption = {
+  id: number;
+  brand: string | null;
+  model: string | null;
+  plate_number: string | null;
+  type: string | null;
+  price_10_hours: number | null;
+  price_12_hours: number | null;
+  price_24_hours: number | null;
+  ext_price_1_6: number | null;
+  ext_price_7_10: number | null;
+  ext_price_11_12: number | null;
+  ext_price_13_24: number | null;
+};
+
+export async function getAvailableVehiclesAction(options: {
+  startDate: string;
+  endDate: string;
+  pickupTime?: string;
+  returnTime?: string;
+  excludeBookingId?: number;
+  branchId?: number | null;
+}): Promise<AvailableVehicleOption[]> {
+  const session = await requireRole("admin", "staff", "operator");
+  const supabase = await getSupabase();
+  const db = getAdminClient() ?? supabase;
+
+  let query = db
+    .from("cars")
+    .select(
+      "id, brand, model, plate_number, type, price_10_hours, price_12_hours, price_24_hours, ext_price_1_6, ext_price_7_10, ext_price_11_12, ext_price_13_24",
+    )
+    .neq("status", "Maintenance")
+    .order("brand", { ascending: true });
+
+  const scopedBranch = session.role === "staff" ? session.branchId : options.branchId;
+  if (scopedBranch) {
+    query = query.eq("branch_id", scopedBranch);
+  }
+
+  const { data: cars, error: carError } = await query;
+  if (carError || !cars || cars.length === 0) return [];
+
+  if (!options.startDate || !options.endDate) {
+    return cars as AvailableVehicleOption[];
+  }
+
+  const carIds = cars.map((c) => c.id);
+
+  let bookingQuery = db
+    .from("bookings")
+    .select("id, car_id, start_date, end_date, pickup_time, return_time")
+    .in("car_id", carIds)
+    .not("status", "in", "(Cancelled,Completed)");
+
+  if (options.excludeBookingId) {
+    bookingQuery = bookingQuery.neq("id", options.excludeBookingId);
+  }
+
+  const [bookingRes, schedRes] = await Promise.all([
+    bookingQuery,
+    db
+      .from("car_schedules")
+      .select("id, car_id, start_date, end_date")
+      .in("car_id", carIds),
+  ]);
+
+  const reqStart = wallClockTimestamp(options.startDate, options.pickupTime ?? "00:00:00");
+  const reqEnd = wallClockTimestamp(options.endDate, options.returnTime ?? "23:59:59");
+
+  const conflictedCarIds = new Set<number>();
+
+  for (const b of (bookingRes.data ?? []) as {
+    car_id: number | null;
+    start_date: string;
+    end_date: string;
+    pickup_time: string | null;
+    return_time: string | null;
+  }[]) {
+    if (!b.car_id || !b.start_date || !b.end_date) continue;
+    const bStart = wallClockTimestamp(b.start_date, b.pickup_time ?? "00:00:00");
+    const bEnd = wallClockTimestamp(b.end_date, b.return_time ?? "23:59:59");
+    if (reqStart < bEnd && reqEnd > bStart) {
+      conflictedCarIds.add(b.car_id);
+    }
+  }
+
+  for (const s of (schedRes.data ?? []) as {
+    car_id: number | null;
+    start_date: string;
+    end_date: string;
+  }[]) {
+    if (!s.car_id || !s.start_date || !s.end_date) continue;
+    const sStart = wallClockTimestamp(s.start_date, "00:00:00");
+    const sEnd = wallClockTimestamp(s.end_date, "23:59:59");
+    if (reqStart < sEnd && reqEnd > sStart) {
+      conflictedCarIds.add(s.car_id);
+    }
+  }
+
+  return (cars as AvailableVehicleOption[]).filter((c) => !conflictedCarIds.has(c.id));
 }
 
 /* ------------------------------------------------------------------ */

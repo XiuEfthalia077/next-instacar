@@ -204,6 +204,7 @@ export default async function AdminBookingsManualPage({
     .select(
       "id, branch_id, brand, model, plate_number, type, price_10_hours, price_12_hours, price_24_hours, ext_price_1_6, ext_price_7_10, ext_price_11_12, ext_price_13_24",
     )
+    .neq("status", "Maintenance")
     .order("brand", { ascending: true });
 
   if (scopedBranch !== null) carQuery = carQuery.eq("branch_id", scopedBranch);
@@ -246,15 +247,25 @@ export default async function AdminBookingsManualPage({
 
   const carIds = carRows.map((car) => car.id);
 
-  const busyRows = carIds.length
-    ? await fetchRows<BusyBooking>(
-        supabase
-          .from("bookings")
-          .select("car_id, start_date, end_date, pickup_time, return_time")
-          .in("car_id", carIds)
-          .not("status", "in", "(Cancelled,Completed)"),
-      )
-    : [];
+  const [busyRows, schedRows] = await Promise.all([
+    carIds.length
+      ? fetchRows<BusyBooking>(
+          supabase
+            .from("bookings")
+            .select("car_id, start_date, end_date, pickup_time, return_time")
+            .in("car_id", carIds)
+            .not("status", "in", "(Cancelled,Completed)"),
+        )
+      : [],
+    carIds.length
+      ? fetchRows<{ car_id: number; start_date: string; end_date: string }>(
+          supabase
+            .from("car_schedules")
+            .select("car_id, start_date, end_date")
+            .in("car_id", carIds),
+        )
+      : [],
+  ]);
 
   const busyByCar = new Map<number, { start: string; end: string }[]>();
   for (const busy of busyRows) {
@@ -265,6 +276,15 @@ export default async function AdminBookingsManualPage({
       end: `${busy.end_date}T${busy.return_time ?? "23:59:59"}`,
     });
     busyByCar.set(busy.car_id, list);
+  }
+  for (const sched of schedRows) {
+    if (sched.car_id == null || !sched.start_date || !sched.end_date) continue;
+    const list = busyByCar.get(sched.car_id) ?? [];
+    list.push({
+      start: `${sched.start_date}T00:00:00`,
+      end: `${sched.end_date}T23:59:59`,
+    });
+    busyByCar.set(sched.car_id, list);
   }
 
   const cars = carRows.map((car) => ({

@@ -460,9 +460,14 @@ export function ManualBookingDialog({
   }, [cars, startStamp, endStamp]);
 
   const filteredCars = useMemo(() => {
-    if (!typeFilter) return cars;
-    return cars.filter((car) => car.type === typeFilter);
-  }, [cars, typeFilter]);
+    return cars.filter((car) => {
+      if (typeFilter && car.type !== typeFilter) return false;
+      // TASK 1: Filter out unavailable vehicles from dropdown
+      // Only show cars that are 100% available for the selected timeframe
+      if (conflictingCars.has(car.id)) return false;
+      return true;
+    });
+  }, [cars, typeFilter, conflictingCars]);
 
   const selectedCar = useMemo(
     () => cars.find((car) => String(car.id) === carId),
@@ -470,6 +475,13 @@ export function ManualBookingDialog({
   );
 
   const isCarConflicted = !!selectedCar && conflictingCars.has(selectedCar.id);
+
+  // If newly selected dates make the current selection conflicted, reset selection
+  useEffect(() => {
+    if (carId && conflictingCars.has(Number(carId))) {
+      setCarId("");
+    }
+  }, [conflictingCars, carId]);
 
   const basePrice =
     selectedCar && hours > 0
@@ -485,9 +497,17 @@ export function ManualBookingDialog({
         )
       : 0;
 
+  // TASK 3: Fix Total Price Computation (Delivery/Pickup Fees)
+  // Subtotal = Base Rental Rate + Delivery Fee + Pickup Fee
+  // Total = Subtotal - Discount
+  // Remaining Balance = Total - Down Payment
+  const deliveryFeeValue = amount(deliveryFee);
+  const pickupFeeValue = amount(pickupFee);
   const discountValue = amount(discount);
   const downPaymentValue = amount(downPayment);
-  const balance = Math.max(0, basePrice - discountValue - downPaymentValue);
+  const subtotal = basePrice + deliveryFeeValue + pickupFeeValue;
+  const totalPrice = Math.max(0, subtotal - discountValue);
+  const balance = Math.max(0, totalPrice - downPaymentValue);
 
   const todayStr = useMemo(() => {
     return new Intl.DateTimeFormat("en-CA", {
@@ -950,15 +970,11 @@ export function ManualBookingDialog({
                 className={filterControlClass}
               >
                 <option value="">-- Select Vehicle --</option>
-                {filteredCars.map((car) => {
-                  const conflicted = conflictingCars.has(car.id);
-                  return (
-                    <option key={car.id} value={car.id}>
-                      {carLabel(car)}
-                      {conflicted ? " (Already Booked - Conflict)" : ""}
-                    </option>
-                  );
-                })}
+                {filteredCars.map((car) => (
+                  <option key={car.id} value={car.id}>
+                    {carLabel(car)}
+                  </option>
+                ))}
               </select>
               {isCarConflicted ? (
                 <div className="mt-2.5 rounded-lg border border-amber-500/50 bg-amber-500/10 p-3 text-xs space-y-2">
@@ -1196,6 +1212,24 @@ export function ManualBookingDialog({
                     {formatPeso(basePrice)}
                   </strong>
                 </div>
+                {deliveryFeeValue > 0 ? (
+                  <div className="flex items-center justify-between gap-3 text-sky-900 dark:text-sky-100">
+                    <span className="font-semibold">Delivery Fee</span>
+                    <strong className="tabular-nums">+{formatPeso(deliveryFeeValue)}</strong>
+                  </div>
+                ) : null}
+                {pickupFeeValue > 0 ? (
+                  <div className="flex items-center justify-between gap-3 text-sky-900 dark:text-sky-100">
+                    <span className="font-semibold">Pickup Fee</span>
+                    <strong className="tabular-nums">+{formatPeso(pickupFeeValue)}</strong>
+                  </div>
+                ) : null}
+                {deliveryFeeValue > 0 || pickupFeeValue > 0 ? (
+                  <div className="flex items-center justify-between gap-3 border-t border-sky-200/60 pt-1 text-xs text-sky-900 dark:border-sky-800/80 dark:text-sky-100">
+                    <span className="font-bold">Subtotal</span>
+                    <strong className="tabular-nums">{formatPeso(subtotal)}</strong>
+                  </div>
+                ) : null}
                 <div className="flex items-center justify-between gap-3 text-rose-700 dark:text-rose-300">
                   <span className="font-semibold">Discount Deduction</span>
                   <strong className="tabular-nums">-{formatPeso(discountValue)}</strong>
