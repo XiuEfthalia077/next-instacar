@@ -72,46 +72,46 @@ export function UserCarCard({
           {/* Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/40 opacity-70 transition-opacity duration-300 group-hover:opacity-90" />
 
-          {/* Prominent Booked Today Badge */}
-          {isBookedToday && (
-            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-600/95 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-white shadow-lg backdrop-blur border border-rose-400/50">
-                <span className="size-2 rounded-full bg-white animate-pulse" />
-                Booked Today
-              </span>
-            </div>
-          )}
-
-          {/* Top Left: Type & Branch Badges */}
-          <div className="absolute left-3 top-3 flex flex-wrap items-center gap-1.5 z-10">
-            <span className="rounded-full bg-black/80 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur border border-white/10">
+          {/* Top Left: Type & Branch Badges (Container allows wrapping with ample padding & contrast) */}
+          <div className="absolute left-3 top-3 z-10 flex max-w-[calc(100%-150px)] flex-wrap items-center gap-2">
+            <span className="rounded-full bg-black/85 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur border border-white/20 shadow-xs">
               {car.type || "Sedan"}
             </span>
             {car.branches?.name ? (
-              <span className="flex items-center gap-1 rounded-full bg-[#ffcc00] px-2.5 py-0.5 text-[10px] font-black text-black shadow-xs">
-                <MapPin className="size-3" />
-                {car.branches.name}
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#ffcc00] px-3 py-1 text-[10px] font-black text-black shadow-md border border-amber-300">
+                <MapPin className="size-3 shrink-0" />
+                <span className="truncate max-w-[130px] sm:max-w-[170px]">{car.branches.name}</span>
               </span>
             ) : null}
           </div>
 
-          {/* Top Right: Floating Favorite Heart Button (size-9 touch circle) */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleFavorite(car.id);
-            }}
-            aria-label={favorited ? "Remove from wishlist" : "Save to wishlist"}
-            className={cn(
-              "absolute right-3 top-3 z-10 flex size-9 items-center justify-center rounded-full backdrop-blur transition-all active:scale-90 shadow-md cursor-pointer",
-              favorited
-                ? "bg-rose-500 text-white shadow-rose-500/30 ring-2 ring-white/50"
-                : "bg-black/60 text-white hover:text-rose-400 border border-white/20",
+          {/* Top Right: Booked Today Badge & Favorite Heart Button */}
+          <div className="absolute right-3 top-3 z-10 flex items-center gap-2">
+            {isBookedToday && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-600/95 px-3 py-1 text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-white shadow-lg backdrop-blur border border-rose-400/60">
+                <span className="size-1.5 rounded-full bg-white animate-pulse" />
+                Booked Today
+              </span>
             )}
-          >
-            <Heart className={cn("size-4 transition-transform", favorited && "fill-current scale-110")} />
-          </button>
+
+            {/* Floating Favorite Heart Button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleFavorite(car.id);
+              }}
+              aria-label={favorited ? "Remove from wishlist" : "Save to wishlist"}
+              className={cn(
+                "flex size-9 items-center justify-center rounded-full backdrop-blur transition-all active:scale-90 shadow-md cursor-pointer shrink-0",
+                favorited
+                  ? "bg-rose-500 text-white shadow-rose-500/30 ring-2 ring-white/50"
+                  : "bg-black/70 text-white hover:text-rose-400 border border-white/20",
+              )}
+            >
+              <Heart className={cn("size-4 transition-transform", favorited && "fill-current scale-110")} />
+            </button>
+          </div>
 
           {/* Bottom Left: View Photos Button & Subtle Carousel Dots */}
           <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5">

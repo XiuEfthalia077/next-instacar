@@ -886,4 +886,28 @@ body {
   :root:not(.dark) table td {
     color: #0f172a;
   }
+
+  /* Dark dialog scrollbars */
+  .dark [role="dialog"],
+  .dark [role="dialog"] * {
+    scrollbar-color: #3f3f46 transparent;
+  }
+  .dark [role="dialog"]::-webkit-scrollbar,
+  .dark [role="dialog"] *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .dark [role="dialog"]::-webkit-scrollbar-track,
+  .dark [role="dialog"] *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .dark [role="dialog"]::-webkit-scrollbar-thumb,
+  .dark [role="dialog"] *::-webkit-scrollbar-thumb {
+    background-color: #3f3f46;
+    border-radius: 9999px;
+  }
+  .dark [role="dialog"]::-webkit-scrollbar-thumb:hover,
+  .dark [role="dialog"] *::-webkit-scrollbar-thumb:hover {
+    background-color: #52525b;
+  }
 }

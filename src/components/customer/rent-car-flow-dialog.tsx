@@ -67,6 +67,94 @@ type RentCarFlowDialogProps = {
   initialReturnTime?: string;
 };
 
+function CleanAgreementContent({ content }: { content: string }) {
+  const blocks = React.useMemo(() => {
+    if (!content) return [];
+    let text = content
+      .replace(/<h[1-6][^>]*>(.*?)<\/h[1-6]>/gi, "\n\n### $1\n\n")
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<p[^>]*>/gi, "\n")
+      .replace(/<\/p>/gi, "\n")
+      .replace(/<[^>]+>/g, "");
+
+    text = text
+      .replace(/&amp;/g, "&")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">");
+
+    return text
+      .split(/\n+/)
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .map((line, idx) => {
+        if (line.startsWith("### ")) {
+          return {
+            id: idx,
+            type: "heading" as const,
+            text: line.replace(/^###\s*/, ""),
+          };
+        }
+        if (/^[I|V|X]+\.\s+/i.test(line)) {
+          return {
+            id: idx,
+            type: "heading" as const,
+            text: line,
+          };
+        }
+        if (/^\d+\.\d+\.?\s+/i.test(line)) {
+          return {
+            id: idx,
+            type: "clause" as const,
+            text: line,
+          };
+        }
+        return {
+          id: idx,
+          type: "paragraph" as const,
+          text: line,
+        };
+      });
+  }, [content]);
+
+  return (
+    <div className="space-y-3">
+      {blocks.map((b) => {
+        if (b.type === "heading") {
+          return (
+            <h4
+              key={b.id}
+              className="text-sm sm:text-base font-extrabold text-[#b38a00] dark:text-[#ffcc00] mt-5 mb-2 uppercase tracking-wide border-b border-border/40 pb-1"
+            >
+              {b.text}
+            </h4>
+          );
+        }
+        if (b.type === "clause") {
+          return (
+            <p
+              key={b.id}
+              className="text-xs sm:text-[13px] font-medium text-foreground/90 leading-relaxed pl-3 border-l-2 border-[#ffcc00]/40 my-1.5"
+            >
+              {b.text}
+            </p>
+          );
+        }
+        return (
+          <p
+            key={b.id}
+            className="text-xs sm:text-[13px] text-foreground/80 leading-relaxed my-1.5"
+          >
+            {b.text}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
 export function RentCarFlowDialog({
   car,
   agreementHtml,
@@ -424,7 +512,7 @@ export function RentCarFlowDialog({
 
       {/* STEP 2: BOOKING FORM MODAL (Only opens after Agreement is accepted) */}
       <Dialog open={flowStep === "form"} onOpenChange={(isOpen) => !isOpen && handleCloseAll()}>
-        <DialogContent className="max-h-[92vh] w-[95vw] sm:max-w-2xl md:max-w-4xl lg:max-w-5xl overflow-y-auto border-border bg-card p-6 text-card-foreground sm:p-8 sm:rounded-2xl">
+        <DialogContent className="max-h-[92vh] w-[95vw] sm:max-w-2xl md:max-w-3xl overflow-y-auto border-border bg-card p-5 sm:p-7 text-card-foreground sm:rounded-2xl">
           <DialogHeader className="border-b border-border/80 pb-4 pr-8">
             <DialogTitle className="text-lg font-black tracking-tight text-foreground">
               Book {carName}
@@ -469,11 +557,7 @@ export function RentCarFlowDialog({
             <input type="hidden" name="return_time" value={returnTime} />
             <input type="hidden" name="fulfillment_type" value={fulfillmentType} />
 
-            {/* Task 1: Responsive 2-Column Grid Layout */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-              {/* LEFT COLUMN: Booking dates, times, fulfillment type, and addresses */}
-              <div className="space-y-4">
-                {/* 1. AVAILABILITY CALENDAR (Image 1) */}
+            {/* 1. AVAILABILITY CALENDAR (Image 1) */}
             <AvailabilityCalendar
               startDate={startDate}
               endDate={endDate}
@@ -814,13 +898,18 @@ export function RentCarFlowDialog({
                 Specify where the vehicle will be returned or collected at the end of the rental.
               </p>
             </div>
-          </div>
 
-          {/* RIGHT COLUMN: Verification files (Primary ID, Secondary ID, Proof of Billing, Proof of Payment) */}
-          <div className="space-y-4">
-            {/* 7. DOCUMENT UPLOADS & HASSLE-FREE VERIFIED ID */}
-            <div className="space-y-4">
-              {/* PRIMARY ID */}
+            {/* 7. DOCUMENT UPLOADS & HASSLE-FREE VERIFIED ID (Grouped into 2 columns: grid-cols-1 md:grid-cols-2 gap-4) */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center gap-2 border-b border-border/60 pb-2">
+                <FileText className="size-4 text-[#b38a00] dark:text-[#ffcc00]" />
+                <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-foreground">
+                  Verification Documents &amp; Proof of Payment
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                {/* PRIMARY ID */}
               {savedDocs.primaryIdUrl && !replacePrimaryId ? (
                 <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4 sm:p-5 transition">
                   <div className="flex items-center justify-between gap-3">
@@ -1009,7 +1098,7 @@ export function RentCarFlowDialog({
                   <button
                     type="button"
                     onClick={() => setQrModalOpen(true)}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-[#ffcc00] bg-[#ffcc00]/10 px-3 py-1.5 text-xs font-bold text-[#b38a00] dark:text-[#ffcc00] hover:bg-[#ffcc00]/20 transition cursor-pointer"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-[#ffcc00] bg-[#ffcc00]/10 px-2.5 py-1 text-xs font-bold text-[#b38a00] dark:text-[#ffcc00] hover:bg-[#ffcc00]/20 transition cursor-pointer"
                   >
                     <QrCode className="size-3.5" />
                     <span>Scan QR: Tap to open</span>
@@ -1022,14 +1111,13 @@ export function RentCarFlowDialog({
                   required
                   helperText="Click or drag to upload payment receipt / confirmation screenshot"
                 />
-                <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
-                  <span>Scan QR code to pay down payment or full amount, then attach receipt.</span>
+                <div className="flex flex-wrap items-center justify-between gap-1 text-[11px] text-muted-foreground pt-0.5">
+                  <span>Attach payment receipt screenshot.</span>
                   <span className="font-bold text-rose-500 shrink-0">Min down payment: ₱500</span>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
         {/* FULL WIDTH: RATE SUMMARY BREAKDOWN & CHECKOUT */}
         <div className="space-y-4 pt-2 border-t border-border/80">
@@ -1295,8 +1383,8 @@ export function RentCarFlowDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 sm:p-8 m-4 rounded-xl border border-border/70 bg-muted/20 text-xs sm:text-[13px] leading-relaxed text-foreground/90 whitespace-pre-wrap font-sans shadow-inner selection:bg-[#ffcc00] selection:text-black">
-            {agreementHtml || OFFICIAL_RENTAL_AGREEMENT}
+          <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 sm:p-8 m-4 rounded-xl border border-border/70 bg-muted/20 text-xs sm:text-[13px] leading-relaxed text-foreground/90 font-sans shadow-inner selection:bg-[#ffcc00] selection:text-black [scrollbar-color:#52525b_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-neutral-500">
+            <CleanAgreementContent content={agreementHtml || OFFICIAL_RENTAL_AGREEMENT} />
           </div>
 
           <div className="border-t border-border/80 px-6 py-4 bg-card shrink-0 flex items-center justify-between gap-3">
@@ -1335,8 +1423,8 @@ export function RentCarFlowDialog({
               Official Car Rental Agreement
             </DialogTitle>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto p-6 m-4 rounded-xl border border-border/70 bg-muted/20 text-xs sm:text-[13px] leading-relaxed text-foreground/90 whitespace-pre-wrap font-sans">
-            {agreementHtml || OFFICIAL_RENTAL_AGREEMENT}
+          <div className="flex-1 overflow-y-auto p-6 m-4 rounded-xl border border-border/70 bg-muted/20 text-xs sm:text-[13px] leading-relaxed text-foreground/90 font-sans [scrollbar-color:#52525b_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-neutral-500">
+            <CleanAgreementContent content={agreementHtml || OFFICIAL_RENTAL_AGREEMENT} />
           </div>
           <div className="border-t border-border/80 px-6 py-3 bg-card shrink-0 flex justify-end">
             <Button
