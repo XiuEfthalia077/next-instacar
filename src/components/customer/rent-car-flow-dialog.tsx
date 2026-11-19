@@ -2,6 +2,7 @@
 
 import {
   AlertCircle,
+  Calendar,
   CheckCircle2,
   Clock,
   ExternalLink,
@@ -422,7 +423,7 @@ export function RentCarFlowDialog({
 
       {/* STEP 2: BOOKING FORM MODAL (Only opens after Agreement is accepted) */}
       <Dialog open={flowStep === "form"} onOpenChange={(isOpen) => !isOpen && handleCloseAll()}>
-        <DialogContent className="max-h-[92vh] w-[95vw] sm:max-w-2xl md:max-w-3xl overflow-y-auto border-border bg-card p-6 text-card-foreground sm:p-8 sm:rounded-2xl">
+        <DialogContent className="max-h-[92vh] w-[95vw] sm:max-w-2xl md:max-w-4xl lg:max-w-5xl overflow-y-auto border-border bg-card p-6 text-card-foreground sm:p-8 sm:rounded-2xl">
           <DialogHeader className="border-b border-border/80 pb-4 pr-8">
             <DialogTitle className="text-lg font-black tracking-tight text-foreground">
               Book {carName}
@@ -458,7 +459,7 @@ export function RentCarFlowDialog({
                 localStorage.removeItem(CUSTOMER_DRAFT_KEY);
               } catch {}
             }}
-            className="space-y-5 pt-2"
+            className="space-y-6 pt-2"
           >
             <input type="hidden" name="car_id" value={car.id} />
             <input type="hidden" name="start_date" value={startDate} />
@@ -467,7 +468,11 @@ export function RentCarFlowDialog({
             <input type="hidden" name="return_time" value={returnTime} />
             <input type="hidden" name="fulfillment_type" value={fulfillmentType} />
 
-            {/* 1. AVAILABILITY CALENDAR (Image 1) */}
+            {/* Task 1: Responsive 2-Column Grid Layout */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+              {/* LEFT COLUMN: Booking dates, times, fulfillment type, and addresses */}
+              <div className="space-y-4">
+                {/* 1. AVAILABILITY CALENDAR (Image 1) */}
             <AvailabilityCalendar
               startDate={startDate}
               endDate={endDate}
@@ -807,7 +812,10 @@ export function RentCarFlowDialog({
                 Specify where the vehicle will be returned or collected at the end of the rental.
               </p>
             </div>
+          </div>
 
+          {/* RIGHT COLUMN: Verification files (Primary ID, Secondary ID, Proof of Billing, Proof of Payment) */}
+          <div className="space-y-4">
             {/* 7. DOCUMENT UPLOADS & HASSLE-FREE VERIFIED ID */}
             <div className="space-y-4">
               {/* PRIMARY ID */}
@@ -1018,9 +1026,13 @@ export function RentCarFlowDialog({
                 </div>
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* 8. RATE SUMMARY BREAKDOWN */}
-            <div className="rounded-xl border border-border bg-card p-4 space-y-2 text-xs">
+        {/* FULL WIDTH: RATE SUMMARY BREAKDOWN & CHECKOUT */}
+        <div className="space-y-4 pt-2 border-t border-border/80">
+          {/* 8. RATE SUMMARY BREAKDOWN */}
+          <div className="rounded-xl border border-border bg-card p-4 space-y-2 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Base Rental Rate:</span>
                 <span className="font-bold text-foreground">{formatPeso(calculatedPrice)}</span>
@@ -1180,7 +1192,8 @@ export function RentCarFlowDialog({
             >
               Confirm Booking
             </LoadingButton>
-          </form>
+          </div>
+        </form>
         </DialogContent>
       </Dialog>
 

@@ -1099,7 +1099,7 @@ export async function updateReservationAction(formData: FormData) {
   const { data: oldData } = await db
     .from("bookings")
     .select(
-      "id, car_id, primary_id_path, secondary_id_path, proof_billing_path, proof_payment_path, branch_id, total_price, delivery_fee, pickup_fee, discount_price",
+      "id, car_id, status, primary_id_path, secondary_id_path, proof_billing_path, proof_payment_path, branch_id, total_price, delivery_fee, pickup_fee, discount_price",
     )
     .eq("id", bookingId)
     .maybeSingle();
@@ -1121,6 +1121,14 @@ export async function updateReservationAction(formData: FormData) {
   if (!startDate || !endDate) flashRedirect(home, "error", "Invalid dates.");
 
   const carId = int(formData, "car_id") || old.car_id || 0;
+
+  // Task 5: Lock vehicle swap if booking status is RELEASED, ACTIVE, or COMPLETED
+  const oldStatusNorm = (old.status ?? "").toUpperCase();
+  if (["RELEASED", "ACTIVE", "COMPLETED"].includes(oldStatusNorm)) {
+    if (carId && old.car_id && carId !== old.car_id) {
+      flashRedirect(home, "error", `Cannot change assigned vehicle: Booking is already ${old.status}.`);
+    }
+  }
 
   const overlap = await hasOverlap({
     carId,

@@ -23,6 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { filterControlClass } from "@/components/common/filter-bar";
+import { cn } from "@/lib/utils";
 import {
   updateReservationAction,
   getAvailableVehiclesAction,
@@ -32,6 +33,7 @@ import { calculatePriceByHours } from "@/lib/pricing";
 
 export type EditableReservation = {
   id: number;
+  status?: string | null;
   car_id?: number | null;
   branch_id?: number | null;
   fulfillment_type: string | null;
@@ -87,8 +89,11 @@ export function EditReservationDialog({
   const [pastUnlocked, setPastUnlocked] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const pastConfirmedRef = useRef(false);
+  const [pastConfirmedRef] = [useRef(false)];
   const formRef = useRef<HTMLFormElement>(null);
+
+  const normalizedStatus = (booking.status ?? "").toUpperCase();
+  const isVehicleLocked = ["RELEASED", "ACTIVE", "COMPLETED"].includes(normalizedStatus);
 
   // Auto-close on navigation
   useEffect(() => {
@@ -237,14 +242,23 @@ export function EditReservationDialog({
             }}
           />
 
-          {/* Unit / Vehicle Selection (Task 2: Edit/Change Unit) */}
-          <div className="rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/50 p-3.5 space-y-2">
+          {/* Unit / Vehicle Selection (Task 2 & Task 5: Locked after release) */}
+          <div className={cn(
+            "rounded-xl border p-3.5 space-y-2 transition",
+            isVehicleLocked
+              ? "border-amber-300 dark:border-amber-900/60 bg-amber-500/5 dark:bg-amber-950/20"
+              : "border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/50"
+          )}>
             <div className="flex items-center justify-between">
               <Label htmlFor="edit-assigned-vehicle" className="text-xs font-bold flex items-center gap-1.5 text-neutral-900 dark:text-neutral-100">
                 <Car className="size-4 text-[#b38a00] dark:text-[#ffd700]" />
-                Assigned Vehicle (Swap Unit)
+                Assigned Vehicle {isVehicleLocked ? "(Locked)" : "(Swap Unit)"}
               </Label>
-              {isLoadingCars ? (
+              {isVehicleLocked ? (
+                <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                  🔒 Locked ({booking.status})
+                </span>
+              ) : isLoadingCars ? (
                 <span className="text-[11px] text-muted-foreground animate-pulse flex items-center gap-1">
                   <Loader2 className="size-3 animate-spin" /> Checking dates...
                 </span>
@@ -259,7 +273,11 @@ export function EditReservationDialog({
               id="edit-assigned-vehicle"
               value={carId}
               onChange={(e) => handleCarChange(e.target.value)}
-              className={filterControlClass}
+              disabled={isVehicleLocked}
+              className={cn(
+                filterControlClass,
+                isVehicleLocked && "opacity-60 cursor-not-allowed bg-muted/60 text-muted-foreground pointer-events-none select-none border-dashed"
+              )}
               required
             >
               <option value="">-- Select Available Vehicle --</option>
@@ -270,9 +288,15 @@ export function EditReservationDialog({
                 </option>
               ))}
             </select>
-            <p className="text-[11px] text-muted-foreground">
-              Unavailable and conflicting cars are automatically excluded. Selecting a new vehicle automatically recalculates the base rental rate.
-            </p>
+            {isVehicleLocked ? (
+              <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-400/90 flex items-center gap-1">
+                ⚠️ Vehicle unit cannot be changed once released, active, or completed. Swapping is only allowed for Pending or Confirmed reservations.
+              </p>
+            ) : (
+              <p className="text-[11px] text-muted-foreground">
+                Unavailable and conflicting cars are automatically excluded. Selecting a new vehicle automatically recalculates the base rental rate.
+              </p>
+            )}
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
