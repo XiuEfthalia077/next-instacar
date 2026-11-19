@@ -24,6 +24,8 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/common/date-picker";
+import { TimePicker } from "@/components/common/time-picker";
 import { cn } from "@/lib/utils";
 
 const QUICK_LOCATIONS = [
@@ -100,6 +102,8 @@ export function MobileSearchSheet({
   initialLocation = "All",
   initialPickupDate = "",
   initialReturnDate = "",
+  initialPickupTime = "",
+  initialReturnTime = "",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -108,6 +112,8 @@ export function MobileSearchSheet({
   initialLocation?: string;
   initialPickupDate?: string;
   initialReturnDate?: string;
+  initialPickupTime?: string;
+  initialReturnTime?: string;
 }) {
   const router = useRouter();
 
@@ -116,6 +122,8 @@ export function MobileSearchSheet({
   const [selectedLocation, setSelectedLocation] = useState(initialLocation);
   const [pickupDate, setPickupDate] = useState(initialPickupDate);
   const [returnDate, setReturnDate] = useState(initialReturnDate);
+  const [pickupTime, setPickupTime] = useState(initialPickupTime);
+  const [returnTime, setReturnTime] = useState(initialReturnTime);
 
   const handleQuickDate = (days: number) => {
     if (days === 0) {
@@ -139,6 +147,8 @@ export function MobileSearchSheet({
     if (selectedLocation !== "All") params.set("search", selectedLocation);
     if (pickupDate) params.set("pickup_date", pickupDate);
     if (returnDate) params.set("return_date", returnDate);
+    if (pickupTime) params.set("pickup_time", pickupTime);
+    if (returnTime) params.set("return_time", returnTime);
 
     onOpenChange(false);
     const url = `/user/cars${params.toString() ? `?${params.toString()}` : ""}`;
@@ -151,6 +161,8 @@ export function MobileSearchSheet({
     setSelectedLocation("All");
     setPickupDate("");
     setReturnDate("");
+    setPickupTime("");
+    setReturnTime("");
   };
 
   return (
@@ -256,29 +268,50 @@ export function MobileSearchSheet({
               ))}
             </div>
 
-            {/* Touch-Friendly Date Inputs */}
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <div className="rounded-2xl border border-border bg-muted/20 p-3">
-                <span className="block text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+            {/* Touch-Friendly Date & Time Inputs */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div>
+                <span className="mb-1 block text-[10px] font-black uppercase tracking-wider text-muted-foreground">
                   Pick-Up Date
                 </span>
-                <input
-                  type="date"
+                <DatePicker
                   value={pickupDate}
-                  onChange={(e) => setPickupDate(e.target.value)}
-                  className="mt-1 w-full bg-transparent text-xs sm:text-sm font-bold text-foreground outline-none min-h-[36px]"
+                  onChange={setPickupDate}
+                  placeholder="Select pickup date"
                 />
               </div>
 
-              <div className="rounded-2xl border border-border bg-muted/20 p-3">
-                <span className="block text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+              <div>
+                <span className="mb-1 block text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                  Pick-Up Time
+                </span>
+                <TimePicker
+                  value={pickupTime}
+                  onChange={setPickupTime}
+                  placeholder="Select pickup time"
+                />
+              </div>
+
+              <div>
+                <span className="mb-1 block text-[10px] font-black uppercase tracking-wider text-muted-foreground">
                   Return Date
                 </span>
-                <input
-                  type="date"
+                <DatePicker
                   value={returnDate}
-                  onChange={(e) => setReturnDate(e.target.value)}
-                  className="mt-1 w-full bg-transparent text-xs sm:text-sm font-bold text-foreground outline-none min-h-[36px]"
+                  onChange={setReturnDate}
+                  minDate={pickupDate}
+                  placeholder="Select return date"
+                />
+              </div>
+
+              <div>
+                <span className="mb-1 block text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                  Return Time
+                </span>
+                <TimePicker
+                  value={returnTime}
+                  onChange={setReturnTime}
+                  placeholder="Select return time"
                 />
               </div>
             </div>

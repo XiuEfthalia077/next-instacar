@@ -25,6 +25,7 @@ body {
 */
 
 :root {
+  color-scheme: light;
   --radius: 0.75rem;
 
   /* shadcn / light (dashboard shell — legacy body background #f8f9fa) */
@@ -91,6 +92,7 @@ body {
 }
 
 .dark {
+  color-scheme: dark;
   --background: #0a0a0a;
   --foreground: #ffffff;
   --card: #1a1a1a;
@@ -689,9 +691,15 @@ body {
     background-color: #121417 !important;
     color: #f4f4f5 !important;
   }
+  .dark select option:hover,
+  .dark select option:focus {
+    background-color: #27272a !important;
+    color: #ffcc00 !important;
+  }
   .dark select option:checked {
     background-color: #ffcc00 !important;
     color: #000000 !important;
+    font-weight: 700;
   }
   select option {
     background-color: var(--card);

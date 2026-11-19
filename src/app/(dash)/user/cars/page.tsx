@@ -34,6 +34,8 @@ export default async function UserCarsPage({
   const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
   const pickupDate = searchParam(params, "pickup_date") || "";
   const returnDate = searchParam(params, "return_date") || "";
+  const pickupTime = searchParam(params, "pickup_time") || "";
+  const returnTime = searchParam(params, "return_time") || "";
 
   const branchId =
     branchFilterParam !== "All" && Number.isFinite(Number(branchFilterParam))
@@ -121,6 +123,12 @@ export default async function UserCarsPage({
     ),
   ).sort();
 
+  const isCarBookedToday = (carId: number, carStatus: string) => {
+    if (carStatus.toLowerCase() === "active") return true;
+    const carBlocked = blockedDatesByCar[carId] || [];
+    return carBlocked.some((range) => range.start <= todayStr && range.end >= todayStr);
+  };
+
   // Filter cars based on criteria
   const targetDateStart = pickupDate || returnDate;
   const targetDateEnd = returnDate || pickupDate;
@@ -171,7 +179,10 @@ export default async function UserCarsPage({
         return range.start <= targetDateEnd && range.end >= targetDateStart;
       });
       if (hasConflict) {
-        return false;
+        // If car is booked today, don't hide it so users can see future dates (TASK 4)
+        if (!isCarBookedToday(car.id, car.status)) {
+          return false;
+        }
       }
     }
 
@@ -195,6 +206,8 @@ export default async function UserCarsPage({
     if (perPage !== 12) q.set("per_page", String(perPage));
     if (pickupDate) q.set("pickup_date", pickupDate);
     if (returnDate) q.set("return_date", returnDate);
+    if (pickupTime) q.set("pickup_time", pickupTime);
+    if (returnTime) q.set("return_time", returnTime);
     if (p > 1) q.set("page", String(p));
     const str = q.toString();
     return `/user/cars${str ? `?${str}` : ""}`;
@@ -218,6 +231,8 @@ export default async function UserCarsPage({
         perPage={perPage}
         pickupDate={pickupDate}
         returnDate={returnDate}
+        pickupTime={pickupTime}
+        returnTime={returnTime}
       />
 
       {/* Vehicle Gallery Grid */}
@@ -243,6 +258,7 @@ export default async function UserCarsPage({
               car={car}
               agreementHtml={content.rental_agreement_html ?? ""}
               blockedRanges={blockedDatesByCar[car.id] || []}
+              isBookedToday={isCarBookedToday(car.id, car.status)}
             />
           ))}
         </div>

@@ -28,12 +28,14 @@ interface UserCarCardProps {
   car: CarWithOwner;
   agreementHtml?: string;
   blockedRanges?: BlockedRange[];
+  isBookedToday?: boolean;
 }
 
 export function UserCarCard({
   car,
   agreementHtml = "",
   blockedRanges = [],
+  isBookedToday = false,
 }: UserCarCardProps) {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
@@ -48,7 +50,12 @@ export function UserCarCard({
 
   return (
     <>
-      <div className="group flex flex-col overflow-hidden rounded-3xl border border-border bg-card text-card-foreground shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#ffcc00]/50 hover:shadow-xl w-full">
+      <div
+        className={cn(
+          "group flex flex-col overflow-hidden rounded-3xl border border-border bg-card text-card-foreground shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#ffcc00]/50 hover:shadow-xl w-full",
+          isBookedToday && "opacity-80 grayscale-[25%] hover:opacity-100 hover:grayscale-0",
+        )}
+      >
         {/* 16:9 VEHICLE HERO IMAGE CONTAINER */}
         <div
           onClick={() => setGalleryOpen(true)}
@@ -64,6 +71,16 @@ export function UserCarCard({
 
           {/* Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/40 opacity-70 transition-opacity duration-300 group-hover:opacity-90" />
+
+          {/* Prominent Booked Today Badge */}
+          {isBookedToday && (
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-600/95 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-white shadow-lg backdrop-blur border border-rose-400/50">
+                <span className="size-2 rounded-full bg-white animate-pulse" />
+                Booked Today
+              </span>
+            </div>
+          )}
 
           {/* Top Left: Type & Branch Badges */}
           <div className="absolute left-3 top-3 flex flex-wrap items-center gap-1.5 z-10">
@@ -139,10 +156,17 @@ export function UserCarCard({
 
           {/* Bottom Right: Status Badge */}
           <div className="absolute bottom-3 right-3 z-10">
-            <span className="inline-flex items-center gap-1 rounded-full bg-black/85 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-400 backdrop-blur border border-emerald-500/30">
-              <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              {car.status === "Active" ? "AVAILABLE" : car.status.toUpperCase()}
-            </span>
+            {isBookedToday ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-black/85 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-rose-400 backdrop-blur border border-rose-500/30">
+                <span className="size-1.5 rounded-full bg-rose-400" />
+                BOOKED TODAY
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full bg-black/85 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-400 backdrop-blur border border-emerald-500/30">
+                <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                {car.status === "Active" ? "AVAILABLE" : car.status.toUpperCase()}
+              </span>
+            )}
           </div>
         </div>
 
@@ -234,10 +258,15 @@ export function UserCarCard({
               trigger={
                 <button
                   type="button"
-                  className="flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-2xl bg-[#ffcc00] px-3 py-2.5 text-xs font-black text-black shadow-md transition-all hover:bg-[#ffd633] active:scale-[0.98] cursor-pointer"
+                  className={cn(
+                    "flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-2xl px-3 py-2.5 text-xs font-black shadow-md transition-all active:scale-[0.98] cursor-pointer",
+                    isBookedToday
+                      ? "bg-muted border border-border text-foreground hover:bg-[#ffcc00] hover:text-black hover:border-[#ffcc00]"
+                      : "bg-[#ffcc00] text-black hover:bg-[#ffd633]",
+                  )}
                 >
                   <CheckCircle2 className="size-4 stroke-[2.5]" />
-                  <span>Reserve Now</span>
+                  <span>{isBookedToday ? "Future Dates" : "Reserve Now"}</span>
                 </button>
               }
             />

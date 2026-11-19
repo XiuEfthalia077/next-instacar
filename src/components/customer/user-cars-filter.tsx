@@ -1,11 +1,12 @@
 "use client";
 
-import { useId, useState, useTransition } from "react";
+import { useId, useState, useTransition, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   CalendarDays,
   Car,
   Check,
+  Clock,
   Info,
   MapPin,
   RotateCcw,
@@ -15,6 +16,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { MobileSearchPill, MobileSearchSheet } from "@/components/mobile/mobile-search-sheet";
+import { DatePicker } from "@/components/common/date-picker";
+import { TimePicker } from "@/components/common/time-picker";
 import { cn } from "@/lib/utils";
 
 interface UserCarsFilterProps {
@@ -30,6 +33,8 @@ interface UserCarsFilterProps {
   perPage?: number;
   pickupDate?: string;
   returnDate?: string;
+  pickupTime?: string;
+  returnTime?: string;
 }
 
 const CONTROL_CLASS =
@@ -51,11 +56,48 @@ export function UserCarsFilter({
   perPage = 12,
   pickupDate = "",
   returnDate = "",
+  pickupTime = "",
+  returnTime = "",
 }: UserCarsFilterProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const formId = useId();
   const [searchSheetOpen, setSearchSheetOpen] = useState(false);
+
+  const [currentPickupDate, setCurrentPickupDate] = useState(pickupDate);
+  const [currentReturnDate, setCurrentReturnDate] = useState(returnDate);
+  const [currentPickupTime, setCurrentPickupTime] = useState(pickupTime);
+  const [currentReturnTime, setCurrentReturnTime] = useState(returnTime);
+
+  useEffect(() => {
+    setCurrentPickupDate(pickupDate);
+  }, [pickupDate]);
+
+  useEffect(() => {
+    setCurrentReturnDate(returnDate);
+  }, [returnDate]);
+
+  useEffect(() => {
+    setCurrentPickupTime(pickupTime);
+  }, [pickupTime]);
+
+  useEffect(() => {
+    setCurrentReturnTime(returnTime);
+  }, [returnTime]);
+
+  const updateParam = (key: string, value: string) => {
+    const params = new URLSearchParams(window.location.search);
+    if (value && value !== "All") {
+      params.set(key, value.trim());
+    } else {
+      params.delete(key);
+    }
+    params.delete("page");
+    const qs = params.toString();
+    startTransition(() => {
+      router.push(qs ? `/user/cars?${qs}` : "/user/cars", { scroll: false });
+    });
+  };
 
   const applyFormFilters = (form: HTMLFormElement) => {
     const formData = new FormData(form);
@@ -150,7 +192,7 @@ export function UserCarsFilter({
           </button>
 
           {/* Clear Filters Chip if any active */}
-          {(search || typeFilter !== "All" || branchFilter !== "All" || statusFilter !== "All" || pickupDate || returnDate) && (
+          {(search || typeFilter !== "All" || branchFilter !== "All" || statusFilter !== "All" || pickupDate || returnDate || pickupTime || returnTime) && (
             <Link
               href="/user/cars"
               className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-rose-500/40 bg-rose-500/10 px-4 py-2.5 text-xs font-bold text-rose-500 hover:bg-rose-500/20 transition-all min-h-[44px]"
@@ -182,6 +224,8 @@ export function UserCarsFilter({
           {perPage !== 12 && <input type="hidden" name="per_page" value={perPage} />}
           {pickupDate && <input type="hidden" name="pickup_date" value={pickupDate} />}
           {returnDate && <input type="hidden" name="return_date" value={returnDate} />}
+          {pickupTime && <input type="hidden" name="pickup_time" value={pickupTime} />}
+          {returnTime && <input type="hidden" name="return_time" value={returnTime} />}
 
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -265,17 +309,36 @@ export function UserCarsFilter({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 items-end mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4 items-end mb-4">
           <div>
             <label className={LABEL_CLASS}>
               <CalendarDays className="size-3.5 text-[#ffcc00]" />
               <span>Pickup Date</span>
             </label>
-            <input
-              type="date"
+            <DatePicker
               name="pickup_date"
-              defaultValue={pickupDate}
-              className={CONTROL_CLASS}
+              value={currentPickupDate}
+              onChange={(val) => {
+                setCurrentPickupDate(val);
+                updateParam("pickup_date", val);
+              }}
+              placeholder="dd/mm/yyyy"
+            />
+          </div>
+
+          <div>
+            <label className={LABEL_CLASS}>
+              <Clock className="size-3.5 text-[#ffcc00]" />
+              <span>Pickup Time</span>
+            </label>
+            <TimePicker
+              name="pickup_time"
+              value={currentPickupTime}
+              onChange={(val) => {
+                setCurrentPickupTime(val);
+                updateParam("pickup_time", val);
+              }}
+              placeholder="Select time"
             />
           </div>
 
@@ -284,15 +347,33 @@ export function UserCarsFilter({
               <CalendarDays className="size-3.5 text-[#ffcc00]" />
               <span>Return Date</span>
             </label>
-            <input
-              type="date"
+            <DatePicker
               name="return_date"
-              defaultValue={returnDate}
-              className={CONTROL_CLASS}
+              value={currentReturnDate}
+              onChange={(val) => {
+                setCurrentReturnDate(val);
+                updateParam("return_date", val);
+              }}
+              placeholder="dd/mm/yyyy"
+              minDate={currentPickupDate}
             />
           </div>
 
-          <div className="hidden lg:block" />
+          <div>
+            <label className={LABEL_CLASS}>
+              <Clock className="size-3.5 text-[#ffcc00]" />
+              <span>Return Time</span>
+            </label>
+            <TimePicker
+              name="return_time"
+              value={currentReturnTime}
+              onChange={(val) => {
+                setCurrentReturnTime(val);
+                updateParam("return_time", val);
+              }}
+              placeholder="Select time"
+            />
+          </div>
 
           <div>
             <Link
@@ -300,7 +381,7 @@ export function UserCarsFilter({
               className="flex h-11 w-full items-center justify-center gap-1.5 rounded-2xl border border-border bg-card px-4 text-xs font-semibold text-muted-foreground transition hover:border-[#ffcc00] hover:text-foreground hover:bg-muted/40 shadow-xs"
             >
               <RotateCcw className="size-3.5" />
-              <span>Reset All Filters</span>
+              <span>Reset Filters</span>
             </Link>
           </div>
         </div>
@@ -317,7 +398,7 @@ export function UserCarsFilter({
             </span>
           </div>
 
-          {(search || typeFilter !== "All" || branchFilter !== "All" || statusFilter !== "All" || pickupDate || returnDate) && (
+          {(search || typeFilter !== "All" || branchFilter !== "All" || statusFilter !== "All" || pickupDate || returnDate || pickupTime || returnTime) && (
             <span className="text-[11px] text-[#ffcc00] font-semibold">
               Filters active
             </span>
@@ -334,6 +415,8 @@ export function UserCarsFilter({
         initialLocation={branchFilter}
         initialPickupDate={pickupDate}
         initialReturnDate={returnDate}
+        initialPickupTime={pickupTime}
+        initialReturnTime={returnTime}
       />
     </div>
   );

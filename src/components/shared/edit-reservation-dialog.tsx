@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/common/loading-button";
 import { AvailabilityCalendar } from "@/components/common/availability-calendar";
 import { PastDateConfirmDialog } from "@/components/common/past-date-confirm-dialog";
+import { DatePicker } from "@/components/common/date-picker";
 import { TimePicker } from "@/components/common/time-picker";
 import {
   Dialog,
@@ -328,25 +329,22 @@ export function EditReservationDialog({
 
             <div>
               <Label className="mb-1 block text-xs font-bold">Start Date</Label>
-              <Input
-                type="date"
+              <DatePicker
                 name="start_date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                required
-                className="rounded-lg"
+                onChange={setStartDate}
+                placeholder="Select start date"
               />
             </div>
 
             <div>
               <Label className="mb-1 block text-xs font-bold">End Date</Label>
-              <Input
-                type="date"
+              <DatePicker
                 name="end_date"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                required
-                className="rounded-lg"
+                minDate={startDate}
+                onChange={setEndDate}
+                placeholder="Select end date"
               />
             </div>
 

@@ -21,6 +21,7 @@ import * as React from "react";
 import { FileUploadDropzone } from "@/components/common/file-upload-dropzone";
 import { LoadingButton } from "@/components/common/loading-button";
 import { AvailabilityCalendar } from "@/components/common/availability-calendar";
+import { DatePicker } from "@/components/common/date-picker";
 import { PastDateConfirmDialog } from "@/components/common/past-date-confirm-dialog";
 import { TimePicker, getCurrentTime24 } from "@/components/common/time-picker";
 import { UberInteractiveMapDialog } from "@/components/common/uber-interactive-map";
@@ -539,19 +540,19 @@ export function RentCarFlowDialog({
                 <Label htmlFor="pickup_date" className="text-xs font-bold text-foreground">
                   Pickup Date
                 </Label>
-                <Input
-                  id="pickup_date"
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => {
-                    const d = e.target.value;
-                    const t = pickupTime || getCurrentTime24();
-                    setPickupDatetime(`${d}T${t}`);
-                    setQuickDuration("custom");
-                  }}
-                  required
-                  className="mt-1 rounded-xl"
-                />
+                <div className="mt-1">
+                  <DatePicker
+                    id="pickup_date"
+                    name="pickup_date"
+                    value={startDate}
+                    onChange={(d) => {
+                      const t = pickupTime || getCurrentTime24();
+                      setPickupDatetime(`${d}T${t}`);
+                      setQuickDuration("custom");
+                    }}
+                    placeholder="Select pickup date"
+                  />
+                </div>
               </div>
 
               <div>
@@ -585,19 +586,20 @@ export function RentCarFlowDialog({
                 <Label htmlFor="return_date" className="text-xs font-bold text-foreground">
                   Return Date
                 </Label>
-                <Input
-                  id="return_date"
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => {
-                    const d = e.target.value;
-                    const t = returnTime || getCurrentTime24();
-                    setReturnDatetime(`${d}T${t}`);
-                    setQuickDuration("custom");
-                  }}
-                  required
-                  className="mt-1 rounded-xl"
-                />
+                <div className="mt-1">
+                  <DatePicker
+                    id="return_date"
+                    name="return_date"
+                    value={endDate}
+                    minDate={startDate}
+                    onChange={(d) => {
+                      const t = returnTime || getCurrentTime24();
+                      setReturnDatetime(`${d}T${t}`);
+                      setQuickDuration("custom");
+                    }}
+                    placeholder="Select return date"
+                  />
+                </div>
               </div>
 
               <div>
