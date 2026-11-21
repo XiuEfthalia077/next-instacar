@@ -1,15 +1,19 @@
 import {
   CalendarDays,
   CalendarRange,
-  Car,
+  Clock,
+  ExternalLink,
+  FileImage,
+  FileText,
+  Lock,
   PlusCircle,
   Trash2,
-  Wrench,
+  UploadCloud,
 } from "lucide-react";
 import Link from "next/link";
 
 import { EmptyState } from "@/components/common/empty-state";
-import { FilterBar, filterControlClass } from "@/components/common/filter-bar";
+import { FilterBar } from "@/components/common/filter-bar";
 import { Flash } from "@/components/common/flash";
 import { PageHeader } from "@/components/common/page-header";
 import { SectionCard } from "@/components/common/section-card";
@@ -22,8 +26,20 @@ import { getSupabase, requireRole } from "@/lib/auth";
 import { listCars } from "@/lib/data/cars";
 import { formatDate } from "@/lib/datetime";
 import { readFlash, searchParam } from "@/lib/flash";
+import { BUCKETS, signedFileUrl } from "@/lib/storage";
 
 export const instant = false;
+
+function formatDisplayTime(timeStr?: string | null): string {
+  if (!timeStr) return "";
+  const parts = timeStr.split(":");
+  const h = parseInt(parts[0] ?? "", 10);
+  const m = parts[1] ?? "00";
+  if (isNaN(h)) return timeStr;
+  const suffix = h >= 12 ? "PM" : "AM";
+  const displayHour = h % 12 || 12;
+  return `${displayHour}:${m} ${suffix}`;
+}
 
 export default async function SharedMyCarSchedulesPage({
   searchParams,
@@ -35,7 +51,10 @@ export default async function SharedMyCarSchedulesPage({
   const flash = readFlash(params);
 
   const carFilterParam = searchParam(params, "car_id");
-  const selectedCarId = carFilterParam && carFilterParam !== "all" ? Number(carFilterParam) : undefined;
+  const selectedCarId =
+    carFilterParam && carFilterParam !== "all"
+      ? Number(carFilterParam)
+      : undefined;
 
   // Fetch cars owned or visible
   const fleet = await listCars(session, {
@@ -48,7 +67,7 @@ export default async function SharedMyCarSchedulesPage({
     .from("car_schedules")
     .select(
       `
-      id, car_id, start_date, end_date, reason, notes, created_at,
+      id, car_id, start_date, end_date, start_time, end_time, reason, notes, attachment_urls, created_at,
       cars!car_schedules_car_id_fkey ( id, brand, model, plate_number, user_id )
     `,
     )
@@ -64,47 +83,71 @@ export default async function SharedMyCarSchedulesPage({
 
   const { data: schedulesData } = await schedQuery;
 
-  const schedules = ((schedulesData ?? []) as unknown as {
+  const rawSchedules = ((schedulesData ?? []) as unknown as {
     id: number;
     car_id: number;
     start_date: string;
     end_date: string;
+    start_time: string | null;
+    end_time: string | null;
     reason: string;
     notes: string | null;
+    attachment_urls: string[] | null;
     created_at: string;
     cars:
-      | { id: number; brand: string | null; model: string | null; plate_number: string | null }
-      | { id: number; brand: string | null; model: string | null; plate_number: string | null }[]
+      | { id: number; brand: string | null; model: string | null; plate_number: string | null; user_id: number | null }
+      | { id: number; brand: string | null; model: string | null; plate_number: string | null; user_id: number | null }[]
       | null;
   }[]).map((s) => ({
     ...s,
     cars: Array.isArray(s.cars) ? s.cars[0] ?? null : s.cars,
   }));
 
+  // For operators, resolve signed URLs for private client attachments
+  const scheduleAttachments: Record<number, { url: string; name: string }[]> = {};
+  if (session.role === "operator") {
+    for (const s of rawSchedules) {
+      if (s.attachment_urls && Array.isArray(s.attachment_urls) && s.attachment_urls.length > 0) {
+        const urls = await Promise.all(
+          s.attachment_urls.map(async (path: string) => {
+            const url = await signedFileUrl(supabase, BUCKETS.operatorPrivateUploads, path);
+            const name = path.split("/").pop() || "Document";
+            return { url: url || "", name };
+          }),
+        );
+        scheduleAttachments[s.id] = urls.filter((item) => Boolean(item.url));
+      }
+    }
+  }
+
   return (
     <>
       <PageHeader
-        title="Vehicle Schedules"
-        subtitle="Blackout & Maintenance"
-        description="Block out vehicle dates for scheduled maintenance, personal use, or repairs."
+        title={session.role === "operator" ? "Master Calendar & Unit Blocks" : "Vehicle Schedules"}
+        subtitle="Blackouts & Private Bookings"
+        description={
+          session.role === "operator"
+            ? "Log private off-platform bookings and blackout dates to keep your calendar accurate and prevent double-bookings."
+            : "Monitor vehicle schedule blackouts, maintenance periods, and private bookings."
+        }
       />
 
       <Flash {...flash} />
 
       <div className="grid gap-10 lg:gap-12 xl:gap-14 lg:grid-cols-12 items-start">
-        {/* Create Schedule Form */}
+        {/* Create Schedule / Block Form */}
         <div className="lg:col-span-5">
           <SectionCard
-            title="Add Schedule Blackout"
+            title={session.role === "operator" ? "New Schedule / Private Booking" : "Add Schedule Blackout"}
             icon={PlusCircle}
             className="overflow-hidden shadow-sm"
             bodyClassName="p-6 sm:p-8 lg:p-9"
           >
-            <form action={saveScheduleAction} className="space-y-6">
+            <form action={saveScheduleAction} encType="multipart/form-data" className="space-y-5">
               <div>
                 <Label
                   htmlFor="car_id"
-                  className="mb-2.5 block text-xs font-extrabold uppercase tracking-wider text-muted-foreground"
+                  className="mb-2 block text-xs font-extrabold uppercase tracking-wider text-muted-foreground"
                 >
                   Select Vehicle
                 </Label>
@@ -113,7 +156,7 @@ export default async function SharedMyCarSchedulesPage({
                   name="car_id"
                   required
                   defaultValue={selectedCarId ? String(selectedCarId) : ""}
-                  className="h-12 w-full rounded-xl border border-border/80 bg-background/80 px-4 py-2.5 text-sm font-medium text-foreground shadow-xs transition-colors hover:border-[#ffcc00] focus:border-[#ffcc00] focus:outline-none focus:ring-2 focus:ring-[#ffcc00]/20"
+                  className="h-11 w-full rounded-xl border border-border/80 bg-background/80 px-3 text-sm font-medium text-foreground shadow-xs transition-colors hover:border-[#ffcc00] focus:border-[#ffcc00] focus:outline-none focus:ring-2 focus:ring-[#ffcc00]/20"
                 >
                   <option value="" disabled>
                     Choose a vehicle...
@@ -126,11 +169,12 @@ export default async function SharedMyCarSchedulesPage({
                 </select>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {/* Start Date & Time */}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <Label
                     htmlFor="start_date"
-                    className="mb-2.5 block text-xs font-extrabold uppercase tracking-wider text-muted-foreground"
+                    className="mb-2 block text-xs font-extrabold uppercase tracking-wider text-muted-foreground"
                   >
                     Start Date
                   </Label>
@@ -139,13 +183,33 @@ export default async function SharedMyCarSchedulesPage({
                     name="start_date"
                     type="date"
                     required
-                    className="h-12 w-full rounded-xl border-border/80 bg-background/80 px-4 py-2.5 text-sm font-medium transition-colors hover:border-[#ffcc00] focus-visible:border-[#ffcc00] focus-visible:ring-[#ffcc00]/20"
+                    className="h-11 w-full rounded-xl border-border/80 bg-background/80 px-3 text-sm font-medium transition-colors hover:border-[#ffcc00] focus-visible:border-[#ffcc00] focus-visible:ring-[#ffcc00]/20"
                   />
                 </div>
                 <div>
                   <Label
+                    htmlFor="start_time"
+                    className="mb-2 block text-xs font-extrabold uppercase tracking-wider text-muted-foreground"
+                  >
+                    Start Time
+                  </Label>
+                  <Input
+                    id="start_time"
+                    name="start_time"
+                    type="time"
+                    defaultValue="08:00"
+                    required
+                    className="h-11 w-full rounded-xl border-border/80 bg-background/80 px-3 text-sm font-medium transition-colors hover:border-[#ffcc00] focus-visible:border-[#ffcc00] focus-visible:ring-[#ffcc00]/20"
+                  />
+                </div>
+              </div>
+
+              {/* End Date & Time */}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <Label
                     htmlFor="end_date"
-                    className="mb-2.5 block text-xs font-extrabold uppercase tracking-wider text-muted-foreground"
+                    className="mb-2 block text-xs font-extrabold uppercase tracking-wider text-muted-foreground"
                   >
                     End Date
                   </Label>
@@ -154,7 +218,23 @@ export default async function SharedMyCarSchedulesPage({
                     name="end_date"
                     type="date"
                     required
-                    className="h-12 w-full rounded-xl border-border/80 bg-background/80 px-4 py-2.5 text-sm font-medium transition-colors hover:border-[#ffcc00] focus-visible:border-[#ffcc00] focus-visible:ring-[#ffcc00]/20"
+                    className="h-11 w-full rounded-xl border-border/80 bg-background/80 px-3 text-sm font-medium transition-colors hover:border-[#ffcc00] focus-visible:border-[#ffcc00] focus-visible:ring-[#ffcc00]/20"
+                  />
+                </div>
+                <div>
+                  <Label
+                    htmlFor="end_time"
+                    className="mb-2 block text-xs font-extrabold uppercase tracking-wider text-muted-foreground"
+                  >
+                    End Time
+                  </Label>
+                  <Input
+                    id="end_time"
+                    name="end_time"
+                    type="time"
+                    defaultValue="17:00"
+                    required
+                    className="h-11 w-full rounded-xl border-border/80 bg-background/80 px-3 text-sm font-medium transition-colors hover:border-[#ffcc00] focus-visible:border-[#ffcc00] focus-visible:ring-[#ffcc00]/20"
                   />
                 </div>
               </div>
@@ -162,45 +242,80 @@ export default async function SharedMyCarSchedulesPage({
               <div>
                 <Label
                   htmlFor="reason"
-                  className="mb-2.5 block text-xs font-extrabold uppercase tracking-wider text-muted-foreground"
+                  className="mb-2 block text-xs font-extrabold uppercase tracking-wider text-muted-foreground"
                 >
-                  Reason
+                  Reason / Schedule Type
                 </Label>
                 <select
                   id="reason"
                   name="reason"
                   required
-                  defaultValue="Maintenance"
-                  className="h-12 w-full rounded-xl border border-border/80 bg-background/80 px-4 py-2.5 text-sm font-medium text-foreground shadow-xs transition-colors hover:border-[#ffcc00] focus:border-[#ffcc00] focus:outline-none focus:ring-2 focus:ring-[#ffcc00]/20"
+                  defaultValue={session.role === "operator" ? "Booking" : "Maintenance"}
+                  className="h-11 w-full rounded-xl border border-border/80 bg-background/80 px-3 text-sm font-medium text-foreground shadow-xs transition-colors hover:border-[#ffcc00] focus:border-[#ffcc00] focus:outline-none focus:ring-2 focus:ring-[#ffcc00]/20"
                 >
-                  <option value="Maintenance">Maintenance</option>
-                  <option value="Personal Use">Personal Use</option>
-                  <option value="Unavailable">Unavailable</option>
-                  <option value="Other">Other</option>
+                  <option value="Booking">📅 Booking (Private Client / Off-Platform)</option>
+                  <option value="Maintenance">🔧 Maintenance / Service</option>
+                  <option value="Personal Use">🚗 Personal Use</option>
+                  <option value="Unavailable">⛔ Unavailable / Reserved</option>
+                  <option value="Other">📝 Other</option>
                 </select>
+              </div>
+
+              {/* Private Client Requirement Photos (Operator Only or Shared Upload) */}
+              <div>
+                <Label
+                  htmlFor="photos"
+                  className="mb-2 flex items-center justify-between text-xs font-extrabold uppercase tracking-wider text-muted-foreground"
+                >
+                  <span>Private Client IDs & Contracts (Optional)</span>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                    🔒 Private & Encrypted
+                  </span>
+                </Label>
+                <div className="relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border/80 bg-background/50 p-4 transition-colors hover:border-[#ffcc00] hover:bg-muted/30 text-center">
+                  <UploadCloud className="mb-1.5 size-6 text-[#ffcc00]" />
+                  <p className="text-xs font-bold text-foreground">
+                    Click or drag files to upload
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    JPG, PNG, PDF up to 5MB each (multiple files allowed)
+                  </p>
+                  <input
+                    id="photos"
+                    name="photos"
+                    type="file"
+                    multiple
+                    accept="image/*,.pdf"
+                    className="absolute inset-0 cursor-pointer opacity-0"
+                  />
+                </div>
               </div>
 
               <div>
                 <Label
                   htmlFor="notes"
-                  className="mb-2.5 block text-xs font-extrabold uppercase tracking-wider text-muted-foreground"
+                  className="mb-2 block text-xs font-extrabold uppercase tracking-wider text-muted-foreground"
                 >
-                  Notes / Details
+                  Notes / Private Client Details
                 </Label>
                 <Textarea
                   id="notes"
                   name="notes"
                   rows={3}
-                  placeholder="e.g. 50,000km change oil, brake pad replacement..."
-                  className="min-h-[120px] w-full rounded-xl border-border/80 bg-background/80 p-4 text-sm font-medium leading-relaxed transition-colors hover:border-[#ffcc00] focus-visible:border-[#ffcc00] focus-visible:ring-[#ffcc00]/20"
+                  placeholder={
+                    session.role === "operator"
+                      ? "e.g. Private Client: Juan Cruz (0917-xxx-xxxx), destination Boracay, paid in full..."
+                      : "e.g. 50,000km periodic maintenance, brake pad replacement..."
+                  }
+                  className="min-h-[100px] w-full rounded-xl border-border/80 bg-background/80 p-3 text-sm font-medium leading-relaxed transition-colors hover:border-[#ffcc00] focus-visible:border-[#ffcc00] focus-visible:ring-[#ffcc00]/20"
                 />
               </div>
 
               <Button
                 type="submit"
-                className="h-12 w-full rounded-xl bg-[#ffcc00] text-sm font-extrabold text-black shadow-md transition-all hover:bg-[#ffd633] hover:scale-[1.01] active:scale-[0.99]"
+                className="h-11 w-full rounded-xl bg-[#ffcc00] text-sm font-extrabold text-black shadow-md transition-all hover:bg-[#ffd633] active:scale-[0.99]"
               >
-                Save Schedule
+                Save Schedule Block
               </Button>
             </form>
           </SectionCard>
@@ -238,7 +353,7 @@ export default async function SharedMyCarSchedulesPage({
               </div>
             </FilterBar>
 
-            {schedules.length === 0 ? (
+            {rawSchedules.length === 0 ? (
               <EmptyState
                 icon={CalendarDays}
                 title="No Schedules Found"
@@ -250,16 +365,31 @@ export default async function SharedMyCarSchedulesPage({
                   <thead>
                     <tr className="border-b border-border/80 bg-muted/60 text-[11px] uppercase tracking-wider text-muted-foreground">
                       <th className="px-5 py-3.5 text-left font-extrabold">Vehicle</th>
-                      <th className="px-5 py-3.5 text-left font-extrabold">Dates</th>
+                      <th className="px-5 py-3.5 text-left font-extrabold">Timeframe</th>
                       <th className="px-5 py-3.5 text-left font-extrabold">Reason</th>
                       <th className="px-5 py-3.5 text-right font-extrabold">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {schedules.map((s) => {
+                    {rawSchedules.map((s) => {
                       const carName =
                         [s.cars?.brand, s.cars?.model].filter(Boolean).join(" ") ||
                         "Vehicle";
+
+                      // Strict privacy check:
+                      // If admin is viewing an operator's schedule/booking, mask private client notes and files.
+                      const isOperatorCar = Boolean(
+                        s.cars?.user_id && s.cars.user_id !== session.userId,
+                      );
+                      const isPrivateSchedule =
+                        s.reason === "Booking" || isOperatorCar;
+                      const maskForAdmin =
+                        session.role === "admin" && isPrivateSchedule;
+
+                      const startTimeFormatted = formatDisplayTime(s.start_time);
+                      const endTimeFormatted = formatDisplayTime(s.end_time);
+
+                      const attachments = scheduleAttachments[s.id] ?? [];
 
                       return (
                         <tr
@@ -274,17 +404,60 @@ export default async function SharedMyCarSchedulesPage({
                           </td>
                           <td className="px-5 py-4 text-xs text-foreground">
                             <p className="font-semibold text-foreground">
-                              {formatDate(s.start_date)} - {formatDate(s.end_date)}
+                              {formatDate(s.start_date)}
+                              {startTimeFormatted ? ` (${startTimeFormatted})` : ""} -{" "}
+                              {formatDate(s.end_date)}
+                              {endTimeFormatted ? ` (${endTimeFormatted})` : ""}
                             </p>
-                            {s.notes ? (
-                              <p className="mt-0.5 text-[11px] text-muted-foreground italic">
-                                {s.notes}
+
+                            {maskForAdmin ? (
+                              <p className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground italic">
+                                <Lock className="size-3 text-muted-foreground" />
+                                Private booking details and client files are protected.
                               </p>
-                            ) : null}
+                            ) : (
+                              <>
+                                {s.notes ? (
+                                  <p className="mt-1 text-[11px] text-muted-foreground italic leading-relaxed">
+                                    {s.notes}
+                                  </p>
+                                ) : null}
+
+                                {attachments.length > 0 ? (
+                                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                                      <FileText className="size-3 text-[#ffcc00]" />
+                                      Client Files ({attachments.length}):
+                                    </span>
+                                    {attachments.map((att, idx) => (
+                                      <a
+                                        key={idx}
+                                        href={att.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/60 px-2 py-0.5 text-[11px] font-semibold text-foreground hover:border-[#ffcc00] hover:text-[#b38a00] transition-colors"
+                                      >
+                                        <FileImage className="size-3" />
+                                        Doc {idx + 1}
+                                        <ExternalLink className="size-2.5 opacity-60" />
+                                      </a>
+                                    ))}
+                                  </div>
+                                ) : null}
+                              </>
+                            )}
                           </td>
                           <td className="px-5 py-4">
-                            <span className="inline-flex items-center rounded-full bg-amber-500/15 px-3 py-1 text-xs font-bold text-amber-500 dark:text-amber-400">
-                              {s.reason}
+                            <span
+                              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${
+                                s.reason === "Booking"
+                                  ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30"
+                                  : s.reason === "Maintenance"
+                                    ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                                    : "bg-muted text-muted-foreground border border-border"
+                              }`}
+                            >
+                              {s.reason === "Booking" ? "Private Booking" : s.reason}
                             </span>
                           </td>
                           <td className="px-5 py-4 text-right">
@@ -293,7 +466,7 @@ export default async function SharedMyCarSchedulesPage({
                               <button
                                 type="submit"
                                 className="inline-flex size-8 items-center justify-center rounded-xl text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive active:scale-95"
-                                title="Remove Blackout"
+                                title="Remove Block"
                               >
                                 <Trash2 className="size-4" />
                               </button>

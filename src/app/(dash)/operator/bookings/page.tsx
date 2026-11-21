@@ -10,7 +10,6 @@ import {
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   DataTable,
   TablePagination,
@@ -36,13 +35,15 @@ import { operatorCars } from "@/lib/data/cars";
 import { fetchRows, readPage, readPerPage } from "@/lib/data/scope";
 import { formatDate } from "@/lib/datetime";
 import { readFlash, searchParam } from "@/lib/flash";
+import { computeOperatorShare } from "@/lib/pricing";
 
 /**
  * Operator reservations — port of `car-rental/pages/operator/bookings.php`.
  *
- * Only `online` bookings of this operator's cars are shown. The KPI row is
- * always computed from every online booking of the fleet (legacy behaviour);
- * the table adds the status / date / search filters.
+ * Strict Privacy Enforced:
+ * Client personal information (Name, Email, Phone, Address) and gross rental
+ * pricing are completely omitted from the query payload. Operators only view
+ * vehicle, rental period, verified status, and their computed profit share.
  */
 
 const STATUS_TABS = [
@@ -58,33 +59,54 @@ type OperatorOnlineBooking = {
   id: number;
   booking_type: string | null;
   status: string;
-  total_price: number | null;
   start_date: string | null;
   end_date: string | null;
+  pickup_time: string | null;
+  return_time: string | null;
   created_at: string | null;
-  guest_name: string | null;
-  gmail: string | null;
-  phone_number: string | null;
   cars: {
     id: number;
     brand: string | null;
     model: string | null;
     plate_number: string | null;
     user_id: number | null;
+    operator_10_hours: number | null;
+    operator_12_hours: number | null;
+    operator_24_hours: number | null;
   } | null;
   users: {
     id: number;
-    name: string | null;
-    email: string | null;
-    phone: string | null;
     id_verified?: boolean | null;
   } | null;
+  booking_payments: {
+    operator_share: number | null;
+  }[] | null;
 };
 
 function normalizeFilter(value: string | undefined): string {
   return value && (STATUS_TABS as readonly string[]).includes(value)
     ? value
     : "All";
+}
+
+function getOperatorEarnings(booking: OperatorOnlineBooking): number {
+  const paymentShare = booking.booking_payments?.[0]?.operator_share;
+  if (paymentShare !== undefined && paymentShare !== null && paymentShare > 0) {
+    return Number(paymentShare);
+  }
+  if (booking.cars && booking.start_date && booking.end_date) {
+    const pStart = Date.parse(`${booking.start_date}T${booking.pickup_time ?? "00:00:00"}`);
+    const pEnd = Date.parse(`${booking.end_date}T${booking.return_time ?? "23:59:59"}`);
+    if (pStart && pEnd && pEnd > pStart) {
+      const hours = (pEnd - pStart) / 3_600_000;
+      return computeOperatorShare(hours, {
+        operator_10_hours: Number(booking.cars.operator_10_hours ?? 0),
+        operator_12_hours: Number(booking.cars.operator_12_hours ?? 0),
+        operator_24_hours: Number(booking.cars.operator_24_hours ?? 0),
+      });
+    }
+  }
+  return 0;
 }
 
 export const instant = false;
@@ -110,16 +132,18 @@ export default async function OperatorBookingsPage({
 
   const supabase = await getSupabase();
 
+  // Strict RBAC: client PII (guest_name, gmail, phone_number, users.name, users.email, users.phone)
+  // and gross rental figures are NOT queried.
   const bookings = carIds.length
     ? await fetchRows<OperatorOnlineBooking>(
         supabase
           .from("bookings")
           .select(
             `
-            id, booking_type, status, total_price, start_date, end_date, created_at,
-            guest_name, gmail, phone_number,
-            cars!bookings_car_id_fkey ( id, brand, model, plate_number, user_id ),
-            users!bookings_user_id_fkey ( id, name, email, phone, id_verified )
+            id, booking_type, status, start_date, end_date, pickup_time, return_time, created_at,
+            cars!bookings_car_id_fkey ( id, brand, model, plate_number, user_id, operator_10_hours, operator_12_hours, operator_24_hours ),
+            users!bookings_user_id_fkey ( id, id_verified ),
+            booking_payments!booking_payments_booking_id_fkey ( operator_share )
           `,
           )
           .eq("booking_type", "online")
@@ -134,8 +158,8 @@ export default async function OperatorBookingsPage({
     pending: bookings.filter((booking) => booking.status === "Pending").length,
     confirmed: bookings.filter((booking) => booking.status === "Confirmed").length,
     completed: bookings.filter((booking) => booking.status === "Completed").length,
-    revenue: bookings.reduce(
-      (sum, booking) => sum + Number(booking.total_price ?? 0),
+    earnings: bookings.reduce(
+      (sum, booking) => sum + getOperatorEarnings(booking),
       0,
     ),
   };
@@ -155,11 +179,6 @@ export default async function OperatorBookingsPage({
       `#bk-${booking.id}`,
       String(booking.id),
       booking.status,
-      booking.users?.name,
-      booking.users?.email,
-      booking.guest_name,
-      booking.gmail,
-      booking.phone_number,
       booking.cars?.brand,
       booking.cars?.model,
       booking.cars?.plate_number,
@@ -225,9 +244,7 @@ export default async function OperatorBookingsPage({
       cell: (booking) => (
         <div className="min-w-[150px]">
           <div className="flex items-center gap-1.5">
-            <p className="font-bold text-foreground">
-              {booking.users?.name ?? booking.guest_name ?? "Guest User"}
-            </p>
+            <p className="font-bold text-foreground">Instacar Customer</p>
             {booking.users?.id_verified ? (
               <span className="inline-flex items-center rounded bg-emerald-500/20 px-1.5 py-0.2 text-[9px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                 Verified
@@ -274,14 +291,20 @@ export default async function OperatorBookingsPage({
       ),
     },
     {
-      key: "total",
-      header: "Total",
+      key: "earnings",
+      header: "Your Share",
       numeric: true,
-      cell: (booking) => (
-        <span className="font-bold text-foreground">
-          <Money value={booking.total_price} />
-        </span>
-      ),
+      cell: (booking) => {
+        const share = getOperatorEarnings(booking);
+        return (
+          <div className="text-right">
+            <span className="font-bold text-[#b38a00] dark:text-[#ffd700]">
+              <Money value={share} />
+            </span>
+            <p className="text-[10px] font-medium text-muted-foreground">Profit Share</p>
+          </div>
+        );
+      },
     },
     {
       key: "status",
@@ -312,7 +335,7 @@ export default async function OperatorBookingsPage({
       <PageHeader
         title="Vehicle Reservations"
         subtitle="Online Bookings"
-        description="Manage and track your fleet's reservation activity"
+        description="Manage and track your fleet's reservation activity and operator earnings."
       />
 
       <Flash {...flash} />
@@ -340,9 +363,9 @@ export default async function OperatorBookingsPage({
           tone="success"
         />
         <StatCard
-          label="Total Revenue"
-          value={<Money value={stats.revenue} />}
-          hint="From online"
+          label="Your Earnings"
+          value={<Money value={stats.earnings} />}
+          hint="Fleet profit share"
           icon={Wallet}
           tone="success"
         />
@@ -376,7 +399,7 @@ export default async function OperatorBookingsPage({
             type="search"
             name="search"
             defaultValue={search}
-            placeholder="Search customer, vehicle, ID or status..."
+            placeholder="Search vehicle, plate, booking ID or status..."
             className={filterControlClass}
           />
         </FilterField>

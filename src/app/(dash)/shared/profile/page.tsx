@@ -27,7 +27,7 @@ export default async function SharedProfilePage({
   const rentalAgreement = content.rental_agreement_html ?? "";
   const qrUrl = siteAssetUrl("qr_code_payment.png");
 
-  const isAdminOrOperator = session.role === "admin" || session.role === "operator";
+  const isAdmin = session.role === "admin";
 
   return (
     <div className="space-y-8 pb-10">
@@ -42,13 +42,13 @@ export default async function SharedProfilePage({
       {/* Personal Info & Password Cards */}
       <ProfileEditor session={session} user={user} returnTo="/shared/profile" />
 
-      {/* Admin/Operator Extra Settings */}
-      {isAdminOrOperator ? (
+      {/* Admin Strictly Extra Settings (Hidden from Operators) */}
+      {isAdmin ? (
         <div className="grid gap-8 lg:grid-cols-2 pt-2">
-          {/* Admin/Operator Payment QR Code */}
+          {/* Company Payment QR Code */}
           <CompanyQrCodeCard initialQrUrl={qrUrl} />
 
-          {/* Admin/Operator Rental Agreement Visual Editor */}
+          {/* Company Rental Agreement Visual Editor */}
           <SectionCard
             title="Rental Terms & Agreement Editor"
             icon={FileText}

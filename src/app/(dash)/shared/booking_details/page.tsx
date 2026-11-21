@@ -44,6 +44,7 @@ import { getSupabase, requireSession } from "@/lib/auth";
 import { formatDate } from "@/lib/datetime";
 import { readFlash, searchParam } from "@/lib/flash";
 import { BUCKETS, carImageUrls, signedFileUrl, signedFileUrls } from "@/lib/storage";
+import { computeOperatorShare } from "@/lib/pricing";
 
 function isPdf(path: string | null | undefined) {
   return (path ?? "").toLowerCase().endsWith(".pdf");
@@ -83,7 +84,7 @@ export default async function SharedBookingDetailsPage({
 
   if (!bookingId) notFound();
 
-  const { booking, remarks, photos } = await getBooking(session, bookingId);
+  const { booking, payment, remarks, photos } = await getBooking(session, bookingId);
 
   const car = booking?.car_id ? await getCar(booking.car_id) : null;
 
@@ -106,6 +107,7 @@ export default async function SharedBookingDetailsPage({
     );
   }
 
+  const isOperator = session.role === "operator";
   const supabase = await getSupabase();
 
   const uploadEntries = [
@@ -115,8 +117,9 @@ export default async function SharedBookingDetailsPage({
     { key: "payment", label: "PAYMENT", path: booking.proof_payment_path },
   ].filter((entry) => Boolean(entry.path));
 
+  // Strict RBAC: Operators are blocked from accessing client verification files
   const [uploadUrls, photoUrls] = await Promise.all([
-    uploadEntries.length
+    !isOperator && uploadEntries.length
       ? Promise.all(
           uploadEntries.map(async (entry) => {
             if (!entry.path) return "";
@@ -127,7 +130,7 @@ export default async function SharedBookingDetailsPage({
           }),
         )
       : Promise.resolve<string[]>([]),
-    photos.length
+    !isOperator && photos.length
       ? signedFileUrls(
           supabase,
           BUCKETS.bookingPhotos,
@@ -136,16 +139,24 @@ export default async function SharedBookingDetailsPage({
       : Promise.resolve<string[]>([]),
   ]);
 
-  const documents: BookingDocument[] = uploadEntries.map((entry, index) => ({
-    key: entry.key,
-    label: entry.label,
-    url: uploadUrls[index] ?? "",
-    isPdf: isPdf(entry.path),
-  }));
+  const documents: BookingDocument[] = !isOperator
+    ? uploadEntries.map((entry, index) => ({
+        key: entry.key,
+        label: entry.label,
+        url: uploadUrls[index] ?? "",
+        isPdf: isPdf(entry.path),
+      }))
+    : [];
 
-  const displayName = booking.users?.name ?? booking.guest_name ?? "N/A";
-  const displayPhone = booking.users?.phone ?? booking.phone_number ?? "N/A";
-  const displayEmail = booking.users?.email ?? booking.gmail ?? "N/A";
+  const displayName = isOperator
+    ? "Instacar Customer"
+    : (booking.users?.name ?? booking.guest_name ?? "N/A");
+  const displayPhone = isOperator
+    ? "🔒 Protected (Admin Managed)"
+    : (booking.users?.phone ?? booking.phone_number ?? "N/A");
+  const displayEmail = isOperator
+    ? "🔒 Protected (Admin Managed)"
+    : (booking.users?.email ?? booking.gmail ?? "N/A");
 
   const pickupClock = clock(booking.pickup_time);
   const returnClock = clock(booking.return_time);
@@ -172,6 +183,17 @@ export default async function SharedBookingDetailsPage({
   const extensionHours = Number(booking.extension_hours ?? 0);
   const totalRental = basePrice + deliveryFee + pickupFee + extensionFee - discountAmount;
   const remainingBal = Number(booking.total_price ?? 0);
+
+  const operatorShare =
+    Number(payment?.operator_share ?? 0) > 0
+      ? Number(payment?.operator_share)
+      : car
+        ? computeOperatorShare(durationHours, {
+            operator_10_hours: Number(car.operator_10_hours ?? 0),
+            operator_12_hours: Number(car.operator_12_hours ?? 0),
+            operator_24_hours: Number(car.operator_24_hours ?? 0),
+          })
+        : 0;
 
   const statusLabel = booking.status === "Confirmed" ? "Released" : booking.status;
   const isUser = false;
@@ -313,15 +335,17 @@ export default async function SharedBookingDetailsPage({
                         {isDelivery ? "Delivery & Drop-off Address:" : "Pickup / Office Location:"}
                       </p>
                       <p className="text-sm font-bold text-foreground mt-0.5">
-                        {booking.delivery_address ||
-                          (booking.branches?.name
-                            ? `${booking.branches.name} - Instacar Car Rental Services`
-                            : "Instacar Pavia, Iloilo Main Branch")}
+                        {isOperator
+                          ? (isDelivery ? "Delivery Handled by Instacar Dispatch" : "Instacar Pavia Main Branch (Self-Pickup)")
+                          : (booking.delivery_address ||
+                            (booking.branches?.name
+                              ? `${booking.branches.name} - Instacar Car Rental Services`
+                              : "Instacar Pavia, Iloilo Main Branch"))}
                       </p>
                       {booking.return_delivery_address ? (
                         <p className="text-xs text-muted-foreground mt-1">
                           <span className="font-semibold text-foreground">Return Location:</span>{" "}
-                          {booking.return_delivery_address}
+                          {isOperator ? "Handled by Instacar Dispatch" : booking.return_delivery_address}
                         </p>
                       ) : null}
                     </div>
@@ -404,52 +428,64 @@ export default async function SharedBookingDetailsPage({
                 Uploaded IDs, billing proof and payment proof for this booking.
               </p>
 
-              {documents.length ? (
-                <div className="mb-4 flex flex-wrap gap-2">
-                  {documents.map((document) => (
-                    <BookingDocumentButton
-                      key={document.key}
-                      label={document.label}
-                      url={document.url}
-                      fileName={`${document.label}.jpg`}
-                    />
-                  ))}
-                </div>
-              ) : null}
-
-              {photos.length > 0 ? (
-                <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5">
-                  {photos.map((photo, index) => {
-                    const url = photoUrls[index] ?? "";
-                    return (
-                      <BookingPhotoThumbnail
-                        key={photo.id}
-                        url={url}
-                        fileName={photo.file_name}
-                        canDelete={canWrite}
-                        deleteForm={
-                          canWrite ? (
-                            <form action={deleteBookingItemAction} className="absolute right-1 top-1 z-10">
-                              <input type="hidden" name="type" value="photo" />
-                              <input type="hidden" name="photo_id" value={photo.id} />
-                              <input type="hidden" name="booking_id" value={booking.id} />
-                              <input type="hidden" name="file_name" value={photo.file_name} />
-                              <ConfirmSubmit
-                                message="Are you sure you want to delete this document?"
-                                title="Delete file"
-                                className="flex size-6 items-center justify-center rounded-full bg-rose-600 text-white shadow hover:bg-rose-500"
-                              >
-                                &times;
-                              </ConfirmSubmit>
-                            </form>
-                          ) : null
-                        }
-                      />
-                    );
-                  })}
+              {isOperator ? (
+                <div className="rounded-xl border border-border/80 bg-muted/20 p-5 text-center">
+                  <ShieldCheck className="mx-auto size-7 text-emerald-500 mb-2" />
+                  <p className="text-sm font-bold text-foreground">Customer Verification Documents</p>
+                  <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
+                    Customer verification IDs, billing proof and payment documentation are securely managed by Instacar Administration to protect customer data privacy.
+                  </p>
                 </div>
               ) : (
-                <p className="text-sm italic text-muted-foreground">No customer photos uploaded yet.</p>
+                <>
+                  {documents.length ? (
+                    <div className="mb-4 flex flex-wrap gap-2">
+                      {documents.map((document) => (
+                        <BookingDocumentButton
+                          key={document.key}
+                          label={document.label}
+                          url={document.url}
+                          fileName={`${document.label}.jpg`}
+                        />
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {photos.length > 0 ? (
+                    <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5">
+                      {photos.map((photo, index) => {
+                        const url = photoUrls[index] ?? "";
+                        return (
+                          <BookingPhotoThumbnail
+                            key={photo.id}
+                            url={url}
+                            fileName={photo.file_name}
+                            canDelete={canWrite}
+                            deleteForm={
+                              canWrite ? (
+                                <form action={deleteBookingItemAction} className="absolute right-1 top-1 z-10">
+                                  <input type="hidden" name="type" value="photo" />
+                                  <input type="hidden" name="photo_id" value={photo.id} />
+                                  <input type="hidden" name="booking_id" value={booking.id} />
+                                  <input type="hidden" name="file_name" value={photo.file_name} />
+                                  <ConfirmSubmit
+                                    message="Are you sure you want to delete this document?"
+                                    title="Delete file"
+                                    className="flex size-6 items-center justify-center rounded-full bg-rose-600 text-white shadow hover:bg-rose-500"
+                                  >
+                                    &times;
+                                  </ConfirmSubmit>
+                                </form>
+                              ) : null
+                            }
+                          />
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm italic text-muted-foreground">No customer photos uploaded yet.</p>
+                  )}
+                </>
               )}
             </div>
 
@@ -510,18 +546,20 @@ export default async function SharedBookingDetailsPage({
               {!isUser ? (
                 <form action={addCustomerInfoAction} className="space-y-4">
                   <input type="hidden" name="booking_id" value={booking.id} />
-                  <div>
-                    <Label className="mb-1.5 block text-xs font-bold text-foreground">
-                      Upload Verification IDs & Photos
-                    </Label>
-                    <FileUploadDropzone
-                      name="customer_photos"
-                      multiple
-                      accept="image/*,.pdf"
-                      maxSizeMB={5}
-                      helperText="Drag & drop JPG, PNG or PDF documents (multiple allowed, max 5MB each)."
-                    />
-                  </div>
+                  {!isOperator ? (
+                    <div>
+                      <Label className="mb-1.5 block text-xs font-bold text-foreground">
+                        Upload Verification IDs & Photos
+                      </Label>
+                      <FileUploadDropzone
+                        name="customer_photos"
+                        multiple
+                        accept="image/*,.pdf"
+                        maxSizeMB={5}
+                        helperText="Drag & drop JPG, PNG or PDF documents (multiple allowed, max 5MB each)."
+                      />
+                    </div>
+                  ) : null}
                   <div>
                     <Label htmlFor="new_remark" className="mb-1.5 block text-xs font-bold text-foreground">
                       Add New Remark / Note
@@ -540,68 +578,115 @@ export default async function SharedBookingDetailsPage({
         </div>
 
         <div className="space-y-4">
-          <SectionCard icon={ClipboardList} title="Payment Breakdown">
-            <div className="space-y-1.5 p-4 md:p-5">
-              <div className="flex items-center justify-between text-sm">
-                <span>Base Rental</span>
-                <Money value={basePrice} className="font-semibold" />
+          {isOperator ? (
+            <SectionCard icon={ClipboardList} title="Your Operator Payout">
+              <div className="space-y-3 p-4 md:p-5">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Vehicle Daily Rate</span>
+                  <Money value={car?.operator_24_hours ?? 0} className="font-semibold" />
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Rental Duration</span>
+                  <span className="font-semibold">
+                    {daysCount > 0 ? `${daysCount}d ` : ""}
+                    {extraHours.toFixed(1)}h
+                  </span>
+                </div>
+                <div className="my-2 border-t border-dashed border-border" />
+                <div className="flex items-center justify-between text-base font-extrabold text-[#b38a00] dark:text-[#ffd700]">
+                  <span>Your Profit Share</span>
+                  <Money value={operatorShare} />
+                </div>
+                <div className="rounded-xl border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
+                  <p className="font-bold text-foreground">
+                    Payout Status:{" "}
+                    <span
+                      className={
+                        payment?.remitted_amount
+                          ? "font-extrabold text-emerald-600 dark:text-emerald-400"
+                          : "font-extrabold text-amber-600 dark:text-amber-400"
+                      }
+                    >
+                      {payment?.remitted_amount ? "Remitted / Paid" : "Pending Remittance"}
+                    </span>
+                  </p>
+                  {payment?.remitted_amount ? (
+                    <p className="mt-1 text-[11px]">
+                      Remitted: <Money value={payment.remitted_amount} /> on{" "}
+                      {formatDate(payment.remittance_date, "long")}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-[11px]">
+                      Calculated automatically based on agreed operator fleet pricing.
+                    </p>
+                  )}
+                </div>
               </div>
-              {deliveryFee > 0 ? (
+            </SectionCard>
+          ) : (
+            <SectionCard icon={ClipboardList} title="Payment Breakdown">
+              <div className="space-y-1.5 p-4 md:p-5">
                 <div className="flex items-center justify-between text-sm">
-                  <span>Delivery Fee</span>
-                  <span className="font-semibold">+ <Money value={deliveryFee} /></span>
+                  <span>Base Rental</span>
+                  <Money value={basePrice} className="font-semibold" />
                 </div>
-              ) : null}
-              {pickupFee > 0 ? (
-                <div className="flex items-center justify-between text-sm">
-                  <span>Pickup Fee</span>
-                  <span className="font-semibold">+ <Money value={pickupFee} /></span>
-                </div>
-              ) : null}
-              {extensionFee > 0 ? (
-                <div className="flex items-center justify-between text-sm">
-                  <span>Extension Fee</span>
-                  <span className="font-semibold">+ <Money value={extensionFee} /></span>
-                </div>
-              ) : null}
-              {discountAmount > 0 ? (
-                <div className="flex items-center justify-between text-sm text-rose-600 dark:text-rose-400">
-                  <span>Discount</span>
-                  <span className="font-semibold">- <Money value={discountAmount} /></span>
-                </div>
-              ) : null}
-              <div className="my-2 border-t border-dashed border-border" />
-              <div className="flex items-center justify-between text-sm font-bold">
-                <span>Total Rental</span>
-                <Money value={totalRental} />
-              </div>
-              {downPayment > 0 ? (
-                <>
-                  <div className="flex items-center justify-between text-sm text-emerald-600 dark:text-emerald-400">
-                    <span>Down Payment</span>
-                    <span className="font-semibold">- <Money value={downPayment} /></span>
+                {deliveryFee > 0 ? (
+                  <div className="flex items-center justify-between text-sm">
+                    <span>Delivery Fee</span>
+                    <span className="font-semibold">+ <Money value={deliveryFee} /></span>
                   </div>
-                  <div className="my-2 border-t border-dashed border-border" />
-                </>
-              ) : null}
-              <div className="flex items-center justify-between pt-1 text-base font-extrabold text-[#b38a00] dark:text-[#ffd700]">
-                <span>Remaining Balance</span>
-                <Money value={remainingBal} />
+                ) : null}
+                {pickupFee > 0 ? (
+                  <div className="flex items-center justify-between text-sm">
+                    <span>Pickup Fee</span>
+                    <span className="font-semibold">+ <Money value={pickupFee} /></span>
+                  </div>
+                ) : null}
+                {extensionFee > 0 ? (
+                  <div className="flex items-center justify-between text-sm">
+                    <span>Extension Fee</span>
+                    <span className="font-semibold">+ <Money value={extensionFee} /></span>
+                  </div>
+                ) : null}
+                {discountAmount > 0 ? (
+                  <div className="flex items-center justify-between text-sm text-rose-600 dark:text-rose-400">
+                    <span>Discount</span>
+                    <span className="font-semibold">- <Money value={discountAmount} /></span>
+                  </div>
+                ) : null}
+                <div className="my-2 border-t border-dashed border-border" />
+                <div className="flex items-center justify-between text-sm font-bold">
+                  <span>Total Rental</span>
+                  <Money value={totalRental} />
+                </div>
+                {downPayment > 0 ? (
+                  <>
+                    <div className="flex items-center justify-between text-sm text-emerald-600 dark:text-emerald-400">
+                      <span>Down Payment</span>
+                      <span className="font-semibold">- <Money value={downPayment} /></span>
+                    </div>
+                    <div className="my-2 border-t border-dashed border-border" />
+                  </>
+                ) : null}
+                <div className="flex items-center justify-between pt-1 text-base font-extrabold text-[#b38a00] dark:text-[#ffd700]">
+                  <span>Remaining Balance</span>
+                  <Money value={remainingBal} />
+                </div>
               </div>
-            </div>
 
-            {canStatus && remainingBal > 0 ? (
-              <div className="border-t border-border p-4">
-                <PayBalanceDialog
-                  bookingId={booking.id}
-                  remainingBalance={remainingBal}
-                  totalRental={totalRental}
-                  alreadyPaid={downPayment}
-                  customerName={displayName}
-                />
-              </div>
-            ) : null}
-          </SectionCard>
+              {canStatus && remainingBal > 0 ? (
+                <div className="border-t border-border p-4">
+                  <PayBalanceDialog
+                    bookingId={booking.id}
+                    remainingBalance={remainingBal}
+                    totalRental={totalRental}
+                    alreadyPaid={downPayment}
+                    customerName={displayName}
+                  />
+                </div>
+              ) : null}
+            </SectionCard>
+          )}
 
           {booking.remarks ? (
             <Card className="gap-2 py-4">

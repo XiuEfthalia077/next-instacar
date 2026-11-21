@@ -118,39 +118,51 @@ export async function getCar(carId: number): Promise<CarWithOwner | null> {
 export async function fleetCounters(session: AppSession) {
   const supabase = await import("@/lib/auth").then((m) => m.getSupabase());
   const branch = branchFilter(session);
+  const isOperator = session.role === "operator";
 
-  const totalQuery = supabase
+  let totalQuery = supabase
     .from("cars")
     .select("id", { count: "exact", head: true });
 
-  const availableQuery = supabase
+  let availableQuery = supabase
     .from("cars")
     .select("id", { count: "exact", head: true })
     .eq("status", "Available");
 
   // The legacy code counted `status IN ('Active','Rented')`; "Rented" does
   // not exist in the enum, "Active" is the rented status.
-  const rentedQuery = supabase
+  let rentedQuery = supabase
     .from("cars")
     .select("id", { count: "exact", head: true })
     .eq("status", "Active");
 
-  const maintenanceQuery = supabase
+  let maintenanceQuery = supabase
     .from("cars")
     .select("id", { count: "exact", head: true })
     .eq("status", "Maintenance");
 
   let statusQuery = supabase.from("cars").select("status");
 
-  if (branch !== null) {
+  // If Operator, restrict counters strictly to cars they own/operate
+  if (isOperator) {
+    totalQuery = totalQuery.eq("user_id", session.userId);
+    availableQuery = availableQuery.eq("user_id", session.userId);
+    rentedQuery = rentedQuery.eq("user_id", session.userId);
+    maintenanceQuery = maintenanceQuery.eq("user_id", session.userId);
+    statusQuery = statusQuery.eq("user_id", session.userId);
+  } else if (branch !== null) {
+    totalQuery = applyBranch(totalQuery, branch);
+    availableQuery = applyBranch(availableQuery, branch);
+    rentedQuery = applyBranch(rentedQuery, branch);
+    maintenanceQuery = applyBranch(maintenanceQuery, branch);
     statusQuery = statusQuery.eq("branch_id", branch);
   }
 
   const [total, available, rented, maintenance, statusRows] = await Promise.all([
-    fetchCount(applyBranch(totalQuery, branch)),
-    fetchCount(applyBranch(availableQuery, branch)),
-    fetchCount(applyBranch(rentedQuery, branch)),
-    fetchCount(applyBranch(maintenanceQuery, branch)),
+    fetchCount(totalQuery),
+    fetchCount(availableQuery),
+    fetchCount(rentedQuery),
+    fetchCount(maintenanceQuery),
     fetchRows<{ status: CarStatus }>(statusQuery),
   ]);
 

@@ -72,6 +72,7 @@ export const CAR_STATUSES = [
 export const TRANSMISSIONS = ["Manual", "Automatic"] as const;
 
 export const SCHEDULE_REASONS = [
+  "Booking",
   "Maintenance",
   "Personal Use",
   "Unavailable",

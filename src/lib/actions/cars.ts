@@ -30,6 +30,7 @@ import {
 } from "@/lib/storage";
 
 const SCHEDULE_REASONS = [
+  "Booking",
   "Maintenance",
   "Personal Use",
   "Unavailable",
@@ -406,6 +407,8 @@ export async function saveScheduleAction(formData: FormData) {
   const carId = int(formData, "car_id");
   const startDate = str(formData, "start_date");
   const endDate = str(formData, "end_date");
+  const startTime = str(formData, "start_time", "00:00:00");
+  const endTime = str(formData, "end_time", "23:59:59");
   const rawReason = str(formData, "reason", "Unavailable");
   const notes = str(formData, "notes");
 
@@ -482,13 +485,37 @@ export async function saveScheduleAction(formData: FormData) {
     );
   }
 
+  // Handle multiple uploaded photos for private operator bookings
+  const photos = formData.getAll("photos") as File[];
+  const attachmentUrls: string[] = [];
+  if (photos && photos.length > 0) {
+    for (const photo of photos) {
+      if (photo && photo.size > 0 && photo.name) {
+        const ext = photo.name.split(".").pop() || "jpg";
+        const cleanName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const res = await uploadFile(supabase, {
+          bucket: BUCKETS.operatorPrivateUploads,
+          folder: `operator_${session.userId}`,
+          fileName: cleanName,
+          file: photo,
+        });
+        if (res.ok) {
+          attachmentUrls.push(res.path);
+        }
+      }
+    }
+  }
+
   const { error } = await supabase.from("car_schedules").insert({
     car_id: carId,
     created_by: session.userId,
     start_date: startDate,
     end_date: endDate,
+    start_time: startTime.length === 5 ? `${startTime}:00` : startTime,
+    end_time: endTime.length === 5 ? `${endTime}:00` : endTime,
     reason,
     notes: notes || null,
+    attachment_urls: attachmentUrls,
   });
 
   if (error) {

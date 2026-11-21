@@ -30,6 +30,7 @@ export const BUCKETS = {
   siteAssets: "site-assets",
   reviewPhotos: "review-photos",
   userDocuments: "user-documents",
+  operatorPrivateUploads: "operator-private-uploads",
 } as const;
 
 export type BucketName = (typeof BUCKETS)[keyof typeof BUCKETS];

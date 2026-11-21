@@ -68,6 +68,9 @@ export function ProfileEditor({
   const hasSecondaryDoc = Boolean(user?.secondary_id_url);
   const hasBillingDoc = Boolean(user?.proof_of_billing_url);
 
+  // Document Verification is only for Customers/Users and Admins (Strictly hidden from Operators)
+  const showDocuments = session.role !== "operator";
+
   return (
     <div className="space-y-6">
       {/* CONSOLIDATED TAB BAR */}
@@ -86,24 +89,26 @@ export function ProfileEditor({
           <span>Personal Info</span>
         </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab("documents")}
-          className={cn(
-            "flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition shadow-xs cursor-pointer min-h-[44px]",
-            activeTab === "documents"
-              ? "bg-[#ffcc00] text-black shadow-sm"
-              : "border border-border bg-card text-muted-foreground hover:border-[#ffcc00]/50 hover:text-foreground",
-          )}
-        >
-          <FileCheck className="size-4.5" />
-          <span>My Documents</span>
-          {user?.id_verified ? (
-            <span className="flex size-2 rounded-full bg-emerald-500 animate-pulse" />
-          ) : hasPrimaryDoc ? (
-            <span className="flex size-2 rounded-full bg-amber-500" />
-          ) : null}
-        </button>
+        {showDocuments && (
+          <button
+            type="button"
+            onClick={() => setActiveTab("documents")}
+            className={cn(
+              "flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition shadow-xs cursor-pointer min-h-[44px]",
+              activeTab === "documents"
+                ? "bg-[#ffcc00] text-black shadow-sm"
+                : "border border-border bg-card text-muted-foreground hover:border-[#ffcc00]/50 hover:text-foreground",
+            )}
+          >
+            <FileCheck className="size-4.5" />
+            <span>My Documents</span>
+            {user?.id_verified ? (
+              <span className="flex size-2 rounded-full bg-emerald-500 animate-pulse" />
+            ) : hasPrimaryDoc ? (
+              <span className="flex size-2 rounded-full bg-amber-500" />
+            ) : null}
+          </button>
+        )}
 
         <button
           type="button"
@@ -209,7 +214,7 @@ export function ProfileEditor({
       )}
 
       {/* TAB 2: MY DOCUMENTS & HASSLE-FREE VERIFICATION (2 COLUMNS) */}
-      {activeTab === "documents" && (
+      {showDocuments && activeTab === "documents" && (
         <div className="w-full space-y-6">
           {/* Status Overview Card (Spans full width) */}
           <div className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-xs">
