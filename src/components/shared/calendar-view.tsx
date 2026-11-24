@@ -280,16 +280,30 @@ export function CalendarView({
                           [b.cars?.brand, b.cars?.model].filter(Boolean).join(" ") ||
                           "Vehicle";
 
+                        const isScheduleBlock = b.id < 0;
                         const isMaintenance = b.status === "Maintenance";
+                        const isPrivateBooking = isScheduleBlock && b.status === "Booking";
                         const statusDot = isMaintenance
                           ? "bg-rose-500"
-                          : b.status === "Confirmed" || b.status === "Released"
-                            ? "bg-emerald-500"
-                            : b.status === "Pending"
-                              ? "bg-amber-400"
-                              : b.status === "Completed"
-                                ? "bg-sky-400"
-                                : "bg-muted-foreground";
+                          : isPrivateBooking
+                            ? "bg-blue-500"
+                            : isScheduleBlock
+                              ? "bg-slate-500"
+                              : b.status === "Confirmed" || b.status === "Released"
+                                ? "bg-emerald-500"
+                                : b.status === "Pending"
+                                  ? "bg-amber-400"
+                                  : b.status === "Completed"
+                                    ? "bg-sky-400"
+                                    : "bg-muted-foreground";
+
+                        const chipTag = isScheduleBlock
+                          ? b.status === "Booking"
+                            ? "BOOKED"
+                            : b.status === "Maintenance"
+                              ? "MAINT"
+                              : "BLOCK"
+                          : `#${b.id}`;
 
                         return (
                           <div
@@ -297,8 +311,12 @@ export function CalendarView({
                             className={cn(
                               "flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold transition",
                               isMaintenance
-                                ? "border-rose-500/40 bg-rose-500/20 text-rose-300 hover:border-rose-400"
-                                : "border-border/40 bg-muted/40 text-foreground hover:border-[#ffcc00] hover:bg-[#ffcc00]/10",
+                                ? "border-rose-500/40 bg-rose-500/15 text-rose-800 dark:text-rose-300 hover:border-rose-400"
+                                : isPrivateBooking
+                                  ? "border-blue-500/40 bg-blue-500/15 text-blue-800 dark:text-blue-300 hover:border-blue-400"
+                                  : isScheduleBlock
+                                    ? "border-slate-500/40 bg-slate-500/15 text-slate-800 dark:text-slate-300 hover:border-slate-400"
+                                    : "border-border/40 bg-muted/40 text-foreground hover:border-[#ffcc00] hover:bg-[#ffcc00]/10",
                             )}
                           >
                             <span
@@ -308,7 +326,7 @@ export function CalendarView({
                               )}
                             />
                             <span className="font-mono text-[9px] text-muted-foreground">
-                              {b.id < 0 ? "MAINT" : `#${b.id}`}
+                              {chipTag}
                             </span>
                             <span className="truncate">{carName}</span>
                           </div>
@@ -610,7 +628,7 @@ export function CalendarView({
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
                                 <span className="rounded bg-muted px-1.5 py-0.2 font-mono text-[11px] font-bold text-foreground">
-                                  #BK-{b.id}
+                                  {b.id < 0 ? `#BLK-${Math.abs(b.id)}` : `#BK-${b.id}`}
                                 </span>
                                 <p className="font-bold text-foreground text-xs">
                                   {carName}
@@ -657,12 +675,12 @@ export function CalendarView({
                           </div>
 
                           <div className="flex items-center justify-end">
-                            {b.status === "Maintenance" ? (
+                            {b.id < 0 ? (
                               <Link
                                 href={`/shared/my_car_schedules?car_id=${b.car_id}`}
-                                className="inline-flex items-center gap-1 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20"
+                                className="inline-flex items-center gap-1 rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-300 transition hover:bg-blue-500/20"
                               >
-                                <span>Maintenance</span>
+                                <span>Manage Schedule</span>
                                 <ExternalLink className="size-3" />
                               </Link>
                             ) : (
@@ -725,7 +743,7 @@ export function CalendarView({
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs font-black text-foreground border border-neutral-300 dark:border-neutral-700">
-                            #BK-{b.id}
+                            {b.id < 0 ? `#BLK-${Math.abs(b.id)}` : `#BK-${b.id}`}
                           </span>
                           <span className="font-black text-foreground">
                             {carName}
@@ -743,7 +761,9 @@ export function CalendarView({
                     <div className="grid grid-cols-1 gap-1.5 border-t border-neutral-200 dark:border-neutral-700 pt-2 text-xs text-neutral-600 dark:text-neutral-400 sm:grid-cols-2">
                       <div className="flex items-center gap-1.5">
                         <User className="size-3.5 text-foreground shrink-0" />
-                        <span className="font-semibold text-foreground">Customer: {customerName}</span>
+                        <span className="font-semibold text-foreground">
+                          {b.id < 0 ? `Schedule: ${customerName}` : `Customer: ${customerName}`}
+                        </span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Clock className="size-3.5 text-[#ffcc00] shrink-0" />
@@ -775,10 +795,10 @@ export function CalendarView({
                           </span>
                         )}
                       </div>
-                      {b.status === "Maintenance" ? (
+                      {b.id < 0 ? (
                         <Link
                           href={`/shared/my_car_schedules?car_id=${b.car_id}`}
-                          className="inline-flex items-center gap-1 font-bold text-rose-500 dark:text-rose-400 hover:underline"
+                          className="inline-flex items-center gap-1 font-bold text-blue-600 dark:text-blue-400 hover:underline"
                         >
                           Manage Schedule
                           <ExternalLink className="size-3" />

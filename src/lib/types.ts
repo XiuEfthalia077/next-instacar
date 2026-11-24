@@ -14,7 +14,9 @@ export type BookingStatus =
   | "Released"
   | "Completed"
   | "Cancelled"
-  | "Maintenance";
+  | "Maintenance"
+  | "Booking"
+  | "Blocked";
 
 export type BookingType = "online" | "manual";
 
@@ -28,6 +30,7 @@ export type CarStatus =
 export type Transmission = "Manual" | "Automatic";
 
 export type ScheduleReason =
+  | "Booking"
   | "Maintenance"
   | "Personal Use"
   | "Unavailable"

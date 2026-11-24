@@ -488,10 +488,11 @@ export async function saveScheduleAction(formData: FormData) {
   // Handle multiple uploaded photos for private operator bookings
   const photos = formData.getAll("photos") as File[];
   const attachmentUrls: string[] = [];
+  const uploadErrors: string[] = [];
   if (photos && photos.length > 0) {
     for (const photo of photos) {
       if (photo && photo.size > 0 && photo.name) {
-        const ext = photo.name.split(".").pop() || "jpg";
+        const ext = photo.name.split(".").pop()?.toLowerCase() || "jpg";
         const cleanName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
         const res = await uploadFile(supabase, {
           bucket: BUCKETS.operatorPrivateUploads,
@@ -501,9 +502,20 @@ export async function saveScheduleAction(formData: FormData) {
         });
         if (res.ok) {
           attachmentUrls.push(res.path);
+        } else {
+          console.error("[saveScheduleAction] private photo upload failed:", res.error);
+          uploadErrors.push(`${photo.name}: ${res.error}`);
         }
       }
     }
+  }
+
+  if (uploadErrors.length > 0 && attachmentUrls.length === 0) {
+    flashRedirect(
+      home,
+      "error",
+      `File upload failed (${uploadErrors[0]}). Please try again.`,
+    );
   }
 
   const { error } = await supabase.from("car_schedules").insert({
@@ -523,9 +535,16 @@ export async function saveScheduleAction(formData: FormData) {
   }
 
   revalidatePath("/shared/my_car_schedules");
+  revalidatePath("/shared/calendar");
   revalidatePath("/shared/cars");
   revalidatePath("/operator/view_car");
-  flashRedirect(home, "success", "Schedule block added successfully.");
+  flashRedirect(
+    home,
+    "success",
+    uploadErrors.length > 0
+      ? `Schedule block saved, but some files failed to upload: ${uploadErrors.join("; ")}`
+      : "Schedule block added successfully.",
+  );
 }
 
 export async function deleteScheduleAction(formData: FormData) {
@@ -540,13 +559,18 @@ export async function deleteScheduleAction(formData: FormData) {
 
   const { data: schedule } = await supabase
     .from("car_schedules")
-    .select("id, car_id")
+    .select("id, car_id, attachment_urls")
     .eq("id", scheduleId)
     .maybeSingle();
 
   if (!schedule) flashRedirect(home, "error", "Schedule not found.");
 
-  const carId = (schedule as { id: number; car_id: number }).car_id;
+  const typedSchedule = schedule as {
+    id: number;
+    car_id: number;
+    attachment_urls?: string[] | null;
+  };
+  const carId = typedSchedule.car_id;
 
   if (session.role !== "admin") {
     const { data: car } = await supabase
@@ -562,6 +586,18 @@ export async function deleteScheduleAction(formData: FormData) {
     }
   }
 
+  // Clean up any private attachment files so no orphaned objects remain in storage
+  if (
+    Array.isArray(typedSchedule.attachment_urls) &&
+    typedSchedule.attachment_urls.length > 0
+  ) {
+    await Promise.all(
+      typedSchedule.attachment_urls.map((filePath) =>
+        removeFile(supabase, BUCKETS.operatorPrivateUploads, filePath).catch(() => null),
+      ),
+    );
+  }
+
   const { error } = await supabase
     .from("car_schedules")
     .delete()
@@ -570,6 +606,7 @@ export async function deleteScheduleAction(formData: FormData) {
   if (error) flashRedirect(home, "error", `Delete failed: ${error.message}`);
 
   revalidatePath("/shared/my_car_schedules");
+  revalidatePath("/shared/calendar");
   revalidatePath("/shared/cars");
   revalidatePath("/operator/view_car");
   flashRedirect(home, "success", "Schedule block deleted.");

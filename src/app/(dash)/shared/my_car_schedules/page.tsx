@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 
 import { EmptyState } from "@/components/common/empty-state";
+import { FileUploadDropzone } from "@/components/common/file-upload-dropzone";
 import { FilterBar } from "@/components/common/filter-bar";
 import { Flash } from "@/components/common/flash";
 import { PageHeader } from "@/components/common/page-header";
@@ -272,23 +273,13 @@ export default async function SharedMyCarSchedulesPage({
                     🔒 Private & Encrypted
                   </span>
                 </Label>
-                <div className="relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border/80 bg-background/50 p-4 transition-colors hover:border-[#ffcc00] hover:bg-muted/30 text-center">
-                  <UploadCloud className="mb-1.5 size-6 text-[#ffcc00]" />
-                  <p className="text-xs font-bold text-foreground">
-                    Click or drag files to upload
-                  </p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    JPG, PNG, PDF up to 5MB each (multiple files allowed)
-                  </p>
-                  <input
-                    id="photos"
-                    name="photos"
-                    type="file"
-                    multiple
-                    accept="image/*,.pdf"
-                    className="absolute inset-0 cursor-pointer opacity-0"
-                  />
-                </div>
+                <FileUploadDropzone
+                  name="photos"
+                  multiple
+                  accept="image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf"
+                  maxSizeMB={5}
+                  helperText="JPG, PNG, WEBP, or PDF up to 5MB each (multiple files allowed)"
+                />
               </div>
 
               <div>

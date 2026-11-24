@@ -94,9 +94,11 @@ export function FileUploadDropzone({
 }: FileUploadDropzoneProps) {
   const displayDesc = helperText || description || `Drag & drop file here, or click to browse (Max ${maxSizeMB}MB)`;
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = React.useState<{ file: File; preview: string | null }[]>([]);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(existingUrl);
   const [isDragOver, setIsDragOver] = React.useState(false);
   const [viewModalOpen, setViewModalOpen] = React.useState(false);
+  const [uploadError, setUploadError] = React.useState<string | null>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
@@ -105,15 +107,21 @@ export function FileUploadDropzone({
     }
   }, [existingUrl, selectedFile]);
 
-  const handleFileChange = async (file: File | null) => {
-    if (!file) {
-      setSelectedFile(null);
-      setPreviewUrl(existingUrl);
-      onFileSelect?.(null);
-      return;
+  const syncInputFiles = (files: File[]) => {
+    if (inputRef.current && typeof DataTransfer !== "undefined") {
+      try {
+        const dt = new DataTransfer();
+        for (const f of files) {
+          dt.items.add(f);
+        }
+        inputRef.current.files = dt.files;
+      } catch {
+        // Fallback if browser restricts DataTransfer manipulation
+      }
     }
+  };
 
-    // Auto-compress high-resolution images to prevent HTTP 413 Content Too Large
+  const processSingleFile = async (file: File): Promise<File | null> => {
     let processedFile = file;
     if (file.type.startsWith("image/")) {
       try {
@@ -124,23 +132,68 @@ export function FileUploadDropzone({
     }
 
     if (processedFile.size > maxSizeMB * 1024 * 1024) {
-      alert(`File size exceeds ${maxSizeMB}MB limit. Please upload a smaller file.`);
+      setUploadError(`"${file.name}" exceeds the ${maxSizeMB}MB limit.`);
+      return null;
+    }
+
+    return processedFile;
+  };
+
+  const handleMultipleFiles = async (fileList: FileList | File[]) => {
+    setUploadError(null);
+    const incoming = Array.from(fileList);
+    if (!incoming.length) return;
+
+    const processedEntries: { file: File; preview: string | null }[] = [];
+    for (const raw of incoming) {
+      const processed = await processSingleFile(raw);
+      if (processed) {
+        const preview = processed.type.startsWith("image/")
+          ? URL.createObjectURL(processed)
+          : null;
+        processedEntries.push({ file: processed, preview });
+      }
+    }
+
+    if (!processedEntries.length) return;
+
+    setSelectedFiles((prev) => {
+      const next = [...prev, ...processedEntries];
+      syncInputFiles(next.map((item) => item.file));
+      return next;
+    });
+    onFileSelect?.(processedEntries[0]?.file ?? null);
+  };
+
+  const removeMultiFile = (e: React.MouseEvent, index: number) => {
+    e.stopPropagation();
+    setSelectedFiles((prev) => {
+      const removed = prev[index];
+      if (removed?.preview) URL.revokeObjectURL(removed.preview);
+      const next = prev.filter((_, i) => i !== index);
+      syncInputFiles(next.map((item) => item.file));
+      if (next.length === 0 && inputRef.current) {
+        inputRef.current.value = "";
+      }
+      return next;
+    });
+  };
+
+  const handleFileChange = async (file: File | null) => {
+    setUploadError(null);
+    if (!file) {
+      setSelectedFile(null);
+      setPreviewUrl(existingUrl);
+      onFileSelect?.(null);
       return;
     }
 
+    const processedFile = await processSingleFile(file);
+    if (!processedFile) return;
+
     setSelectedFile(processedFile);
     onFileSelect?.(processedFile);
-
-    // Sync processed file into the native input element
-    if (inputRef.current && typeof DataTransfer !== "undefined") {
-      try {
-        const dt = new DataTransfer();
-        dt.items.add(processedFile);
-        inputRef.current.files = dt.files;
-      } catch {
-        // Fallback if browser restricts DataTransfer manipulation
-      }
-    }
+    syncInputFiles([processedFile]);
 
     if (processedFile.type.startsWith("image/")) {
       const url = URL.createObjectURL(processedFile);
@@ -154,9 +207,10 @@ export function FileUploadDropzone({
     e.preventDefault();
     setIsDragOver(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      handleFileChange(e.dataTransfer.files[0]);
-      if (inputRef.current) {
-        inputRef.current.files = e.dataTransfer.files;
+      if (multiple) {
+        void handleMultipleFiles(e.dataTransfer.files);
+      } else {
+        void handleFileChange(e.dataTransfer.files[0]);
       }
     }
   };
@@ -165,6 +219,7 @@ export function FileUploadDropzone({
     e.stopPropagation();
     setSelectedFile(null);
     setPreviewUrl(null);
+    setUploadError(null);
     if (inputRef.current) {
       inputRef.current.value = "";
     }
@@ -172,6 +227,7 @@ export function FileUploadDropzone({
   };
 
   const fileName = selectedFile ? selectedFile.name : existingUrl ? existingUrl.split("/").pop() : "";
+  const hasSelection = multiple ? selectedFiles.length > 0 : Boolean(selectedFile || previewUrl);
 
   return (
     <div className={cn("space-y-1.5", className)}>
@@ -195,7 +251,7 @@ export function FileUploadDropzone({
           isDragOver
             ? "border-[#ffcc00] bg-[#ffcc00]/10 scale-[1.01]"
             : "border-border bg-card/60 hover:border-[#ffcc00]/50 hover:bg-muted/40",
-          selectedFile || previewUrl ? "border-solid border-white/20 bg-muted/20" : "",
+          hasSelection ? "border-solid border-border bg-muted/20" : "",
         )}
       >
         <input
@@ -203,17 +259,72 @@ export function FileUploadDropzone({
           type="file"
           name={name}
           accept={accept}
-          required={required && !previewUrl}
+          required={required && !hasSelection}
           multiple={multiple}
           onChange={(e) => {
             if (e.target.files && e.target.files.length > 0) {
-              handleFileChange(e.target.files[0]);
+              if (multiple) {
+                void handleMultipleFiles(e.target.files);
+              } else {
+                void handleFileChange(e.target.files[0]);
+              }
             }
           }}
           className="hidden"
         />
 
-        {selectedFile || previewUrl ? (
+        {multiple && selectedFiles.length > 0 ? (
+          <div className="w-full space-y-2 text-left">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-foreground">
+                {selectedFiles.length} file{selectedFiles.length > 1 ? "s" : ""} ready to upload
+              </span>
+              <span className="text-[11px] font-semibold text-[#b38a00] dark:text-[#ffcc00]">
+                + Click or drop to add more
+              </span>
+            </div>
+            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+              {selectedFiles.map((item, idx) => (
+                <div
+                  key={`${item.file.name}-${idx}`}
+                  className="flex items-center justify-between gap-2 rounded-lg border border-border/80 bg-background/80 p-2"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="size-9 shrink-0 overflow-hidden rounded-md bg-muted border border-border flex items-center justify-center">
+                      {item.preview ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={item.preview}
+                          alt={item.file.name}
+                          className="size-full object-cover"
+                        />
+                      ) : (
+                        <FileText className="size-4 text-rose-500" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-foreground truncate max-w-[180px] sm:max-w-[240px]">
+                        {item.file.name}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {(item.file.size / 1024).toFixed(1)} KB
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => removeMultiFile(e, idx)}
+                    className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-rose-500/15 hover:text-rose-600 dark:hover:text-rose-400 transition"
+                    title="Remove file"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : selectedFile || previewUrl ? (
           <div className="flex w-full items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <div className="size-11 shrink-0 overflow-hidden rounded-lg bg-black/40 border border-white/10 flex items-center justify-center">
@@ -275,6 +386,12 @@ export function FileUploadDropzone({
           </div>
         )}
       </div>
+
+      {uploadError ? (
+        <p className="text-xs font-semibold text-rose-600 dark:text-rose-400">
+          {uploadError}
+        </p>
+      ) : null}
 
       <FileViewModal
         open={viewModalOpen}

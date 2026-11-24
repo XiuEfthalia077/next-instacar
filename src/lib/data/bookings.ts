@@ -597,25 +597,54 @@ export async function calendarBookings(
   to: string,
 ): Promise<BookingRow[]> {
   const supabase = await import("@/lib/auth").then((m) => m.getSupabase());
-  const branch = branchFilter(session);
+  const isOperator = session.role === "operator";
+  const branch = isOperator ? null : branchFilter(session);
 
-  let query = supabase
+  // For operators, explicitly resolve their fleet car IDs so Admin/User bookings
+  // for their cars are ALWAYS synced regardless of branch_id.
+  let operatorCarIds: number[] = [];
+  if (isOperator) {
+    const { data: opCars } = await supabase
+      .from("cars")
+      .select("id")
+      .eq("user_id", session.userId);
+    operatorCarIds = ((opCars ?? []) as { id: number }[]).map((c) => c.id);
+    if (operatorCarIds.length === 0) {
+      return [];
+    }
+  }
+
+  // Operators must NOT receive client PII or gross pricing in the payload
+  const OPERATOR_BOOKING_SELECT = `
+    id, user_id, created_by, last_action_by, last_action_at, last_action_type,
+    car_id, branch_id, start_date, end_date, pickup_time, return_time,
+    status, booking_type, fulfillment_type, remarks, created_at,
+    cars!bookings_car_id_fkey (
+      id, brand, model, plate_number, branch_id, user_id, status, type
+    ),
+    branches!bookings_branch_id_fkey ( id, name )
+  `;
+
+  let bookingQuery = supabase
     .from("bookings")
-    .select(BOOKING_SELECT)
+    .select(isOperator ? OPERATOR_BOOKING_SELECT : BOOKING_SELECT)
     .lte("start_date", to)
     .gte("end_date", from)
     .order("start_date", { ascending: true });
 
-  if (branch !== null) {
-    query = query.eq("branch_id", branch);
+  if (isOperator) {
+    bookingQuery = bookingQuery.in("car_id", operatorCarIds);
+  } else if (branch !== null) {
+    bookingQuery = bookingQuery.eq("branch_id", branch);
   }
 
-  // Also query maintenance schedules from car_schedules
-  const schedQuery = supabase
+  // Also query manual blocks / maintenance schedules from car_schedules
+  // Never select attachment_urls for the calendar payload
+  let schedQuery = supabase
     .from("car_schedules")
     .select(
       `
-      id, car_id, start_date, end_date, reason, notes, created_at,
+      id, car_id, start_date, end_date, start_time, end_time, reason, notes, created_at,
       cars!car_schedules_car_id_fkey ( id, brand, model, plate_number, type, user_id, branch_id )
     `,
     )
@@ -623,13 +652,19 @@ export async function calendarBookings(
     .gte("end_date", from)
     .order("start_date", { ascending: true });
 
+  if (isOperator) {
+    schedQuery = schedQuery.in("car_id", operatorCarIds);
+  }
+
   const [bookingRows, schedRows] = await Promise.all([
-    fetchRows<BookingRow>(query),
+    fetchRows<BookingRow>(bookingQuery),
     fetchRows<{
       id: number;
       car_id: number;
       start_date: string;
       end_date: string;
+      start_time: string | null;
+      end_time: string | null;
       reason: string;
       notes: string | null;
       created_at: string;
@@ -645,16 +680,40 @@ export async function calendarBookings(
     }>(schedQuery),
   ]);
 
-  const maintenanceEvents: BookingRow[] = [];
+  const scheduleEvents: BookingRow[] = [];
   for (const s of schedRows) {
-    if (session.role === "operator" && s.cars?.user_id !== session.userId) {
+    if (isOperator && s.cars?.user_id !== session.userId) {
       continue;
     }
-    if (branch !== null && s.cars?.branch_id !== branch) {
+    if (!isOperator && branch !== null && s.cars?.branch_id !== branch) {
       continue;
     }
 
-    maintenanceEvents.push({
+    // Accurate status mapping: do NOT default "Booking" to "Maintenance"
+    const mappedStatus: BookingStatus =
+      s.reason === "Booking"
+        ? "Booking"
+        : s.reason === "Maintenance"
+          ? "Maintenance"
+          : "Blocked";
+
+    // Strict Privacy: strip private remarks/notes when Admin/Staff views an Operator's block
+    const isOperatorOwnedCar = Boolean(
+      s.cars?.user_id && s.cars.user_id !== session.userId,
+    );
+    const maskPrivateDetails =
+      !isOperator && (s.reason === "Booking" || isOperatorOwnedCar);
+
+    const safeRemarks = maskPrivateDetails ? null : (s.notes || s.reason);
+    const safeLabel = maskPrivateDetails
+      ? s.reason === "Booking"
+        ? "Private Booking (Blocked)"
+        : "Blocked / Unavailable"
+      : s.notes
+        ? `${s.reason}: ${s.notes}`
+        : s.reason;
+
+    scheduleEvents.push({
       id: -s.id,
       user_id: null,
       created_by: null,
@@ -665,9 +724,9 @@ export async function calendarBookings(
       branch_id: s.cars?.branch_id ?? null,
       start_date: s.start_date,
       end_date: s.end_date,
-      pickup_time: "08:00:00",
-      return_time: "18:00:00",
-      status: "Maintenance",
+      pickup_time: s.start_time || "08:00:00",
+      return_time: s.end_time || "18:00:00",
+      status: mappedStatus,
       booking_type: "manual",
       fulfillment_type: "Pickup",
       delivery_address: null,
@@ -681,8 +740,8 @@ export async function calendarBookings(
       pickup_fee: 0,
       proof_billing_path: null,
       proof_payment_path: null,
-      remarks: s.notes || s.reason,
-      guest_name: s.notes ? `Maintenance: ${s.notes}` : `Maintenance (${s.reason})`,
+      remarks: safeRemarks,
+      guest_name: safeLabel,
       gmail: null,
       phone_number: null,
       primary_id_path: null,
@@ -696,7 +755,7 @@ export async function calendarBookings(
             plate_number: s.cars.plate_number,
             branch_id: s.cars.branch_id ?? null,
             user_id: s.cars.user_id ?? null,
-            status: "Maintenance",
+            status: mappedStatus,
             type: s.cars.type,
           }
         : null,
@@ -705,17 +764,30 @@ export async function calendarBookings(
     });
   }
 
-  const visibleBookings =
-    session.role === "operator"
-      ? bookingRows.filter(
-          (b) =>
-            b.cars?.user_id === session.userId ||
-            b.created_by === session.userId ||
-            b.user_id === session.userId,
-        )
-      : bookingRows;
+  // Redact any residual PII fields on platform bookings returned to Operators
+  const visibleBookings: BookingRow[] = isOperator
+    ? bookingRows.map((b) => ({
+        ...b,
+        guest_name: "Instacar Customer",
+        gmail: null,
+        phone_number: null,
+        delivery_address: null,
+        return_delivery_address: null,
+        primary_id_path: null,
+        secondary_id_path: null,
+        proof_billing_path: null,
+        proof_payment_path: null,
+        total_price: 0,
+        discount_price: 0,
+        down_payment: 0,
+        extension_price: 0,
+        delivery_fee: 0,
+        pickup_fee: 0,
+        users: null,
+      }))
+    : bookingRows;
 
-  return [...visibleBookings, ...maintenanceEvents];
+  return [...visibleBookings, ...scheduleEvents];
 }
 
 /** Status distribution used by the charts of the dashboards. */
