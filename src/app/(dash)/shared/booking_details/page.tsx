@@ -6,6 +6,7 @@ import {
   ClipboardList,
   Clock,
   FileText,
+  Lock,
   MapPin,
   ShieldCheck,
   StickyNote,
@@ -152,10 +153,10 @@ export default async function SharedBookingDetailsPage({
     ? "Instacar Customer"
     : (booking.users?.name ?? booking.guest_name ?? "N/A");
   const displayPhone = isOperator
-    ? "🔒 Protected (Admin Managed)"
+    ? "🔒 Hidden due to privacy"
     : (booking.users?.phone ?? booking.phone_number ?? "N/A");
   const displayEmail = isOperator
-    ? "🔒 Protected (Admin Managed)"
+    ? "🔒 Hidden due to privacy"
     : (booking.users?.email ?? booking.gmail ?? "N/A");
 
   const pickupClock = clock(booking.pickup_time);
@@ -573,7 +574,17 @@ export default async function SharedBookingDetailsPage({
                   </form>
                 ) : null}
               </div>
-            ) : null}
+            ) : (
+              <div className="border-t border-border p-4 md:p-5">
+                <h3 className="mb-2 text-sm font-bold">Customer Remarks & Notes History</h3>
+                <div className="flex items-center gap-2.5 rounded-xl border border-border/80 bg-muted/20 p-3.5 text-xs text-muted-foreground">
+                  <Lock className="size-4 shrink-0 text-muted-foreground" />
+                  <span>
+                    Hidden due to privacy — Internal booking remarks and customer notes are restricted to Instacar Administration.
+                  </span>
+                </div>
+              </div>
+            )}
           </SectionCard>
         </div>
 
@@ -688,7 +699,19 @@ export default async function SharedBookingDetailsPage({
             </SectionCard>
           )}
 
-          {!isOperator && booking.remarks ? (
+          {isOperator ? (
+            <Card className="gap-2 py-4">
+              <CardHeader className="px-4">
+                <CardTitle className="text-sm">Booking Remarks</CardTitle>
+              </CardHeader>
+              <CardContent className="px-4">
+                <p className="flex items-center gap-2 text-xs italic text-muted-foreground">
+                  <Lock className="size-3.5 shrink-0" />
+                  Hidden due to privacy.
+                </p>
+              </CardContent>
+            </Card>
+          ) : booking.remarks ? (
             <Card className="gap-2 py-4">
               <CardHeader className="px-4">
                 <CardTitle className="text-sm">Booking Remarks</CardTitle>

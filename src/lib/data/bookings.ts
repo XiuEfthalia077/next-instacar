@@ -762,8 +762,8 @@ export async function calendarBookings(
     const safeRemarks = maskPrivateDetails ? null : (s.notes || s.reason);
     const safeLabel = maskPrivateDetails
       ? s.reason === "Booking"
-        ? "Private Booking (Blocked)"
-        : "Blocked / Unavailable"
+        ? "Private Booking — Hidden due to privacy"
+        : "Blocked — Hidden due to privacy"
       : s.notes
         ? `${s.reason}: ${s.notes}`
         : s.reason;

@@ -404,7 +404,7 @@ export default async function SharedMyCarSchedulesPage({
                             {maskForAdmin ? (
                               <p className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground italic">
                                 <Lock className="size-3 text-muted-foreground" />
-                                Private booking details and client files are protected.
+                                Hidden due to privacy — Private operator booking details and client files are protected.
                               </p>
                             ) : (
                               <>
