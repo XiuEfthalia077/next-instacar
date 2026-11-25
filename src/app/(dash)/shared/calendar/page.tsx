@@ -1,8 +1,11 @@
+import { PlusCircle } from "lucide-react";
+import Link from "next/link";
 import { connection } from "next/server";
 
 import { Flash } from "@/components/common/flash";
 import { PageHeader } from "@/components/common/page-header";
 import { CalendarView } from "@/components/shared/calendar-view";
+import { Button } from "@/components/ui/button";
 import { requireSession } from "@/lib/auth";
 import { calendarBookings } from "@/lib/data/bookings";
 import { manilaToday } from "@/lib/datetime";
@@ -51,6 +54,7 @@ export default async function SharedCalendarPage({
   const firstDayWeekday = startDate.getDay(); // 0 = Sunday
 
   const isAdminOrStaff = session.role === "admin" || session.role === "staff";
+  const canManageSchedules = session.role === "operator" || session.role === "admin";
 
   return (
     <>
@@ -58,6 +62,16 @@ export default async function SharedCalendarPage({
         title="Fleet Calendar & Scheduling"
         subtitle="Schedule & Availability"
         description={`Interactive booking timeline and vehicle reservations for ${monthName} ${year}.`}
+        actions={
+          canManageSchedules ? (
+            <Link href="/shared/my_car_schedules">
+              <Button className="gap-2 rounded-xl bg-[#ffcc00] font-extrabold text-black shadow-sm hover:bg-[#ffd633]">
+                <PlusCircle className="size-4" />
+                {session.role === "operator" ? "Add Private Booking" : "Block Schedule"}
+              </Button>
+            </Link>
+          ) : undefined
+        }
       />
 
       <Flash {...flash} />
