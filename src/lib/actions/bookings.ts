@@ -1564,7 +1564,7 @@ async function assertBookingAccess(bookingId: number) {
 }
 
 export async function addCustomerInfoAction(formData: FormData) {
-  const session = await requireRole("admin", "staff", "operator");
+  const session = await requireRole("admin", "staff");
 
   const bookingId = int(formData, "booking_id");
   const back = `/shared/booking_details?id=${bookingId}`;
@@ -1609,7 +1609,7 @@ export async function addCustomerInfoAction(formData: FormData) {
 }
 
 export async function deleteBookingItemAction(formData: FormData) {
-  await requireRole("admin", "staff", "operator");
+  await requireRole("admin", "staff");
 
   const bookingId = int(formData, "booking_id");
   const type = str(formData, "type");

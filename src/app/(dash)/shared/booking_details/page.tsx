@@ -197,7 +197,7 @@ export default async function SharedBookingDetailsPage({
 
   const statusLabel = booking.status === "Confirmed" ? "Released" : booking.status;
   const isUser = false;
-  const canWrite = session.role === "admin" || session.role === "staff" || session.role === "operator";
+  const canWrite = session.role === "admin" || session.role === "staff";
   const canStatus = session.role === "admin" || session.role === "staff";
 
   const isDelivery = (booking.fulfillment_type ?? "Pickup").toLowerCase() === "delivery";
@@ -489,64 +489,64 @@ export default async function SharedBookingDetailsPage({
               )}
             </div>
 
-            <div className="border-t border-border p-4 md:p-5">
-              <h3 className="mb-3 text-sm font-bold">Customer Remarks & Notes History</h3>
+            {!isOperator ? (
+              <div className="border-t border-border p-4 md:p-5">
+                <h3 className="mb-3 text-sm font-bold">Customer Remarks & Notes History</h3>
 
-              {booking.remarks || remarks.length > 0 ? (
-                <div className="mb-3 space-y-2">
-                  {booking.remarks ? (
-                    <div className="rounded-lg border border-[#ffcc00]/40 bg-[#ffcc00]/5 px-4 py-3">
-                      <div className="mb-1 flex items-center justify-between gap-2">
-                        <span className="flex items-center gap-1.5 text-xs font-bold text-[#b38a00] dark:text-[#ffd700]">
-                          <StickyNote className="size-3.5" />
-                          Initial Booking Notes / Remarks
-                        </span>
-                        <span className="text-[11px] text-muted-foreground">
-                          {booking.created_at ? formatDate(booking.created_at, "datetime") : "At booking creation"}
-                        </span>
-                      </div>
-                      <p className="whitespace-pre-wrap text-sm text-foreground">{booking.remarks}</p>
-                    </div>
-                  ) : null}
-
-                  {[...remarks].reverse().map((remark) => (
-                    <div key={remark.id} className="rounded-lg border border-border bg-muted/30 px-4 py-3">
-                      <div className="mb-1 flex items-center justify-between gap-2">
-                        <span className="text-xs font-bold text-[#b38a00] dark:text-[#ffd700]">
-                          Author #{remark.created_by ?? "system"}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] text-muted-foreground">
-                            {formatDate(remark.created_at, "datetime")}
+                {booking.remarks || remarks.length > 0 ? (
+                  <div className="mb-3 space-y-2">
+                    {booking.remarks ? (
+                      <div className="rounded-lg border border-[#ffcc00]/40 bg-[#ffcc00]/5 px-4 py-3">
+                        <div className="mb-1 flex items-center justify-between gap-2">
+                          <span className="flex items-center gap-1.5 text-xs font-bold text-[#b38a00] dark:text-[#ffd700]">
+                            <StickyNote className="size-3.5" />
+                            Initial Booking Notes / Remarks
                           </span>
-                          {canWrite ? (
-                            <form action={deleteBookingItemAction}>
-                              <input type="hidden" name="type" value="remark" />
-                              <input type="hidden" name="remark_id" value={remark.id} />
-                              <input type="hidden" name="booking_id" value={booking.id} />
-                              <ConfirmSubmit
-                                message="Are you sure you want to delete this note?"
-                                title="Delete note"
-                                className="text-xs text-rose-600 hover:underline dark:text-rose-400"
-                              >
-                                Delete
-                              </ConfirmSubmit>
-                            </form>
-                          ) : null}
+                          <span className="text-[11px] text-muted-foreground">
+                            {booking.created_at ? formatDate(booking.created_at, "datetime") : "At booking creation"}
+                          </span>
                         </div>
+                        <p className="whitespace-pre-wrap text-sm text-foreground">{booking.remarks}</p>
                       </div>
-                      <p className="whitespace-pre-wrap text-sm">{remark.remark}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="mb-3 text-sm italic text-muted-foreground">No remarks recorded yet.</p>
-              )}
+                    ) : null}
 
-              {!isUser ? (
-                <form action={addCustomerInfoAction} className="space-y-4">
-                  <input type="hidden" name="booking_id" value={booking.id} />
-                  {!isOperator ? (
+                    {[...remarks].reverse().map((remark) => (
+                      <div key={remark.id} className="rounded-lg border border-border bg-muted/30 px-4 py-3">
+                        <div className="mb-1 flex items-center justify-between gap-2">
+                          <span className="text-xs font-bold text-[#b38a00] dark:text-[#ffd700]">
+                            Author #{remark.created_by ?? "system"}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] text-muted-foreground">
+                              {formatDate(remark.created_at, "datetime")}
+                            </span>
+                            {canWrite ? (
+                              <form action={deleteBookingItemAction}>
+                                <input type="hidden" name="type" value="remark" />
+                                <input type="hidden" name="remark_id" value={remark.id} />
+                                <input type="hidden" name="booking_id" value={booking.id} />
+                                <ConfirmSubmit
+                                  message="Are you sure you want to delete this note?"
+                                  title="Delete note"
+                                  className="text-xs text-rose-600 hover:underline dark:text-rose-400"
+                                >
+                                  Delete
+                                </ConfirmSubmit>
+                              </form>
+                            ) : null}
+                          </div>
+                        </div>
+                        <p className="whitespace-pre-wrap text-sm">{remark.remark}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mb-3 text-sm italic text-muted-foreground">No remarks recorded yet.</p>
+                )}
+
+                {!isUser ? (
+                  <form action={addCustomerInfoAction} className="space-y-4">
+                    <input type="hidden" name="booking_id" value={booking.id} />
                     <div>
                       <Label className="mb-1.5 block text-xs font-bold text-foreground">
                         Upload Verification IDs & Photos
@@ -559,21 +559,21 @@ export default async function SharedBookingDetailsPage({
                         helperText="Drag & drop JPG, PNG or PDF documents (multiple allowed, max 5MB each)."
                       />
                     </div>
-                  ) : null}
-                  <div>
-                    <Label htmlFor="new_remark" className="mb-1.5 block text-xs font-bold text-foreground">
-                      Add New Remark / Note
-                    </Label>
-                    <Textarea id="new_remark" name="new_remark" rows={3} placeholder="Type new remark or notes here..." />
-                  </div>
-                  <div className="text-right">
-                    <LoadingButton type="submit" className="bg-[#ffcc00] font-bold text-black hover:bg-[#e6b800]">
-                      Save Customer Updates
-                    </LoadingButton>
-                  </div>
-                </form>
-              ) : null}
-            </div>
+                    <div>
+                      <Label htmlFor="new_remark" className="mb-1.5 block text-xs font-bold text-foreground">
+                        Add New Remark / Note
+                      </Label>
+                      <Textarea id="new_remark" name="new_remark" rows={3} placeholder="Type new remark or notes here..." />
+                    </div>
+                    <div className="text-right">
+                      <LoadingButton type="submit" className="bg-[#ffcc00] font-bold text-black hover:bg-[#e6b800]">
+                        Save Customer Updates
+                      </LoadingButton>
+                    </div>
+                  </form>
+                ) : null}
+              </div>
+            ) : null}
           </SectionCard>
         </div>
 
@@ -688,7 +688,7 @@ export default async function SharedBookingDetailsPage({
             </SectionCard>
           )}
 
-          {booking.remarks ? (
+          {!isOperator && booking.remarks ? (
             <Card className="gap-2 py-4">
               <CardHeader className="px-4">
                 <CardTitle className="text-sm">Booking Remarks</CardTitle>

@@ -241,47 +241,102 @@ export async function getBooking(
   reviews: { id: number; rating: number | null; review_text: string | null; review_title: string | null; status: string; admin_reply: string | null; created_at: string | null }[];
 }> {
   const supabase = await import("@/lib/auth").then((m) => m.getSupabase());
+  const isOperator = session.role === "operator";
+
+  // Strict RBAC: When an operator queries booking details, strip customer PII,
+  // gross pricing, uploaded document paths, and internal admin/booking remarks
+  // at the database query level so they never enter the payload.
+  const OPERATOR_DETAIL_SELECT = `
+    id, user_id, created_by, last_action_by, last_action_at, last_action_type,
+    car_id, branch_id, start_date, end_date, pickup_time, return_time,
+    status, booking_type, fulfillment_type, extension_hours, created_at,
+    cars!bookings_car_id_fkey (
+      id, brand, model, plate_number, branch_id, user_id, status, type
+    ),
+    users!bookings_user_id_fkey ( id, id_verified ),
+    branches!bookings_branch_id_fkey ( id, name )
+  `;
 
   const bookings = await fetchRows<BookingRow>(
     supabase
       .from("bookings")
-      .select(BOOKING_SELECT)
+      .select(isOperator ? OPERATOR_DETAIL_SELECT : BOOKING_SELECT)
       .eq("id", bookingId)
       .limit(1),
   );
 
-  const booking = bookings[0] ?? null;
-  if (!booking) {
+  const rawBooking = bookings[0] ?? null;
+  if (!rawBooking) {
     return { booking: null, payment: null, photos: [], remarks: [], reviews: [] };
   }
+
+  // Explicitly redact any omitted/sensitive fields for operator responses
+  const booking: BookingRow = isOperator
+    ? {
+        ...rawBooking,
+        guest_name: null,
+        phone_number: null,
+        gmail: null,
+        delivery_address: null,
+        return_delivery_address: null,
+        primary_id_path: null,
+        secondary_id_path: null,
+        proof_billing_path: null,
+        proof_payment_path: null,
+        total_price: 0,
+        discount_price: 0,
+        down_payment: 0,
+        extension_price: 0,
+        delivery_fee: 0,
+        pickup_fee: 0,
+        remarks: null,
+        users: rawBooking.users
+          ? {
+              id: rawBooking.users.id,
+              name: null,
+              email: null,
+              phone: null,
+              id_verified: rawBooking.users.id_verified ?? false,
+            }
+          : null,
+      }
+    : rawBooking;
 
   const [payment, photos, remarks, reviews] = await Promise.all([
     fetchRows<BookingPaymentRow>(
       supabase
         .from("booking_payments")
-        .select("*")
+        .select(
+          isOperator
+            ? "id, booking_id, operator_share, remitted_amount, remittance_date, owner_balance, created_at"
+            : "*",
+        )
         .eq("booking_id", bookingId)
         .limit(1),
     ),
-    fetchRows<{ id: number; file_name: string; uploaded_at: string | null }>(
-      supabase
-        .from("booking_photos")
-        .select("*")
-        .eq("booking_id", bookingId)
-        .order("id", { ascending: true }),
-    ),
-    fetchRows<{
-      id: number;
-      remark: string;
-      created_at: string | null;
-      created_by: number | null;
-    }>(
-      supabase
-        .from("booking_remarks")
-        .select("*")
-        .eq("booking_id", bookingId)
-        .order("id", { ascending: true }),
-    ),
+    isOperator
+      ? Promise.resolve<{ id: number; file_name: string; uploaded_at: string | null }[]>([])
+      : fetchRows<{ id: number; file_name: string; uploaded_at: string | null }>(
+          supabase
+            .from("booking_photos")
+            .select("*")
+            .eq("booking_id", bookingId)
+            .order("id", { ascending: true }),
+        ),
+    isOperator
+      ? Promise.resolve<{ id: number; remark: string; created_at: string | null; created_by: number | null }[]>([])
+      : fetchRows<{
+          id: number;
+          remark: string;
+          created_at: string | null;
+          created_by: number | null;
+        }>(
+          supabase
+            .from("booking_remarks")
+            .select("*")
+            .eq("booking_id", bookingId)
+            .order("id", { ascending: true }),
+        ),
     fetchRows<{
       id: number;
       rating: number | null;
@@ -614,11 +669,11 @@ export async function calendarBookings(
     }
   }
 
-  // Operators must NOT receive client PII or gross pricing in the payload
+  // Operators must NOT receive client PII, gross pricing, or internal remarks in the payload
   const OPERATOR_BOOKING_SELECT = `
     id, user_id, created_by, last_action_by, last_action_at, last_action_type,
     car_id, branch_id, start_date, end_date, pickup_time, return_time,
-    status, booking_type, fulfillment_type, remarks, created_at,
+    status, booking_type, fulfillment_type, created_at,
     cars!bookings_car_id_fkey (
       id, brand, model, plate_number, branch_id, user_id, status, type
     ),
@@ -783,6 +838,7 @@ export async function calendarBookings(
         extension_price: 0,
         delivery_fee: 0,
         pickup_fee: 0,
+        remarks: null,
         users: null,
       }))
     : bookingRows;
