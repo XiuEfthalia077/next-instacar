@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
 import { Inter, Poppins } from "next/font/google";
 import { Suspense } from "react";
@@ -126,6 +127,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Suspense fallback={null}>
           <MobileBottomBar />
         </Suspense>
+        <Analytics />
       </body>
     </html>
   );
