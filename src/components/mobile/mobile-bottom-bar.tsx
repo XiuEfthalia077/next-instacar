@@ -211,16 +211,24 @@ export function MobileBottomBar() {
     pathname.startsWith("/user/profile") ||
     pathname.startsWith("/profile");
 
-  // Active Tab Pill classes (High contrast in Light Mode & Glowing in Dark Mode)
+  // Admin Theme Bottom Navigation Colors & Icon Animation (shared across all roles)
   const activeTabClass =
-    "bg-yellow-500/20 text-amber-950 dark:text-[#ffcc00] dark:bg-yellow-500/25 border border-yellow-500/40 font-black shadow-xs rounded-2xl";
-  const inactiveTabClass = "text-muted-foreground hover:text-foreground";
+    "bg-[#ffcc00]/15 text-[#FFD700] border border-[#ffcc00]/40 font-black shadow-[0_0_12px_rgba(255,204,0,0.18)] rounded-2xl";
+  const inactiveTabClass =
+    "text-[#BBBBBB] hover:text-[#FFD700] border border-transparent rounded-2xl";
+  const iconAnim = (active: boolean) =>
+    cn(
+      "size-5 shrink-0 transition-transform duration-200 ease-out",
+      active
+        ? "scale-110 -translate-y-0.5 stroke-[2.5] text-[#FFD700]"
+        : "stroke-2 group-hover:scale-105 group-active:scale-95",
+    );
 
   return (
     <>
       <nav
         aria-label="Mobile Bottom Navigation"
-        className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t border-border bg-background/95 px-1 py-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] backdrop-blur-md transition-all md:hidden"
+        className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t border-[#333] bg-black/95 px-1.5 py-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] backdrop-blur-md shadow-[0_-8px_24px_rgba(0,0,0,0.45)] transition-all md:hidden"
       >
         {isAdminOrOperator ? (
           /* =========================================================================
@@ -233,11 +241,11 @@ export function MobileBottomBar() {
               href={dashboardHref}
               prefetch={true}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-center transition-all min-w-[56px] min-h-[44px]",
+                "group relative flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-center transition-all duration-200 active:scale-95 min-w-[56px] min-h-[44px]",
                 isDashboardActive ? activeTabClass : inactiveTabClass,
               )}
             >
-              <LayoutDashboard className={cn("size-5 shrink-0", isDashboardActive ? "stroke-[2.5]" : "stroke-2")} />
+              <LayoutDashboard className={iconAnim(isDashboardActive)} />
               <span className="text-[10px] tracking-tight font-extrabold">Dashboard</span>
             </Link>
 
@@ -249,11 +257,11 @@ export function MobileBottomBar() {
                 setFleetOpen(true);
               }}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-center transition-all min-w-[56px] min-h-[44px] cursor-pointer",
+                "group relative flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-center transition-all duration-200 active:scale-95 min-w-[56px] min-h-[44px] cursor-pointer",
                 fleetOpen || isFleetActive ? activeTabClass : inactiveTabClass,
               )}
             >
-              <Car className={cn("size-5 shrink-0", fleetOpen || isFleetActive ? "stroke-[2.5]" : "stroke-2")} />
+              <Car className={iconAnim(fleetOpen || isFleetActive)} />
               <span className="text-[10px] tracking-tight font-extrabold">Fleet</span>
             </button>
 
@@ -265,11 +273,11 @@ export function MobileBottomBar() {
                 setBookingsOpen(true);
               }}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px] cursor-pointer",
+                "group relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all duration-200 active:scale-95 min-w-[58px] min-h-[44px] cursor-pointer",
                 bookingsOpen || isBookingsActive ? activeTabClass : inactiveTabClass,
               )}
             >
-              <ClipboardList className={cn("size-5 shrink-0", bookingsOpen || isBookingsActive ? "stroke-[2.5]" : "stroke-2")} />
+              <ClipboardList className={iconAnim(bookingsOpen || isBookingsActive)} />
               <span className="text-[10px] tracking-tight font-extrabold">Bookings</span>
             </button>
 
@@ -281,11 +289,11 @@ export function MobileBottomBar() {
                 setMoreOpen(true);
               }}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-center transition-all min-w-[56px] min-h-[44px] cursor-pointer",
+                "group relative flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-center transition-all duration-200 active:scale-95 min-w-[56px] min-h-[44px] cursor-pointer",
                 moreOpen ? activeTabClass : inactiveTabClass,
               )}
             >
-              <SlidersHorizontal className={cn("size-5 shrink-0", moreOpen ? "stroke-[2.5]" : "stroke-2")} />
+              <SlidersHorizontal className={iconAnim(moreOpen)} />
               <span className="text-[10px] tracking-tight font-extrabold">More</span>
             </button>
 
@@ -297,11 +305,11 @@ export function MobileBottomBar() {
                 setProfileOpen(true);
               }}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-center transition-all min-w-[56px] min-h-[44px] cursor-pointer",
+                "group relative flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 text-center transition-all duration-200 active:scale-95 min-w-[56px] min-h-[44px] cursor-pointer",
                 profileOpen ? activeTabClass : inactiveTabClass,
               )}
             >
-              <User className={cn("size-5 shrink-0", profileOpen ? "stroke-[2.5]" : "stroke-2")} />
+              <User className={iconAnim(profileOpen)} />
               <span className="text-[10px] tracking-tight font-extrabold">Profile</span>
             </button>
           </>
@@ -315,11 +323,11 @@ export function MobileBottomBar() {
             <Link
               href="/user/cars"
               className={cn(
-                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px]",
+                "group relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all duration-200 active:scale-95 min-w-[58px] min-h-[44px]",
                 isExploreActive ? activeTabClass : inactiveTabClass,
               )}
             >
-              <Car className={cn("size-5 shrink-0", isExploreActive ? "stroke-[2.5]" : "stroke-2")} />
+              <Car className={iconAnim(isExploreActive)} />
               <span className="text-[10px] tracking-tight font-extrabold">Explore</span>
             </Link>
 
@@ -331,11 +339,11 @@ export function MobileBottomBar() {
                 setSearchOpen(true);
               }}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px] cursor-pointer",
+                "group relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all duration-200 active:scale-95 min-w-[58px] min-h-[44px] cursor-pointer",
                 searchOpen ? activeTabClass : inactiveTabClass,
               )}
             >
-              <SlidersHorizontal className={cn("size-5 shrink-0", searchOpen ? "stroke-[2.5]" : "stroke-2")} />
+              <SlidersHorizontal className={iconAnim(searchOpen)} />
               <span className="text-[10px] tracking-tight font-extrabold">Search</span>
             </button>
 
@@ -347,12 +355,12 @@ export function MobileBottomBar() {
                 setFavoritesOpen(true);
               }}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px] cursor-pointer",
+                "group relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all duration-200 active:scale-95 min-w-[58px] min-h-[44px] cursor-pointer",
                 favoritesOpen ? activeTabClass : inactiveTabClass,
               )}
             >
               <div className="relative">
-                <Heart className={cn("size-5 shrink-0", favoritesOpen ? "stroke-[2.5]" : "stroke-2")} />
+                <Heart className={iconAnim(favoritesOpen)} />
                 {favoritesCount > 0 && (
                   <span className="absolute -right-2 -top-1.5 flex size-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-black text-white">
                     {favoritesCount > 9 ? "9+" : favoritesCount}
@@ -366,11 +374,11 @@ export function MobileBottomBar() {
             <Link
               href="/user/mybookings"
               className={cn(
-                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px]",
+                "group relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all duration-200 active:scale-95 min-w-[58px] min-h-[44px]",
                 isTripsActive ? activeTabClass : inactiveTabClass,
               )}
             >
-              <CalendarDays className={cn("size-5 shrink-0", isTripsActive ? "stroke-[2.5]" : "stroke-2")} />
+              <CalendarDays className={iconAnim(isTripsActive)} />
               <span className="text-[10px] tracking-tight font-extrabold">Trips</span>
             </Link>
 
@@ -382,11 +390,11 @@ export function MobileBottomBar() {
                 setProfileOpen(true);
               }}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px] cursor-pointer",
+                "group relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all duration-200 active:scale-95 min-w-[58px] min-h-[44px] cursor-pointer",
                 isProfileActive ? activeTabClass : inactiveTabClass,
               )}
             >
-              <User className={cn("size-5 shrink-0", isProfileActive ? "stroke-[2.5]" : "stroke-2")} />
+              <User className={iconAnim(isProfileActive)} />
               <span className="text-[10px] tracking-tight font-extrabold">Profile</span>
             </button>
           </>
