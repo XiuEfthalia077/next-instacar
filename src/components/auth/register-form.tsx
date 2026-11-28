@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
-import { Check, House, Loader2, X } from "lucide-react";
+import { Check, CheckCircle2, FileText, Loader2, Phone, X } from "lucide-react";
 
 import { GoogleButton } from "@/components/auth/google-button";
 import { PasswordField } from "@/components/auth/password-field";
+import { FileUploadDropzone } from "@/components/common/file-upload-dropzone";
 import { LoadingButton } from "@/components/common/loading-button";
 import { signUpAction } from "@/lib/actions/auth";
 import { IDLE_STATE } from "@/lib/action-state";
@@ -25,6 +26,11 @@ export function RegisterForm() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
+
+  // Required verification documents (Task 2: 2 Valid IDs + 1 Proof of Billing)
+  const [hasPrimaryId, setHasPrimaryId] = useState(false);
+  const [hasSecondaryId, setHasSecondaryId] = useState(false);
+  const [hasBilling, setHasBilling] = useState(false);
 
   // Real-time email check state
   const [emailChecking, setEmailChecking] = useState(false);
@@ -81,11 +87,48 @@ export function RegisterForm() {
     isPasswordValid &&
     passwordsMatch &&
     termsAccepted &&
+    hasPrimaryId &&
+    hasSecondaryId &&
+    hasBilling &&
     name.trim().length >= 2 &&
     phone.trim().length >= 7;
 
+  // Dedicated Pending Verification Confirmation View (Task 2)
+  if (state.success) {
+    return (
+      <div
+        role="status"
+        className="rounded-2xl border border-emerald-500/40 bg-card p-6 text-center shadow-md space-y-4"
+      >
+        <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+          <CheckCircle2 className="size-8" />
+        </div>
+        <h2 className="text-lg font-black text-foreground">
+          Registration Submitted!
+        </h2>
+        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+          {state.success}
+        </p>
+        <div className="rounded-xl border border-[#ffcc00]/50 bg-[#ffcc00]/10 p-3.5 text-xs font-extrabold text-amber-900 dark:text-[#ffcc00] space-y-1">
+          <p className="flex items-center justify-center gap-1.5">
+            <Phone className="size-3.5" />
+            <span>0991 590 7335 / 0917 554 0394</span>
+          </p>
+        </div>
+        <div className="pt-2">
+          <Link
+            href="/login"
+            className="inline-flex w-full items-center justify-center rounded-xl bg-[#ffcc00] px-5 py-3 text-sm font-black text-black shadow-sm hover:bg-[#ffd633] transition"
+          >
+            Go to Login
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <form action={formAction} className="text-start">
+    <form action={formAction} encType="multipart/form-data" className="text-start">
       <div className="mb-3">
         <label htmlFor="register-name" className="auth-form-label text-xs font-bold">
           Full Name
@@ -240,21 +283,57 @@ export function RegisterForm() {
         ) : null}
       </div>
 
+      {/* Required Account Verification Documents (Task 2: 2 Valid IDs + 1 Proof of Billing) */}
+      <div className="mb-4 rounded-2xl border border-border/80 bg-muted/20 p-3.5 space-y-3">
+        <div className="flex items-center gap-2">
+          <FileText className="size-4 text-[#b38a00] dark:text-[#ffcc00] shrink-0" />
+          <div>
+            <p className="text-xs font-black uppercase tracking-wider text-foreground">
+              Account Verification Requirements
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              Upload 2 Valid IDs &amp; 1 Proof of Billing once. Never asked again after approval.
+            </p>
+          </div>
+        </div>
+
+        <FileUploadDropzone
+          name="primary_id"
+          label="Valid ID 1 (Driver's License / Gov ID)"
+          accept="image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf"
+          maxSizeMB={5}
+          required
+          helperText="JPG, PNG, WEBP, or PDF (max 5MB)"
+          onFileSelect={(f) => setHasPrimaryId(Boolean(f))}
+        />
+
+        <FileUploadDropzone
+          name="secondary_id"
+          label="Valid ID 2 (Passport, UMID, National ID)"
+          accept="image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf"
+          maxSizeMB={5}
+          required
+          helperText="JPG, PNG, WEBP, or PDF (max 5MB)"
+          onFileSelect={(f) => setHasSecondaryId(Boolean(f))}
+        />
+
+        <FileUploadDropzone
+          name="proof_of_billing"
+          label="Proof of Billing (Utility / Internet / Bank)"
+          accept="image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf"
+          maxSizeMB={5}
+          required
+          helperText="JPG, PNG, WEBP, or PDF (max 5MB)"
+          onFileSelect={(f) => setHasBilling(Boolean(f))}
+        />
+      </div>
+
       {state.error ? (
         <p
           role="alert"
-          className="mb-3 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300"
+          className="mb-3 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-300"
         >
           {state.error}
-        </p>
-      ) : null}
-
-      {state.success ? (
-        <p
-          role="status"
-          className="mb-3 rounded-lg border border-[#ffcc00]/40 bg-[#ffcc00]/10 px-3 py-2 text-sm text-[#ffcc00]"
-        >
-          {state.success}
         </p>
       ) : null}
 

@@ -303,3 +303,116 @@ export async function deleteUserDocumentAction(formData: FormData) {
   revalidatePath(returnTo);
   flashRedirect(returnTo, "success", "Document removed.");
 }
+
+/**
+ * Revision-safe document upload / re-upload (Task 3).
+ * Preserves all prior rejected files in storage & `user_document_revisions`
+ * for Admin auditing, resets the new version status to `PENDING_REVIEW`, and
+ * syncs the active URL column on `public.users`.
+ */
+export async function reuploadUserDocumentAction(formData: FormData) {
+  const session = await requireSession();
+  const returnTo = str(formData, "return_to") || "/user/profile";
+  const docType = str(formData, "doc_type");
+  const uploadedFile = file(formData, "document_file");
+
+  const columnMap: Record<string, string> = {
+    primary_id: "primary_id_url",
+    secondary_id: "secondary_id_url",
+    proof_of_billing: "proof_of_billing_url",
+  };
+
+  const userCol = columnMap[docType];
+  if (!userCol) {
+    flashRedirect(returnTo, "error", "Invalid document type.");
+  }
+
+  if (!uploadedFile) {
+    flashRedirect(returnTo, "error", "Please select a valid JPG, PNG, WEBP, or PDF file.");
+  }
+
+  const supabase = await getSupabase();
+  const folder = `user_${session.userId}`;
+  const fileName = buildFileName(docType, uploadedFile);
+
+  const uploadRes = await uploadFile(supabase, {
+    bucket: BUCKETS.userDocuments,
+    folder,
+    fileName,
+    file: uploadedFile,
+  });
+
+  if (!uploadRes.ok) {
+    flashRedirect(returnTo, "error", `Upload failed: ${uploadRes.error}`);
+  }
+
+  const filePath = `${folder}/${fileName}`;
+
+  // Determine next version number & archive prior active revision without deleting old files
+  const { data: existingRevs } = await supabase
+    .from("user_document_revisions")
+    .select("id, version")
+    .eq("user_id", session.userId)
+    .eq("doc_type", docType)
+    .order("version", { ascending: false })
+    .limit(1);
+
+  const nextVersion =
+    existingRevs && existingRevs.length > 0
+      ? Number((existingRevs[0] as { version: number }).version) + 1
+      : 1;
+
+  await supabase
+    .from("user_document_revisions")
+    .update({ is_current: false })
+    .eq("user_id", session.userId)
+    .eq("doc_type", docType)
+    .eq("is_current", true);
+
+  const { error: revError } = await supabase
+    .from("user_document_revisions")
+    .insert({
+      user_id: session.userId,
+      doc_type: docType,
+      version: nextVersion,
+      file_path: filePath,
+      file_name: uploadedFile.name || fileName,
+      status: "PENDING_REVIEW",
+      admin_remarks: null,
+      is_current: true,
+    });
+
+  if (revError) {
+    console.warn("[reuploadUserDocumentAction] revision insert warning:", revError.message);
+  }
+
+  // Keep public.users in sync and ensure pending verification status if rejected
+  const { data: currentUser } = await supabase
+    .from("users")
+    .select("account_status, id_verified")
+    .eq("id", session.userId)
+    .maybeSingle();
+
+  const userUpdates: Record<string, unknown> = { [userCol]: filePath };
+  const currentStatus = (currentUser as { account_status?: string | null; id_verified?: boolean } | null)?.account_status;
+  if (currentStatus !== "APPROVED") {
+    userUpdates.account_status = "PENDING_VERIFICATION";
+  }
+
+  const { error: userErr } = await supabase
+    .from("users")
+    .update(userUpdates)
+    .eq("id", session.userId);
+
+  if (userErr) {
+    flashRedirect(returnTo, "error", `Failed to save document: ${userErr.message}`);
+  }
+
+  revalidatePath(returnTo);
+  revalidatePath("/user/dashboard");
+  flashRedirect(
+    returnTo,
+    "success",
+    "Document uploaded and submitted for review. Status is now PENDING REVIEW.",
+  );
+}

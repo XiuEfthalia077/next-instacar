@@ -375,23 +375,76 @@ export async function toggleBranchAction(formData: FormData) {
 /* ------------------------------------------------------------------ */
 
 export async function toggleUserVerificationAction(formData: FormData) {
-  await requireRole("admin", "staff");
+  const session = await requireRole("admin", "staff");
   const userId = int(formData, "user_id");
   const returnTo = str(formData, "return_to") || "/admin/users?role=user";
   const verified = str(formData, "verified") === "true";
+  const remarks = str(formData, "remarks") || null;
 
   if (!userId) {
     flashRedirect(returnTo, "error", "User ID is required.");
   }
 
   const supabase = await getSupabase();
+  const { data: targetUser } = await supabase
+    .from("users")
+    .select("name, email")
+    .eq("id", userId)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("users")
-    .update({ id_verified: verified })
+    .update({
+      id_verified: verified,
+      account_status: verified ? "APPROVED" : "REJECTED",
+      account_verification_remarks: verified ? null : remarks,
+      verified_at: verified ? new Date().toISOString() : null,
+      verified_by: session.userId,
+    })
     .eq("id", userId);
 
   if (error) {
     flashRedirect(returnTo, "error", `Failed to update verification: ${error.message}`);
+  }
+
+  // Sync current pending document revisions when approving account
+  if (verified) {
+    await supabase
+      .from("user_document_revisions")
+      .update({
+        status: "APPROVED",
+        admin_remarks: null,
+        reviewed_by: session.userId,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("user_id", userId)
+      .eq("is_current", true);
+  }
+
+  // Task 6: Send automated Account Approved / Rejected email
+  const typedTarget = targetUser as { name?: string | null; email?: string | null } | null;
+  if (typedTarget?.email) {
+    try {
+      const [{ sendTransactionalEmail }, { buildAccountApprovedEmail, buildAccountRejectedEmail }] =
+        await Promise.all([
+          import("@/lib/email-service"),
+          import("@/lib/emails/templates"),
+        ]);
+      const mail = verified
+        ? buildAccountApprovedEmail({ name: typedTarget.name || "Customer" })
+        : buildAccountRejectedEmail({
+            name: typedTarget.name || "Customer",
+            remarks,
+          });
+      await sendTransactionalEmail({
+        to: typedTarget.email,
+        subject: mail.subject,
+        html: mail.html,
+        text: mail.text,
+      });
+    } catch (mailErr) {
+      console.error("[toggleUserVerificationAction] email failed:", mailErr);
+    }
   }
 
   revalidatePath("/admin/users");
@@ -399,12 +452,106 @@ export async function toggleUserVerificationAction(formData: FormData) {
   revalidatePath("/staff/customers");
   revalidatePath("/staff/bookings");
   revalidatePath("/shared/booking_details");
+  revalidatePath("/user/profile");
 
   flashRedirect(
     returnTo,
     "success",
     verified
-      ? "Customer identity marked as Verified! Customer can now enjoy 1-click booking."
-      : "Customer identity verification status revoked.",
+      ? "Customer account APPROVED! Approval email sent and customer can now book vehicles."
+      : "Customer verification status updated and notification sent.",
+  );
+}
+
+/**
+ * Per-document review action (Task 3 & Task 6):
+ * Allows Admin/Staff to approve or reject a specific user document revision
+ * with remarks, triggering an automated Document Replacement email when rejected.
+ */
+export async function reviewUserDocumentAction(formData: FormData) {
+  const session = await requireRole("admin", "staff");
+  const revisionId = int(formData, "revision_id");
+  const userId = int(formData, "user_id");
+  const decision = str(formData, "decision"); // "APPROVED" | "REJECTED"
+  const remarks = str(formData, "admin_remarks") || null;
+  const returnTo = str(formData, "return_to") || "/admin/users?role=user";
+
+  if (!revisionId || !userId || (decision !== "APPROVED" && decision !== "REJECTED")) {
+    flashRedirect(returnTo, "error", "Invalid document review parameters.");
+  }
+
+  const supabase = await getSupabase();
+  const { data: rev, error } = await supabase
+    .from("user_document_revisions")
+    .update({
+      status: decision,
+      admin_remarks: decision === "REJECTED" ? remarks || "Please upload a clearer copy." : null,
+      reviewed_by: session.userId,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("id", revisionId)
+    .select("doc_type")
+    .maybeSingle();
+
+  if (error) {
+    flashRedirect(returnTo, "error", `Document review failed: ${error.message}`);
+  }
+
+  const docLabels: Record<string, string> = {
+    primary_id: "Valid ID 1 (Primary ID)",
+    secondary_id: "Valid ID 2 (Secondary ID)",
+    proof_of_billing: "Proof of Billing",
+  };
+  const docType = (rev as { doc_type?: string } | null)?.doc_type ?? "primary_id";
+  const documentLabel = docLabels[docType] ?? "Verification Document";
+
+  if (decision === "REJECTED") {
+    await supabase
+      .from("users")
+      .update({
+        account_status: "REJECTED",
+        id_verified: false,
+        account_verification_remarks: remarks || `${documentLabel} requires replacement.`,
+      })
+      .eq("id", userId);
+
+    const { data: targetUser } = await supabase
+      .from("users")
+      .select("name, email")
+      .eq("id", userId)
+      .maybeSingle();
+
+    const typedTarget = targetUser as { name?: string | null; email?: string | null } | null;
+    if (typedTarget?.email) {
+      try {
+        const [{ sendTransactionalEmail }, { buildDocumentReplacementEmail }] = await Promise.all([
+          import("@/lib/email-service"),
+          import("@/lib/emails/templates"),
+        ]);
+        const mail = buildDocumentReplacementEmail({
+          name: typedTarget.name || "Customer",
+          documentLabel,
+          remarks: remarks || "Please upload a clearer, readable copy of this document.",
+        });
+        await sendTransactionalEmail({
+          to: typedTarget.email,
+          subject: mail.subject,
+          html: mail.html,
+          text: mail.text,
+        });
+      } catch (mailErr) {
+        console.error("[reviewUserDocumentAction] replacement email failed:", mailErr);
+      }
+    }
+  }
+
+  revalidatePath("/admin/users");
+  revalidatePath("/user/profile");
+  flashRedirect(
+    returnTo,
+    "success",
+    decision === "APPROVED"
+      ? `${documentLabel} approved.`
+      : `${documentLabel} rejected and replacement email sent to customer.`,
   );
 }

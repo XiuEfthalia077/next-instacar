@@ -1971,16 +1971,37 @@ export async function createBookingAction(formData: FormData) {
     }
   }
 
+  // Task 2: Enforce Pending Account rule — logged-in customers with PENDING/REJECTED status cannot book until verified
+  if (session && session.role === "user") {
+    const { data: userStatusRow } = await db
+      .from("users")
+      .select("account_status, id_verified")
+      .eq("id", session.userId)
+      .maybeSingle();
+
+    const uStatus = userStatusRow as { account_status?: string | null; id_verified?: boolean | null } | null;
+    const isApprovedAccount =
+      uStatus?.account_status === "APPROVED" || Boolean(uStatus?.id_verified);
+
+    if (!isApprovedAccount) {
+      flashRedirect(
+        "/user/profile?tab=documents",
+        "error",
+        "Your account is still PENDING VERIFICATION. You cannot book a vehicle until InstaCar approves your IDs. For faster verification, contact 0991 590 7335 / 0917 554 0394.",
+      );
+    }
+  }
+
   const hours =
     (wallClockTimestamp(endDate, returnTime) -
       wallClockTimestamp(startDate, pickupTime)) /
     3_600_000;
 
-  if (hours < 10) {
+  if (hours <= 0) {
     flashRedirect(
       back,
       "error",
-      `Minimum booking duration is 10 hours. Your booking is only ${hours.toFixed(1)} hour(s).`,
+      "Return date and time must be later than the pick-up date and time.",
     );
   }
 
@@ -2106,6 +2127,9 @@ export async function createBookingAction(formData: FormData) {
         discount_price: 0,
         down_payment: 0,
         status: "Pending",
+        payment_verification_status: "PENDING_VERIFICATION",
+        terms_accepted: true,
+        terms_accepted_at: new Date().toISOString(),
         booking_type: "online",
         fulfillment_type: fulfillment,
         delivery_address: deliveryAddressVal,
@@ -2146,23 +2170,29 @@ export async function createBookingAction(formData: FormData) {
     const customerPhone = str(formData, "guest_phone") || null;
 
     if (customerEmail) {
-      await queueEmail({
-        type: "booking_client_confirmation",
-        email: customerEmail,
-        data: {
-          bookingId,
+      // Task 6: Send automated "Booking Submitted (Pending Verification)" email
+      try {
+        const [{ sendTransactionalEmail }, { buildBookingPendingVerificationEmail }] = await Promise.all([
+          import("@/lib/email-service"),
+          import("@/lib/emails/templates"),
+        ]);
+        const pendingMail = buildBookingPendingVerificationEmail({
           name: customerName,
+          bookingId,
           carName,
           startDate,
           endDate,
-          pickupTime,
-          returnTime,
-          fulfillmentType: fulfillment,
-          deliveryAddress: deliveryAddressVal,
-          totalPrice,
-          dashboardUrl: `${resolveAppUrl()}/user/mybookings`,
-        },
-      });
+          totalAmount: totalPrice,
+        });
+        await sendTransactionalEmail({
+          to: customerEmail,
+          subject: pendingMail.subject,
+          html: pendingMail.html,
+          text: pendingMail.text,
+        });
+      } catch (mailErr) {
+        console.error("[createBookingAction] Pending verification email failed:", mailErr);
+      }
     }
 
     const adminEmail = adminInbox();
@@ -2202,7 +2232,7 @@ export async function createBookingAction(formData: FormData) {
   flashRedirect(
     destinationUrl,
     "success",
-    `Booking submitted successfully! Reservation #${bookingId} is confirmed. Duration: ${hours.toFixed(1)} hours. Total: ₱${totalPrice.toFixed(2)}`,
+    "BOOKING SUBMITTED SUCCESSFULLY! Your booking and submitted requirements are currently under review. Please wait for our staff to verify your documents and payment and confirm your booking. For faster confirmation, please contact us: 0991 590 7335 / 0917 554 0394.",
   );
 }
 

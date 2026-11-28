@@ -38,6 +38,36 @@ export type ScheduleReason =
 
 export type ReviewStatus = "pending" | "approved" | "rejected" | "replied";
 
+export type AccountVerificationStatus =
+  | "PENDING_VERIFICATION"
+  | "APPROVED"
+  | "REJECTED";
+
+export type DocumentReviewStatus =
+  | "PENDING_REVIEW"
+  | "APPROVED"
+  | "REJECTED";
+
+export type UserDocumentType =
+  | "primary_id"
+  | "secondary_id"
+  | "proof_of_billing";
+
+export interface UserDocumentRevision {
+  id: number;
+  user_id: number;
+  doc_type: UserDocumentType;
+  version: number;
+  file_path: string;
+  file_name: string;
+  status: DocumentReviewStatus;
+  admin_remarks: string | null;
+  is_current: boolean;
+  reviewed_by: number | null;
+  reviewed_at: string | null;
+  uploaded_at: string;
+}
+
 export interface User {
   id: number;
   auth_id: string | null;
@@ -60,6 +90,9 @@ export interface User {
   proof_of_billing_url?: string | null;
   stripe_customer_id?: string | null;
   id_verified?: boolean;
+  account_status?: AccountVerificationStatus | null;
+  account_verification_remarks?: string | null;
+  verified_at?: string | null;
 }
 
 export interface Branch {

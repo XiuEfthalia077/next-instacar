@@ -15,6 +15,7 @@ import {
 } from "@/lib/rate-limit";
 import { signUpSchema } from "@/lib/validations";
 import { queueEmail, resolveAppUrl } from "@/lib/queue";
+import { BUCKETS, buildFileName, uploadFile } from "@/lib/storage";
 
 /**
  * The messages below are the ones the legacy PHP app showed.
@@ -27,7 +28,7 @@ const LEGACY_NOT_VERIFIED = "Please verify your email address before logging in.
 const LEGACY_EMAIL_TAKEN = "Email is already registered.";
 const LEGACY_PASSWORD_TOO_SHORT = "Password must be at least 6 characters.";
 const LEGACY_REGISTERED =
-  "Registration successful! Please check your email inbox to verify your account.";
+  "Your account registration and verification documents have been successfully submitted and are now pending review by InstaCar. For faster account verification, please contact us: 0991 590 7335 / 0917 554 0394.";
 const LEGACY_PASSWORD_RESET =
   "Password updated! You can now log in.";
 const LEGACY_RESET_SENT =
@@ -232,6 +233,21 @@ export async function signUpAction(
     };
   }
 
+  // Task 2: Require 2 Valid IDs and 1 Proof of Billing during registration
+  const primaryIdFile = formData.get("primary_id");
+  const secondaryIdFile = formData.get("secondary_id");
+  const billingFile = formData.get("proof_of_billing");
+  const validPrimary = primaryIdFile instanceof File && primaryIdFile.size > 0 ? primaryIdFile : null;
+  const validSecondary = secondaryIdFile instanceof File && secondaryIdFile.size > 0 ? secondaryIdFile : null;
+  const validBilling = billingFile instanceof File && billingFile.size > 0 ? billingFile : null;
+
+  if (!validPrimary || !validSecondary || !validBilling) {
+    return {
+      error:
+        "Please upload all required verification documents: Valid ID 1, Valid ID 2, and Proof of Billing.",
+    };
+  }
+
   const supabase = await getSupabase();
 
   const { data, error } = await supabase.auth.signUp({
@@ -301,6 +317,67 @@ export async function signUpAction(
     return { error: "Registration error occurred." };
   }
 
+  // Upload verification documents & seed immutable v1 revision history
+  try {
+    const db = getAdminClient() ?? supabase;
+    const { data: userRow } = await db
+      .from("users")
+      .select("id")
+      .eq("auth_id", authUserId)
+      .maybeSingle();
+
+    const profileId = (userRow as { id: number } | null)?.id;
+    if (profileId) {
+      const folder = `user_${profileId}`;
+      const docUploads: Array<{
+        docType: "primary_id" | "secondary_id" | "proof_of_billing";
+        col: "primary_id_url" | "secondary_id_url" | "proof_of_billing_url";
+        fileObj: File;
+      }> = [
+        { docType: "primary_id", col: "primary_id_url", fileObj: validPrimary },
+        { docType: "secondary_id", col: "secondary_id_url", fileObj: validSecondary },
+        { docType: "proof_of_billing", col: "proof_of_billing_url", fileObj: validBilling },
+      ];
+
+      const userDocUpdates: Record<string, unknown> = {
+        account_status: "PENDING_VERIFICATION",
+        id_verified: false,
+      };
+      const revisionRows: Array<Record<string, unknown>> = [];
+
+      for (const item of docUploads) {
+        const cleanName = buildFileName(item.docType, item.fileObj);
+        const up = await uploadFile(db, {
+          bucket: BUCKETS.userDocuments,
+          folder,
+          fileName: cleanName,
+          file: item.fileObj,
+        });
+        if (up.ok) {
+          const fullPath = `${folder}/${cleanName}`;
+          userDocUpdates[item.col] = fullPath;
+          revisionRows.push({
+            user_id: profileId,
+            doc_type: item.docType,
+            version: 1,
+            file_path: fullPath,
+            file_name: item.fileObj.name || cleanName,
+            status: "PENDING_REVIEW",
+            admin_remarks: null,
+            is_current: true,
+          });
+        }
+      }
+
+      await db.from("users").update(userDocUpdates).eq("id", profileId);
+      if (revisionRows.length > 0) {
+        await db.from("user_document_revisions").insert(revisionRows);
+      }
+    }
+  } catch (docErr) {
+    console.error("[signUpAction] Verification document upload error:", docErr);
+  }
+
   // Feature A: Queue background welcome email via Upstash QStash
   try {
     await queueEmail({
@@ -316,9 +393,11 @@ export async function signUpAction(
     console.error("[signUpAction] Failed to enqueue welcome email:", err);
   }
 
-  // When e-mail confirmation is disabled the session is returned right away.
+  // When e-mail confirmation is disabled, send pending user straight to Document Dashboard
   if (data.session) {
-    redirect(ROLE_HOME.user);
+    redirect(
+      `/user/profile?tab=documents&success=${encodeURIComponent(LEGACY_REGISTERED)}`,
+    );
   }
 
   return { success: LEGACY_REGISTERED };

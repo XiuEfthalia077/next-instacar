@@ -268,20 +268,25 @@ export function LandingAvailabilitySection({
               <div className="flex items-center justify-between pb-3 border-b border-border/70 mb-3">
                 <span className="text-xs font-black uppercase tracking-wider text-foreground flex items-center gap-1.5">
                   <CarFront className="size-4 text-[#ffcc00]" />
-                  Available Vehicles
+                  {selectedStart && selectedEnd ? "Available Vehicles" : "Our Fleet"}
                 </span>
                 <span className="text-[11px] text-muted-foreground font-semibold">
-                  Showing {Math.min(filteredCars.length, 4)} of {filteredCars.length} available
+                  Showing {filteredCars.length} unit{filteredCars.length === 1 ? "" : "s"}
                 </span>
               </div>
 
               {filteredCars.length === 0 ? (
-                <div className="py-12 text-center text-xs text-muted-foreground">
-                  No vehicles matched your filter parameters.
+                <div className="py-12 px-4 text-center space-y-2">
+                  <p className="text-xs sm:text-sm font-bold text-foreground">
+                    Sorry, no vehicles are available for your selected dates.
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Please try adjusting your rental dates or contact us for assistance (0991 590 7335 / 0917 554 0394).
+                  </p>
                 </div>
               ) : (
                 <div className="max-h-[640px] overflow-y-auto space-y-3.5 pr-1.5 scrollbar-thin">
-                  {filteredCars.slice(0, 8).map((car) => {
+                  {filteredCars.map((car) => {
                     const isSelected = activeCar?.id === car.id;
                     const photo = car.image_path ? car.image_path.split(",")[0].trim() : "";
                     const imgUrl = carImageUrl(photo || "default.png");
@@ -301,7 +306,7 @@ export function LandingAvailabilitySection({
                         tabIndex={0}
                         aria-pressed={isSelected}
                       >
-                        {/* Vehicle Thumbnail: Significantly larger on desktop/laptop */}
+                        {/* Vehicle Thumbnail */}
                         <div className="relative w-full sm:w-44 md:w-48 lg:w-44 xl:w-52 h-36 sm:h-28 lg:h-30 xl:h-34 shrink-0 overflow-hidden rounded-xl border border-border/70 bg-muted shadow-xs">
                           <CarImage
                             src={imgUrl}
@@ -321,7 +326,7 @@ export function LandingAvailabilitySection({
                             </h3>
                           </div>
 
-                          {/* Specs Pills */}
+                          {/* Specs Pills: Transmission, Seating Capacity, Fuel Type */}
                           <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[10px] text-muted-foreground font-semibold">
                             <span className="rounded-md bg-muted px-1.5 py-0.5 text-foreground/80">
                               {car.transmission || "Automatic"}
@@ -330,6 +335,10 @@ export function LandingAvailabilitySection({
                             <span className="rounded-md bg-muted px-1.5 py-0.5 text-foreground/80">
                               {car.capacity || 5} Seats
                             </span>
+                            <span>&bull;</span>
+                            <span className="rounded-md bg-muted px-1.5 py-0.5 text-foreground/80">
+                              {car.fuel_type || "Gasoline"}
+                            </span>
                           </div>
 
                           <p className="text-[11px] text-muted-foreground mt-1.5 truncate flex items-center gap-1">
@@ -337,27 +346,26 @@ export function LandingAvailabilitySection({
                             <span>{car.branches?.name || "Main Branch"}</span>
                           </p>
 
-                          <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/40 pt-2 flex-wrap">
-                            <div>
-                              <span className="text-[10px] uppercase font-bold text-muted-foreground block">
-                                Daily Rate
-                              </span>
-                              <span className="text-sm sm:text-base font-black text-amber-600 dark:text-[#ffcc00]">
-                                <Money value={car.price_24_hours ?? 0} />
-                                <span className="text-[10px] font-normal text-muted-foreground"> / 24h</span>
+                          {/* 10H / 12H / 24H Transparent Rates */}
+                          <div className="mt-2.5 grid grid-cols-3 gap-1.5 border-t border-border/40 pt-2 text-center">
+                            <div className="rounded-lg bg-muted/50 px-1.5 py-1">
+                              <span className="block text-[9px] font-bold uppercase text-muted-foreground">10H</span>
+                              <span className="text-[11px] font-black text-foreground">
+                                <Money value={car.price_10_hours ?? 0} />
                               </span>
                             </div>
-
-                            <span
-                              className={cn(
-                                "text-[11px] font-black px-2.5 py-1 rounded-xl transition-all shadow-xs",
-                                isSelected
-                                  ? "bg-[#ffcc00] text-black shadow-sm"
-                                  : "bg-muted text-muted-foreground group-hover:bg-[#ffcc00]/20 group-hover:text-foreground"
-                              )}
-                            >
-                              {isSelected ? "Active On Calendar ✓" : "View Dates →"}
-                            </span>
+                            <div className="rounded-lg bg-muted/50 px-1.5 py-1">
+                              <span className="block text-[9px] font-bold uppercase text-muted-foreground">12H</span>
+                              <span className="text-[11px] font-black text-foreground">
+                                <Money value={car.price_12_hours ?? 0} />
+                              </span>
+                            </div>
+                            <div className="rounded-lg bg-[#ffcc00]/15 border border-[#ffcc00]/30 px-1.5 py-1">
+                              <span className="block text-[9px] font-bold uppercase text-amber-800 dark:text-[#ffcc00]">24H</span>
+                              <span className="text-[11px] font-black text-amber-800 dark:text-[#ffcc00]">
+                                <Money value={car.price_24_hours ?? 0} />
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>

@@ -182,6 +182,8 @@ export function RentCarFlowDialog({
     secondaryIdUrl?: string | null;
     proofBillingUrl?: string | null;
     isVerified?: boolean;
+    accountApproved?: boolean;
+    profileLoaded?: boolean;
   }>({});
   const [replacePrimaryId, setReplacePrimaryId] = React.useState(false);
   const [replaceSecondaryId, setReplaceSecondaryId] = React.useState(false);
@@ -199,22 +201,31 @@ export function RentCarFlowDialog({
           setUserLoggedIn(true);
           const { data: profile } = await supabase
             .from("users")
-            .select("primary_id_url, secondary_id_url, proof_of_billing_url, id_verified")
+            .select("primary_id_url, secondary_id_url, proof_of_billing_url, id_verified, account_status, role")
             .eq("auth_id", user.id)
             .maybeSingle();
 
           if (profile) {
+            const approved =
+              profile.account_status === "APPROVED" ||
+              Boolean(profile.id_verified) ||
+              (profile.role && profile.role !== "user");
             setSavedDocs({
               primaryIdUrl: profile.primary_id_url,
               secondaryIdUrl: profile.secondary_id_url,
               proofBillingUrl: profile.proof_of_billing_url,
-              isVerified: Boolean(profile.id_verified),
+              isVerified: Boolean(profile.id_verified || approved),
+              accountApproved: Boolean(approved),
+              profileLoaded: true,
             });
           }
         }
       });
     } catch {}
   }, []);
+
+  const isAccountPending =
+    userLoggedIn && Boolean(savedDocs.profileLoaded) && !savedDocs.accountApproved;
 
   // Sync with external trigger (e.g. from gallery modal "Book This Vehicle")
   React.useEffect(() => {
@@ -1139,9 +1150,13 @@ export function RentCarFlowDialog({
                 </span>
               </div>
 
-              <div className="pt-1 text-[11px] text-muted-foreground space-y-0.5">
-                <p>ⓘ Additional fees apply for delivery and pickup outside our office.</p>
-                <p>🚗 Carwash fee may apply depending on vehicle condition upon return.</p>
+              <div className="pt-2 border-t border-border/60 text-[11px] text-muted-foreground space-y-1">
+                <p className="font-bold text-foreground">Delivery Fee Estimates (Negotiated via Phone):</p>
+                <p>&bull; Within Iloilo City: <strong>₱300 – ₱500</strong> (during office hours)</p>
+                <p>&bull; Outside Iloilo City: Additional charges apply depending on location and distance.</p>
+                <p className="font-semibold text-amber-800 dark:text-[#ffcc00]">
+                  For delivery arrangements &amp; exact quotations, call: 0991 590 7335 / 0917 554 0394
+                </p>
               </div>
             </div>
 
@@ -1264,6 +1279,25 @@ export function RentCarFlowDialog({
               </div>
             </div>
 
+            {/* Account Pending Verification Gate (Task 2) */}
+            {isAccountPending && (
+              <div className="rounded-xl border border-amber-500/50 bg-amber-500/10 p-3.5 text-xs space-y-2">
+                <p className="font-extrabold text-amber-900 dark:text-[#ffcc00] flex items-center gap-1.5">
+                  <AlertCircle className="size-4 shrink-0" />
+                  Account Pending Verification
+                </p>
+                <p className="text-foreground/90 leading-relaxed">
+                  Your account registration and verification documents are currently pending review by InstaCar. You cannot book a vehicle until verified. For faster verification, contact us: <strong>0991 590 7335 / 0917 554 0394</strong>.
+                </p>
+                <a
+                  href="/user/profile?tab=documents"
+                  className="inline-flex items-center gap-1 font-extrabold text-amber-800 dark:text-[#ffcc00] underline"
+                >
+                  Manage / Check My Documents →
+                </a>
+              </div>
+            )}
+
             {/* 10. CONFIRM RESERVATION BUTTON */}
             {hasDateOverlap && (
               <div className="flex items-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-rose-400">
@@ -1275,9 +1309,9 @@ export function RentCarFlowDialog({
             <LoadingButton
               type="button"
               onClick={handleConfirmBookingClick}
-              disabled={!agreedToTerms || hours < 10 || hasDateOverlap || isSubmitting}
+              disabled={!agreedToTerms || hours <= 0 || hasDateOverlap || isSubmitting || isAccountPending}
               loading={isSubmitting}
-              loadingText="Confirming Booking..."
+              loadingText="Submitting Booking..."
               className="w-full rounded-xl bg-[#ffcc00] py-3 text-sm font-black text-black hover:bg-[#ffd633] transition"
             >
               Confirm Booking

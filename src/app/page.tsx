@@ -166,7 +166,7 @@ export default async function HomePage() {
 
       <main className="w-full max-w-full overflow-x-hidden pb-24 md:pb-0">
         {/* 1. Hero & Search Widget */}
-        <Hero branches={branches} todayStr={todayStr} />
+        <Hero branches={branches} todayStr={todayStr} totalFleetCount={cars.length} />
 
         {/* 2. Inspect Schedule & Book Instantly (Moved UP directly under Hero) */}
         <Suspense fallback={<div className="h-96 w-full animate-pulse bg-muted/20" />}>

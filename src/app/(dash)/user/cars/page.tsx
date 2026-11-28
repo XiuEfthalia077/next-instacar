@@ -172,17 +172,14 @@ export default async function UserCarsPage({
       }
     }
 
-    // 5. Date Range Availability Filter
+    // 5. Date Range Availability Filter (Task 4: strictly exclude conflicting cars when dates are searched)
     if (hasDateFilter) {
       const carBlocked = blockedDatesByCar[car.id] || [];
       const hasConflict = carBlocked.some((range) => {
         return range.start <= targetDateEnd && range.end >= targetDateStart;
       });
       if (hasConflict) {
-        // If car is booked today, don't hide it so users can see future dates (TASK 4)
-        if (!isCarBookedToday(car.id, car.status)) {
-          return false;
-        }
+        return false;
       }
     }
 
@@ -240,7 +237,7 @@ export default async function UserCarsPage({
         <EmptyState
           icon={Car}
           title="No Vehicles Available"
-          description="No vehicles matched your filter criteria or selected rental window. Try adjusting your search, dates, or branch."
+          description="Sorry, no vehicles are available for your selected dates. Please try adjusting your rental dates or contact us for assistance."
           action={
             <Link
               href="/user/cars"
@@ -258,7 +255,7 @@ export default async function UserCarsPage({
               car={car}
               agreementHtml={content.rental_agreement_html ?? ""}
               blockedRanges={blockedDatesByCar[car.id] || []}
-              isBookedToday={isCarBookedToday(car.id, car.status)}
+              isBookedToday={false}
             />
           ))}
         </div>

@@ -76,9 +76,9 @@ export function calculatePriceByHours(
 
   if (extraHours > 0) {
     if (extraHours <= 6) basePrice += Number(ext1_6);
-    else if (extraHours <= 10) basePrice += Number(ext7_10);
-    else if (extraHours <= 12) basePrice += Number(ext11_12);
-    else basePrice += Number(ext13_24);
+    else if (extraHours <= 10) basePrice += Number(ext7_10) > 0 ? Number(ext7_10) : Number(p10);
+    else if (extraHours <= 12) basePrice += Number(ext11_12) > 0 ? Number(ext11_12) : Number(p12);
+    else basePrice += Number(ext13_24) > 0 ? Number(ext13_24) : Number(p24);
   }
 
   return Math.round(basePrice * 100) / 100;
@@ -147,9 +147,9 @@ export function getRateBreakdown(
     if (extraHours > 0) {
       let extensionFee = 0;
       if (extraHours <= 6) extensionFee = Number(car.ext_price_1_6 ?? 0);
-      else if (extraHours <= 10) extensionFee = Number(car.ext_price_7_10 ?? 0);
-      else if (extraHours <= 12) extensionFee = Number(car.ext_price_11_12 ?? 0);
-      else extensionFee = Number(car.ext_price_13_24 ?? 0);
+      else if (extraHours <= 10) extensionFee = Number(car.ext_price_7_10 ?? 0) > 0 ? Number(car.ext_price_7_10) : p10;
+      else if (extraHours <= 12) extensionFee = Number(car.ext_price_11_12 ?? 0) > 0 ? Number(car.ext_price_11_12) : p12;
+      else extensionFee = Number(car.ext_price_13_24 ?? 0) > 0 ? Number(car.ext_price_13_24) : p24;
 
       basePrice += extensionFee;
       rateType += ` + ${extraHours} hr(s) extension (₱${extensionFee.toFixed(2)})`;

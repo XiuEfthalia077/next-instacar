@@ -51,7 +51,7 @@ export function emailWrapper({
         <!-- Unified Footer -->
         <div style="margin-top: 36px; padding-top: 24px; border-top: 1px solid #282828; text-align: center; font-size: 12px; color: #777777; line-height: 1.6;">
           <p style="margin: 0 0 8px 0;">
-            Need immediate assistance? Contact our 24/7 hotline at <strong style="color: #ffcc00;">+63 (917) 000-0000</strong>
+            Need immediate assistance? Contact InstaCar at <strong style="color: #ffcc00;">0991 590 7335 / 0917 554 0394</strong>
           </p>
           <p style="margin: 0; text-transform: uppercase; letter-spacing: 0.5px; font-size: 11px; color: #555555;">
             &copy; ${year} InstaCar Rental Service Philippines. All rights reserved.
@@ -504,5 +504,198 @@ export function buildInquiryAdminEmail({
       content,
     }),
     text: `New website inquiry from ${name} (${email}):\nSubject: ${subject}\n\n${message}`,
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Task 6: Account Verification, Document Replacement & Booking Staff Emails  */
+/* -------------------------------------------------------------------------- */
+
+export function buildAccountApprovedEmail({
+  name,
+  loginUrl = "https://www.instacarbookings.com/login",
+}: {
+  name: string;
+  loginUrl?: string;
+}) {
+  const safeName = name || "Valued Customer";
+  const content = `
+    <p style="font-size: 18px; margin: 0 0 14px 0; color: #ffffff;">Hello <strong>${safeName}</strong>,</p>
+    <p style="color: #cccccc; margin: 0 0 18px 0;">
+      Great news! Your InstaCar account and verification documents have been <strong style="color: #34d399;">APPROVED</strong>.
+    </p>
+    <div style="background-color: #1a1a1a; border-left: 4px solid #10b981; border-radius: 10px; padding: 18px 20px; margin: 20px 0;">
+      <p style="margin: 0; color: #dddddd; font-size: 14px;">
+        Your valid IDs and proof of billing are now verified on file. You can book any available vehicle immediately without re-uploading your identity documents.
+      </p>
+    </div>
+    ${emailButton({ href: loginUrl, label: "Book a Vehicle Now" })}
+  `;
+  return {
+    subject: "InstaCar — Your Account Has Been Approved!",
+    html: emailWrapper({
+      heading: "Account Approved",
+      subheading: "You are now verified to rent with InstaCar",
+      content,
+    }),
+    text: `Hello ${safeName}, your InstaCar account has been APPROVED! Log in at ${loginUrl} to book your vehicle.`,
+  };
+}
+
+export function buildAccountRejectedEmail({
+  name,
+  remarks,
+  documentsUrl = "https://www.instacarbookings.com/user/profile?tab=documents",
+}: {
+  name: string;
+  remarks?: string | null;
+  documentsUrl?: string;
+}) {
+  const safeName = name || "Valued Customer";
+  const safeRemarks = remarks || "One or more submitted documents require a clearer copy.";
+  const content = `
+    <p style="font-size: 18px; margin: 0 0 14px 0; color: #ffffff;">Hello <strong>${safeName}</strong>,</p>
+    <p style="color: #cccccc; margin: 0 0 18px 0;">
+      Our verification team reviewed your account documents and found an issue that requires your attention before we can approve your account.
+    </p>
+    <div style="background-color: #1a1a1a; border-left: 4px solid #f43f5e; border-radius: 10px; padding: 18px 20px; margin: 20px 0;">
+      <p style="margin: 0 0 6px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #fb7185; font-weight: 800;">
+        Admin Remarks
+      </p>
+      <p style="margin: 0; color: #ffffff; font-size: 14px;">${safeRemarks}</p>
+    </div>
+    <p style="color: #cccccc; margin: 0 0 12px 0;">
+      You can log in to your account and replace the flagged document(s) under <strong>My Documents</strong>.
+    </p>
+    ${emailButton({ href: documentsUrl, label: "Update My Documents" })}
+  `;
+  return {
+    subject: "InstaCar — Action Required on Your Account Verification",
+    html: emailWrapper({
+      heading: "Verification Action Required",
+      subheading: "Please review admin remarks and re-upload",
+      content,
+    }),
+    text: `Hello ${safeName}, your InstaCar verification requires an update. Admin Remarks: ${safeRemarks}. Update your documents at ${documentsUrl}.`,
+  };
+}
+
+export function buildDocumentReplacementEmail({
+  name,
+  documentLabel,
+  remarks,
+  documentsUrl = "https://www.instacarbookings.com/user/profile?tab=documents",
+}: {
+  name: string;
+  documentLabel: string;
+  remarks: string;
+  documentsUrl?: string;
+}) {
+  const safeName = name || "Valued Customer";
+  const content = `
+    <p style="font-size: 18px; margin: 0 0 14px 0; color: #ffffff;">Hello <strong>${safeName}</strong>,</p>
+    <p style="color: #cccccc; margin: 0 0 18px 0;">
+      Your submitted document (<strong>${documentLabel}</strong>) was marked as <strong style="color: #fb7185;">Rejected / For Replacement</strong>.
+    </p>
+    <div style="background-color: #1a1a1a; border-left: 4px solid #f43f5e; border-radius: 10px; padding: 18px 20px; margin: 20px 0;">
+      <p style="margin: 0 0 6px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #fb7185; font-weight: 800;">
+        Admin Remark
+      </p>
+      <p style="margin: 0; color: #ffffff; font-size: 14px;">${remarks}</p>
+    </div>
+    ${emailButton({ href: documentsUrl, label: "Replace / Re-upload Document" })}
+  `;
+  return {
+    subject: `InstaCar — Document Replacement Requested (${documentLabel})`,
+    html: emailWrapper({
+      heading: "Document Replacement Needed",
+      subheading: documentLabel,
+      content,
+    }),
+    text: `Hello ${safeName}, please replace your ${documentLabel}. Admin Remark: ${remarks}. Re-upload at ${documentsUrl}.`,
+  };
+}
+
+export function buildBookingPendingVerificationEmail({
+  name,
+  bookingId,
+  carName,
+  startDate,
+  endDate,
+  totalAmount,
+}: {
+  name: string;
+  bookingId: number;
+  carName: string;
+  startDate: string;
+  endDate: string;
+  totalAmount: number;
+}) {
+  const safeName = name || "Valued Customer";
+  const content = `
+    <p style="font-size: 18px; margin: 0 0 14px 0; color: #ffffff;">Hello <strong>${safeName}</strong>,</p>
+    <p style="color: #cccccc; margin: 0 0 18px 0;">
+      <strong>BOOKING SUBMITTED SUCCESSFULLY!</strong> Your booking (<strong>#BK-${bookingId}</strong>) and payment receipt are currently under review by our staff.
+    </p>
+    <div style="background-color: #1a1a1a; border: 1px solid #282828; border-radius: 12px; padding: 18px 20px; margin: 20px 0;">
+      <p style="margin: 0 0 8px 0; color: #ffcc00; font-weight: 800; font-size: 14px;">${carName}</p>
+      <p style="margin: 4px 0; color: #dddddd; font-size: 13px;"><strong>Dates:</strong> ${startDate} to ${endDate}</p>
+      <p style="margin: 4px 0; color: #dddddd; font-size: 13px;"><strong>Estimated Total:</strong> ₱${Number(totalAmount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</p>
+      <p style="margin: 4px 0; color: #fbbf24; font-size: 13px;"><strong>Status:</strong> PENDING VERIFICATION</p>
+    </div>
+    <p style="color: #cccccc; font-size: 13px;">
+      Please wait for our staff to verify your payment and confirm your booking. For faster confirmation, contact us at <strong style="color: #ffcc00;">0991 590 7335 / 0917 554 0394</strong>.
+    </p>
+  `;
+  return {
+    subject: `InstaCar — Booking #BK-${bookingId} Submitted (Pending Verification)`,
+    html: emailWrapper({
+      heading: "Booking Submitted",
+      subheading: `Reference #BK-${bookingId} • Pending Staff Verification`,
+      content,
+    }),
+    text: `BOOKING SUBMITTED SUCCESSFULLY! Your booking #BK-${bookingId} (${carName}, ${startDate} to ${endDate}) is currently PENDING VERIFICATION. For faster confirmation, contact 0991 590 7335 / 0917 554 0394.`,
+  };
+}
+
+export function buildBookingConfirmedByStaffEmail({
+  name,
+  bookingId,
+  carName,
+  startDate,
+  endDate,
+  fulfillmentType,
+}: {
+  name: string;
+  bookingId: number;
+  carName: string;
+  startDate: string;
+  endDate: string;
+  fulfillmentType: string;
+}) {
+  const safeName = name || "Valued Customer";
+  const content = `
+    <p style="font-size: 18px; margin: 0 0 14px 0; color: #ffffff;">Hello <strong>${safeName}</strong>,</p>
+    <p style="color: #cccccc; margin: 0 0 18px 0;">
+      Your booking <strong style="color: #34d399;">#BK-${bookingId}</strong> has been verified and <strong>CONFIRMED</strong> by our staff!
+    </p>
+    <div style="background-color: #1a1a1a; border-left: 4px solid #10b981; border-radius: 12px; padding: 18px 20px; margin: 20px 0;">
+      <p style="margin: 0 0 8px 0; color: #ffcc00; font-weight: 800; font-size: 14px;">${carName}</p>
+      <p style="margin: 4px 0; color: #dddddd; font-size: 13px;"><strong>Rental Period:</strong> ${startDate} to ${endDate}</p>
+      <p style="margin: 4px 0; color: #dddddd; font-size: 13px;"><strong>Fulfillment:</strong> ${fulfillmentType}</p>
+      <p style="margin: 4px 0; color: #34d399; font-size: 13px;"><strong>Status:</strong> CONFIRMED</p>
+    </div>
+    <p style="color: #cccccc; font-size: 13px;">
+      Need any adjustments or delivery coordination? Reach us anytime at <strong style="color: #ffcc00;">0991 590 7335 / 0917 554 0394</strong>.
+    </p>
+  `;
+  return {
+    subject: `InstaCar — Booking #BK-${bookingId} Confirmed!`,
+    html: emailWrapper({
+      heading: "Booking Confirmed",
+      subheading: `Reference #BK-${bookingId} • Ready for Your Trip`,
+      content,
+    }),
+    text: `Hello ${safeName}, your InstaCar booking #BK-${bookingId} (${carName}, ${startDate} to ${endDate}) has been CONFIRMED by our staff!`,
   };
 }
