@@ -801,17 +801,49 @@ export function RentCarFlowDialog({
               </div>
             </div>
 
-            {/* 7. DOCUMENT UPLOADS & HASSLE-FREE VERIFIED ID (Grouped into 2 columns: grid-cols-1 md:grid-cols-2 gap-4) */}
+            {/* 7. DOCUMENT UPLOADS & PROOF OF DOWNPAYMENT */}
             <div className="space-y-3 pt-2">
               <div className="flex items-center gap-2 border-b border-border/60 pb-2">
                 <FileText className="size-4 text-[#b38a00] dark:text-[#ffcc00]" />
                 <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-foreground">
-                  Verification Documents &amp; Proof of Payment
+                  {savedDocs.accountApproved
+                    ? "Proof of Downpayment"
+                    : "Verification Documents & Proof of Downpayment"}
                 </h3>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                {/* PRIMARY ID */}
+              {savedDocs.accountApproved ? (
+                <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-3.5 flex items-center gap-3">
+                  <ShieldCheck className="size-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <div className="min-w-0 text-xs">
+                    <p className="font-extrabold text-foreground">
+                      Verified Account — IDs &amp; Proof of Billing on File
+                    </p>
+                    <p className="text-muted-foreground">
+                      Your identity documents are already approved. Only Proof of Downpayment is required.
+                    </p>
+                  </div>
+                  {savedDocs.primaryIdUrl ? (
+                    <input type="hidden" name="existing_primary_id" value={savedDocs.primaryIdUrl} />
+                  ) : null}
+                  {savedDocs.secondaryIdUrl ? (
+                    <input type="hidden" name="existing_secondary_id" value={savedDocs.secondaryIdUrl} />
+                  ) : null}
+                  {savedDocs.proofBillingUrl ? (
+                    <input type="hidden" name="existing_proof_billing" value={savedDocs.proofBillingUrl} />
+                  ) : null}
+                </div>
+              ) : null}
+
+              <div
+                className={cn(
+                  "grid grid-cols-1 gap-4 items-start",
+                  savedDocs.accountApproved ? "" : "md:grid-cols-2",
+                )}
+              >
+                {!savedDocs.accountApproved ? (
+                  <>
+                    {/* PRIMARY ID */}
               {savedDocs.primaryIdUrl && !replacePrimaryId ? (
                 <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4 sm:p-5 transition">
                   <div className="flex items-center justify-between gap-3">
@@ -989,6 +1021,8 @@ export function RentCarFlowDialog({
                   />
                 </div>
               )}
+                  </>
+                ) : null}
 
               {/* PROOF OF PAYMENT + SCAN QR */}
               <div className="space-y-2 rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-xs">

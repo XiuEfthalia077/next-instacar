@@ -59,26 +59,36 @@ export function MobileBottomBar() {
     pathname.startsWith("/accept-terms") ||
     pathname.startsWith("/auth/");
 
-  // 2. Resolve authentication and active user role (Fetch ONCE on mount to ensure zero lag during navigation)
+  const isPortalRoute =
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/operator") ||
+    pathname.startsWith("/staff") ||
+    pathname.startsWith("/shared") ||
+    pathname.startsWith("/user") ||
+    pathname.startsWith("/profile");
+
+  // 2. Resolve authentication and active user role whenever navigating across auth/portal boundaries
   useEffect(() => {
     if (isAuthRoute) {
       setIsAuthenticated(false);
       return;
     }
 
-    const isPortalRoute =
-      pathname.startsWith("/admin") ||
-      pathname.startsWith("/operator") ||
-      pathname.startsWith("/staff") ||
-      pathname.startsWith("/shared") ||
-      pathname.startsWith("/user");
-
     if (isPortalRoute) {
       setIsAuthenticated(true);
     }
 
+    let cancelled = false;
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user }, error }) => {
+
+    const syncUser = async () => {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+
+      if (cancelled) return;
+
       if (error || !user) {
         if (!isPortalRoute) {
           setIsAuthenticated(false);
@@ -89,31 +99,37 @@ export function MobileBottomBar() {
 
       setIsAuthenticated(true);
 
-      supabase
+      const { data: profile } = await supabase
         .from("users")
         .select("id, name, email, role")
         .eq("auth_id", user.id)
-        .maybeSingle()
-        .then(({ data: profile }) => {
-          if (profile) {
-            setSessionUser({
-              id: profile.id,
-              name: profile.name,
-              email: profile.email,
-              role: profile.role,
-            });
-          } else {
-            setSessionUser({
-              id: user.id,
-              name: user.user_metadata?.name || null,
-              email: user.email || null,
-              role: (user.user_metadata?.role as string) || "user",
-            });
-          }
-        });
-    });
+        .maybeSingle();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (cancelled) return;
+
+      if (profile) {
+        setSessionUser({
+          id: profile.id,
+          name: profile.name,
+          email: profile.email,
+          role: profile.role,
+        });
+      } else {
+        setSessionUser({
+          id: user.id,
+          name: user.user_metadata?.name || null,
+          email: user.email || null,
+          role: (user.user_metadata?.role as string) || "user",
+        });
+      }
+    };
+
+    void syncUser();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (cancelled) return;
       if (!session) {
         if (!isPortalRoute) {
           setIsAuthenticated(false);
@@ -121,16 +137,18 @@ export function MobileBottomBar() {
         }
       } else {
         setIsAuthenticated(true);
+        void syncUser();
       }
     });
 
     return () => {
+      cancelled = true;
       subscription.unsubscribe();
     };
-  }, []); // Run once on mount for instant zero-lag tab clicks!
+  }, [isAuthRoute, isPortalRoute]);
 
-  // If on auth route or definitely unauthenticated, do not render bottom navigation
-  if (isAuthRoute || isAuthenticated === false) {
+  // If on auth route or definitely unauthenticated on non-portal route, do not render bottom navigation
+  if (isAuthRoute || (!isPortalRoute && isAuthenticated === false)) {
     return null;
   }
 
@@ -182,8 +200,16 @@ export function MobileBottomBar() {
     pathname.startsWith("/shared/calendar");
 
   // Determine active route targets for User
-  const isExploreActive = pathname === "/" || pathname === "/user/cars" || pathname.startsWith("/public/cars");
+  const isExploreActive =
+    pathname === "/" ||
+    pathname.startsWith("/user/cars") ||
+    pathname.startsWith("/availability") ||
+    pathname.startsWith("/public/cars");
   const isTripsActive = pathname.startsWith("/user/mybookings");
+  const isProfileActive =
+    profileOpen ||
+    pathname.startsWith("/user/profile") ||
+    pathname.startsWith("/profile");
 
   // Active Tab Pill classes (High contrast in Light Mode & Glowing in Dark Mode)
   const activeTabClass =
@@ -357,10 +383,10 @@ export function MobileBottomBar() {
               }}
               className={cn(
                 "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 text-center transition-all min-w-[58px] min-h-[44px] cursor-pointer",
-                profileOpen ? activeTabClass : inactiveTabClass,
+                isProfileActive ? activeTabClass : inactiveTabClass,
               )}
             >
-              <User className={cn("size-5 shrink-0", profileOpen ? "stroke-[2.5]" : "stroke-2")} />
+              <User className={cn("size-5 shrink-0", isProfileActive ? "stroke-[2.5]" : "stroke-2")} />
               <span className="text-[10px] tracking-tight font-extrabold">Profile</span>
             </button>
           </>
