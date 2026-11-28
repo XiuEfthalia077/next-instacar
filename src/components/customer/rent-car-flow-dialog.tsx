@@ -715,199 +715,90 @@ export function RentCarFlowDialog({
               </div>
             </div>
 
-            {/* 4. FULFILLMENT TYPE (Self Pickup vs Car Delivery) */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-muted-foreground">Fulfillment Type</label>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => setFulfillmentType("pickup")}
-                  className={cn(
-                    "flex items-center gap-3 rounded-xl border p-3 text-left transition",
-                    fulfillmentType === "pickup"
-                      ? "border-[#ffcc00] bg-[#ffcc00]/10 shadow-sm"
-                      : "border-border bg-card hover:border-[#ffcc00]/50",
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "flex size-9 shrink-0 items-center justify-center rounded-lg",
-                      fulfillmentType === "pickup" ? "bg-[#ffcc00] text-black" : "bg-muted text-muted-foreground",
-                    )}
-                  >
-                    <MapPin className="size-5" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-foreground">Self Pickup</p>
-                    <p className="text-[11px] text-muted-foreground">Pickup at office</p>
-                  </div>
-                </button>
+            {/* 4. PICK-UP & DELIVERY (Self Pick-up default; Delivery arranged by contacting office) */}
+            <input type="hidden" name="delivery_address" value={branchAddress} />
+            <input type="hidden" name="return_delivery_address" value={branchAddress} />
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (fulfillmentType !== "Delivery") {
-                      setDeliveryConfirmOpen(true);
-                    }
-                  }}
-                  className={cn(
-                    "flex items-center gap-3 rounded-xl border p-3 text-left transition",
-                    fulfillmentType === "Delivery"
-                      ? "border-[#ffcc00] bg-[#ffcc00]/10 shadow-sm"
-                      : "border-border bg-card hover:border-[#ffcc00]/50",
-                  )}
+            <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 space-y-4 shadow-xs">
+              <div className="flex items-center gap-2 text-sm sm:text-base font-black text-foreground">
+                <MapPin className="size-4.5 text-[#b38a00] dark:text-[#ffcc00] shrink-0" />
+                <span>Pick-up &amp; Delivery</span>
+              </div>
+
+              {/* Self Pick-up (FREE) */}
+              <div className="space-y-1.5 pl-1">
+                <p className="text-xs sm:text-sm font-extrabold text-foreground">
+                  Self Pick-up (FREE)
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Please pick up your vehicle at our designated InstaCar office:
+                </p>
+                <a
+                  href={mapSearchUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#b38a00] dark:text-[#ffcc00] underline hover:opacity-85 transition"
                 >
-                  <div
-                    className={cn(
-                      "flex size-9 shrink-0 items-center justify-center rounded-lg",
-                      fulfillmentType === "Delivery" ? "bg-[#ffcc00] text-black" : "bg-muted text-muted-foreground",
-                    )}
-                  >
-                    <Truck className="size-5" />
+                  <MapPin className="size-3.5 shrink-0" />
+                  <span>{branchAddress}</span>
+                </a>
+              </div>
+
+              <div className="border-t border-border/70" />
+
+              {/* Vehicle Delivery (Contact Office) */}
+              <div className="space-y-2.5 pl-1">
+                <div className="flex items-center gap-2">
+                  <Truck className="size-4.5 text-[#b38a00] dark:text-[#ffcc00] shrink-0" />
+                  <p className="text-xs sm:text-sm font-extrabold text-foreground">
+                    Vehicle Delivery (Additional Fee)
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Vehicle delivery to your preferred location is available for an additional fee:
+                </p>
+                <ul className="space-y-1 text-xs text-foreground/90 pl-4 list-disc">
+                  <li>
+                    <strong>Within Iloilo City:</strong> ₱300 – ₱500 per way (during office hours).
+                  </li>
+                  <li>
+                    <strong>Outside Iloilo City:</strong> Additional charges apply depending on the location and distance.
+                  </li>
+                </ul>
+
+                <div className="flex items-start gap-2.5 rounded-xl border border-border/80 bg-muted/30 p-3 text-xs">
+                  <PhoneCall className="size-4 text-[#b38a00] dark:text-[#ffcc00] shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground leading-snug">
+                      For delivery arrangements and exact quotations, please contact our team before confirming your booking:
+                    </p>
+                    <p className="text-xs sm:text-sm font-black text-[#b38a00] dark:text-[#ffcc00]">
+                      <a href="tel:09915907335" className="hover:underline">0991 590 7335</a>
+                      {" / "}
+                      <a href="tel:09175540394" className="hover:underline">0917 554 0394</a>
+                    </p>
                   </div>
-                  <div>
-                    <p className="text-xs font-bold text-foreground">Car Delivery</p>
-                    <p className="text-[11px] text-muted-foreground">Deliver to location</p>
-                  </div>
-                </button>
+                </div>
+
+                <p className="text-[11px] italic text-muted-foreground text-center">
+                  Note: Vehicle delivery is subject to availability and confirmation.
+                </p>
               </div>
             </div>
 
-            {/* 5. ADDRESS BLOCK: CONDITIONAL PICKUP OR DELIVERY */}
-            {fulfillmentType === "Delivery" ? (
-              <div className="rounded-2xl border border-[#ffcc00]/40 bg-card p-4 sm:p-5 space-y-3 shadow-xs">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 text-sm font-extrabold text-[#b38a00] dark:text-[#ffcc00] uppercase tracking-wide">
-                    <Truck className="size-4.5" />
-                    <span>Car Delivery Address *</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMapTarget("delivery");
-                      setMapDialogOpen(true);
-                    }}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-[#ffcc00] bg-[#ffcc00]/10 px-3.5 py-1.5 text-xs font-bold text-[#b38a00] dark:text-[#ffcc00] hover:bg-[#ffcc00]/20 transition shadow-xs cursor-pointer"
-                  >
-                    <MapPin className="size-3.5 stroke-[2.5]" />
-                    <span>Pin on Interactive Map</span>
-                  </button>
-                </div>
-                <textarea
-                  id="delivery_address_field"
-                  name="delivery_address"
-                  rows={2}
-                  required
-                  value={deliveryAddress}
-                  onChange={(e) => setDeliveryAddress(e.target.value)}
-                  placeholder="Enter complete street address, landmark, subdivision, hotel or delivery instructions..."
-                  className="w-full min-h-[56px] rounded-xl border border-border bg-muted/30 p-3 text-sm text-foreground outline-none transition focus:border-[#ffcc00] focus:ring-1 focus:ring-[#ffcc00]/50 placeholder:text-muted-foreground/60"
-                />
-                <div className="flex items-start gap-2.5 rounded-xl border border-[#ffcc00] bg-[#ffcc00]/15 p-3.5 text-xs text-neutral-900 dark:text-neutral-100 shadow-xs">
-                  <PhoneCall className="size-4 text-[#b38a00] dark:text-[#ffcc00] shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-extrabold block text-foreground mb-0.5">Delivery &amp; Pickup Fee Notice</span>
-                    <span>Delivery and pickup fees are negotiated manually to ensure the best rate. Please call or text our staff to arrange this:{" "}
-                      <a href="tel:09915907335" className="font-bold underline text-[#b38a00] dark:text-[#ffcc00]">(0991) 590 7335</a> or{" "}
-                      <a href="tel:09175540394" className="font-bold underline text-[#b38a00] dark:text-[#ffcc00]">09175540394</a>.
-                    </span>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                  <MapPin className="size-3.5 text-[#ffcc00] shrink-0" />
-                  <span>Our staff will deliver the vehicle directly to this address before your rental start time.</span>
+            {/* 5. CAR WASHING FEE NOTICE */}
+            <div className="flex items-start gap-3 rounded-2xl border border-[#ffcc00]/60 bg-[#ffcc00]/10 p-3.5 sm:p-4 text-xs">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#ffcc00]/20 text-[#b38a00] dark:text-[#ffcc00]">
+                <Truck className="size-5" />
+              </div>
+              <div className="space-y-0.5">
+                <p className="font-black text-[#b38a00] dark:text-[#ffcc00] text-xs sm:text-sm">
+                  Car Washing Fee
+                </p>
+                <p className="text-foreground/90 leading-relaxed">
+                  A <strong>₱200.00</strong> washing fee will be charged if the vehicle is returned not washed.
                 </p>
               </div>
-            ) : (
-              <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 space-y-3 shadow-xs">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-muted-foreground uppercase tracking-wider">
-                    <MapPin className="size-4 text-[#ffcc00]" />
-                    <span>Pickup Address (Branch Location)</span>
-                  </div>
-                  <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                    Auto-Filled
-                  </span>
-                </div>
-                <input type="hidden" name="delivery_address" value={branchAddress} />
-                <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/40 p-3.5">
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#ffcc00]/20 text-[#ffcc00]">
-                    <MapPin className="size-4.5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2 mb-0.5">
-                      <span className="text-[10px] font-extrabold uppercase text-muted-foreground">
-                        Pickup Location
-                      </span>
-                      <a
-                        href={mapSearchUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs font-bold text-[#b38a00] dark:text-[#ffcc00] hover:underline"
-                      >
-                        <span>↗ View on Google Maps</span>
-                      </a>
-                    </div>
-                    <p className="text-sm font-bold text-foreground">{branchAddress}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">🏢 {branchName}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* 6. RETURN ADDRESS BLOCK */}
-            <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 space-y-3 shadow-xs">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <Label htmlFor="return_address_field" className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
-                  <MapPin className="size-4 text-[#ffcc00]" />
-                  <span>Custom Return Address</span>
-                </Label>
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMapTarget("return");
-                      setMapDialogOpen(true);
-                    }}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-[#ffcc00] bg-[#ffcc00]/10 px-3.5 py-1.5 text-xs font-bold text-[#b38a00] dark:text-[#ffcc00] hover:bg-[#ffcc00]/20 transition shadow-xs cursor-pointer"
-                  >
-                    <MapPin className="size-3.5 stroke-[2.5]" />
-                    <span>Pin on Interactive Map</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setReturnAddress(branchAddress)}
-                    className="text-xs font-bold text-muted-foreground hover:text-foreground hover:underline cursor-pointer transition"
-                  >
-                    Use Branch Address
-                  </button>
-                </div>
-              </div>
-              <textarea
-                id="return_address_field"
-                name="return_address"
-                rows={2}
-                value={returnAddress}
-                onChange={(e) => setReturnAddress(e.target.value)}
-                placeholder="Enter address for vehicle return / collection..."
-                className="w-full min-h-[56px] rounded-xl border border-border bg-muted/30 p-3 text-sm text-foreground outline-none transition focus:border-[#ffcc00] focus:ring-1 focus:ring-[#ffcc00]/50 placeholder:text-muted-foreground/60"
-              />
-              <input type="hidden" name="return_delivery_address" value={returnAddress} />
-              {returnAddress && returnAddress !== branchAddress && (
-                <div className="flex items-start gap-2.5 rounded-xl border border-[#ffcc00] bg-[#ffcc00]/15 p-3.5 text-xs text-neutral-900 dark:text-neutral-100 shadow-xs">
-                  <PhoneCall className="size-4 text-[#b38a00] dark:text-[#ffcc00] shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-extrabold block text-foreground mb-0.5">Return Fee Notice</span>
-                    <span>Delivery and pickup fees are negotiated manually to ensure the best rate. Please call or text our staff to arrange this:{" "}
-                      <a href="tel:09915907335" className="font-bold underline text-[#b38a00] dark:text-[#ffcc00]">(0991) 590 7335</a> or{" "}
-                      <a href="tel:09175540394" className="font-bold underline text-[#b38a00] dark:text-[#ffcc00]">09175540394</a>.
-                    </span>
-                  </div>
-                </div>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Specify where the vehicle will be returned or collected at the end of the rental.
-              </p>
             </div>
 
             {/* 7. DOCUMENT UPLOADS & HASSLE-FREE VERIFIED ID (Grouped into 2 columns: grid-cols-1 md:grid-cols-2 gap-4) */}
@@ -1122,9 +1013,13 @@ export function RentCarFlowDialog({
                   required
                   helperText="Click or drag to upload payment receipt / confirmation screenshot"
                 />
-                <div className="flex flex-wrap items-center justify-between gap-1 text-[11px] text-muted-foreground pt-0.5">
-                  <span>Attach payment receipt screenshot.</span>
-                  <span className="font-bold text-rose-500 shrink-0">Min down payment: ₱500</span>
+                <div className="flex items-start gap-2 rounded-xl border border-[#ffcc00]/60 bg-[#ffcc00]/10 p-3 text-[11px] text-foreground/90">
+                  <AlertCircle className="size-4 text-[#b38a00] dark:text-[#ffcc00] shrink-0 mt-0.5" />
+                  <p className="leading-relaxed">
+                    <strong className="text-[#b38a00] dark:text-[#ffcc00]">Note:</strong> A minimum downpayment of at least{" "}
+                    <strong className="text-[#b38a00] dark:text-[#ffcc00]">₱500.00</strong> is required. The downpayment is{" "}
+                    <strong className="text-[#b38a00] dark:text-[#ffcc00]">non-refundable</strong> in case of cancellation or change of schedule.
+                  </p>
                 </div>
               </div>
             </div>
